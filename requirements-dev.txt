@@ -1,0 +1,9 @@
+# Development Tools
+black==23.12.1
+flake8==7.0.0
+mypy==1.8.0
+ipython==8.19.0
+jupyter==1.0.0
+
+# Include base requirements
+-r requirements.txt
