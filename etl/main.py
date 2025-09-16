@@ -69,5 +69,27 @@ def check_status():
     # TODO Add more status checks (e.g., last successful run, data freshness)
 
 
+@cli.command('init-db')
+@click.option('--metadata-only', is_flag=True, help='Only create metadata tables')
+def init_database(metadata_only):
+    """Initializ database schema"""
+    from src.database.schema import SchemaManager
+
+    schema_manager = SchemaManager()
+
+    if metadata_only:
+        logger.info('Creating ETL metadata tables only')
+        if schema_manager.create_metadata_tables():
+            click.echo("Metadata table created")
+        else:
+            click.echo("Failed to create metadata tables")
+    else:
+        logger.info('Creating all database tables')
+        if schema_manager.create_all_tables():
+            click.echo("✓ All tables created successfully")
+        else:
+            click.echo("✗ Failed to create all tables")
+
+
 if __name__ == "__main__":
     cli()
