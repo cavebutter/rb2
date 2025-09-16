@@ -2,8 +2,9 @@
 from sqlalchemy import text, inspect
 from loguru import logger
 from .connection import db
-class StagingTableManager:
 
+
+class StagingTableManager:
     def __init__(self, connection=None):
         self.db = connection or db
         self.inspector = inspect(self.db.engine)
@@ -87,3 +88,25 @@ class StagingTableManager:
             'staging_table': staging_table,
             'target_table': target_table
         }
+
+
+    def get_staging_tables(self):
+        """List all staging tables in database"""
+        sql_text = text("""
+        SELECT tablename FROM pg_tables
+        WHERE tablename LIKE 'staging_%'
+        ORDER BY tablename
+        """)
+
+        with self.db.get_session() as session:
+            results = session.execute(sql).fetchall()
+            return [r[0] for r in results]
+
+
+    def cleanup_staging_tables(self, pattern: str = 'staging_%'):
+        """Remove all staging tables matching pattern"""
+        staging_tables = self.get_staging_tables()
+        for table in staging_tables:
+            if table.startswith(pattern.replace('%', '')):
+                self.drop_staging_table(table)
+        logger.info(f"Cleaned up {len(staging_tables)} staging tables")
