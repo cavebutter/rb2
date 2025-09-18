@@ -47,83 +47,50 @@ CREATE TABLE IF NOT EXISTS cities (
     city_id INTEGER PRIMARY KEY,
     nation_id INTEGER NOT NULL,
     state_id INTEGER,
-    name VARCHAR(50) NOT NULL,
+    name VARCHAR(100) NOT NULL,
     abbreviation VARCHAR(50),
-    latitude DECIMAL(10,7),
-    longitude DECIMAL(11,7),
     population INTEGER,
     main_language_id INTEGER,
     FOREIGN KEY (nation_id) REFERENCES nations(nation_id)
 );
 
--- Parks/Stadiums (extensive fields from OOTP)
-CREATE TABLE IF NOT EXISTS parks (
-    park_id INTEGER PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    nation_id INTEGER,
-    capacity INTEGER,
-    type SMALLINT,
-    foul_ground SMALLINT,
-    turf SMALLINT,
-    gender INTEGER,
-    -- Field dimensions
-    dimensions_x SMALLINT,
-    dimensions_y SMALLINT,
-    distances_0 SMALLINT,
-    distances_1 SMALLINT,
-    distances_2 SMALLINT,
-    distances_3 SMALLINT,
-    distances_4 SMALLINT,
-    distances_5 SMALLINT,
-    distances_6 SMALLINT,
-    wall_heights_0 SMALLINT,
-    wall_heights_1 SMALLINT,
-    wall_heights_2 SMALLINT,
-    wall_heights_3 SMALLINT,
-    wall_heights_4 SMALLINT,
-    wall_heights_5 SMALLINT,
-    wall_heights_6 SMALLINT,
-    -- Park factors
-    avg DECIMAL(4,3),
-    avg_l DECIMAL(4,3),
-    avg_r DECIMAL(4,3),
-    d DECIMAL(4,3),
-    t DECIMAL(4,3),
-    hr DECIMAL(4,3),
-    hr_l DECIMAL(4,3),
-    hr_r DECIMAL(4,3),
-    -- Weather and other
-    wind SMALLINT,
-    wind_direction SMALLINT,
-    temperature_0 SMALLINT,
-    temperature_1 SMALLINT,
-    temperature_2 SMALLINT,
-    temperature_3 SMALLINT,
-    temperature_4 SMALLINT,
-    temperature_5 SMALLINT,
-    temperature_6 SMALLINT,
-    temperature_7 SMALLINT,
-    temperature_8 SMALLINT,
-    temperature_9 SMALLINT,
-    temperature_10 SMALLINT,
-    temperature_11 SMALLINT,
-    rain_0 SMALLINT,
-    rain_1 SMALLINT,
-    rain_2 SMALLINT,
-    rain_3 SMALLINT,
-    rain_4 SMALLINT,
-    rain_5 SMALLINT,
-    rain_6 SMALLINT,
-    rain_7 SMALLINT,
-    rain_8 SMALLINT,
-    rain_9 SMALLINT,
-    rain_10 SMALLINT,
-    rain_11 SMALLINT,
-    picture VARCHAR(200),
-    picture_night VARCHAR(200),
-    home_team_dugout_is_at_first_base SMALLINT,
-    FOREIGN KEY (nation_id) REFERENCES nations(nation_id)
-);
+-- Parks/Stadiums (Simplified essential fields only)
+DROP TABLE IF EXISTS parks CASCADE;
+  CREATE TABLE parks (
+      park_id INTEGER PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      nation_id INTEGER,
+      capacity INTEGER,
+      type SMALLINT,
+      foul_ground SMALLINT,
+      turf SMALLINT,
+
+      -- Key outfield distances (match CSV: distances0, distances1, etc.)
+      distances0 SMALLINT,
+      distances1 SMALLINT,
+      distances2 SMALLINT,
+      distances3 SMALLINT,
+      distances4 SMALLINT,
+      distances5 SMALLINT,
+      distances6 SMALLINT,
+
+      -- Wall heights (match CSV: wall_heights0, wall_heights1, etc.)
+      wall_heights0 SMALLINT,
+      wall_heights1 SMALLINT,
+      wall_heights2 SMALLINT,
+      wall_heights3 SMALLINT,
+      wall_heights4 SMALLINT,
+      wall_heights5 SMALLINT,
+      wall_heights6 SMALLINT,
+
+      -- Park factors (match CSV exactly)
+      avg DECIMAL(6,4),
+      d DECIMAL(6,4),
+      t DECIMAL(6,4),
+      hr DECIMAL(6,4),
+
+      FOREIGN KEY (nation_id) REFERENCES nations(nation_id)
+  );
 
 -- League hierarchy
 CREATE TABLE IF NOT EXISTS leagues (
@@ -140,7 +107,7 @@ CREATE TABLE IF NOT EXISTS leagues (
     historical_year SMALLINT,
     league_level SMALLINT,
     league_state SMALLINT,
-    current_date DATE,
+    current_lg_date DATE,
     background_color_id VARCHAR(8),
     text_color_id VARCHAR(8),
     FOREIGN KEY (nation_id) REFERENCES nations(nation_id)

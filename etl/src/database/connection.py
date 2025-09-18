@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from loguru import logger
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
 class DatabaseConnection:
@@ -71,7 +72,8 @@ class DatabaseConnection:
     def execute_sql(self, sql, params=None):
         """Execute raw SQL query"""
         with self.engine.connect() as conn:
-            result = conn.execute(text(sql), params or {})
+            # Assume sql is already properly formatted (either as text or string)
+            result = conn.execute(sql, params or {})
             conn.commit()
             return result
 

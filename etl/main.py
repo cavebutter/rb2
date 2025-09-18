@@ -91,5 +91,68 @@ def init_database(metadata_only):
             click.echo("✗ Failed to create all tables")
 
 
+@cli.command('load-reference')
+@click.option('--file', '-f', help="Specific CSV file to load")
+@click.option('--force', is_flag=True, help="Force reload even if unchanged")
+def load_reference_data(file, force):
+    """Load reference data tables"""
+    from src.loaders.reference_loader import ReferenceLoader
+    from src.database.connection import db
+    from pathlib import Path
+    import uuid
+    from sqlalchemy import text
+
+    # Start a batch
+    batch_id = str(uuid.uuid4())
+    batch_sql = text("""
+        INSERT INTO etl_batch_runs (batch_id, batch_type, triggered_by, environment, status)
+        VALUES (:batch_id, :batch_type, :triggered_by, :environment, :status)
+        """)
+
+    db.execute_sql(batch_sql, {
+        'batch_id': batch_id,
+        'batch_type': 'incremental',
+        'triggered_by': 'manual',
+        'environment': 'dev',
+        'status': 'running'
+    })
+    # Get data directory
+    data_dir = Path(__file__).parent / "data" / "incoming" / "csv"
+
+    if file:
+        # Load specific file
+        csv_files = [file] if file.endswith('.csv') else [f"{file}.csv"]
+
+    else:
+        # Load all reference files in order
+        csv_files = ReferenceLoader.get_load_order()
+
+    logger.info(f"Loading reference tables: {csv_files}")
+
+    for csv_file in csv_files:
+        csv_path = data_dir / csv_file
+
+        if not csv_path.exists():
+            logger.warning(f"File {csv_path} not found.")
+            continue
+
+        try:
+            loader = ReferenceLoader(csv_path.name, batch_id)
+            if force:
+                # Temporarily override load strategy to full
+                loader.get_load_strategy = lambda: 'full'
+
+            success = loader.load_csv(csv_path)
+
+            if success:
+                click.echo(f"Successfully loaded {csv_path}")
+            else:
+                click.echo(f"Failed to load {csv_path}")
+
+        except Exception as e:
+            logger.error(f"Error loading {csv_path}: {e}")
+            click.echo(f"Error loading {csv_path}: {e}")
+
+
 if __name__ == "__main__":
     cli()

@@ -5,6 +5,8 @@ from loguru import logger
 from .base_loader import BaseLoader
 from ..utils.checksum import calculate_file_checksum
 from sqlalchemy import text
+from typing import Optional, Dict
+
 
 
 class ReferenceLoader(BaseLoader):
@@ -30,7 +32,17 @@ class ReferenceLoader(BaseLoader):
         'cities.csv': {
             'table': 'cities',
             'primary_keys': ['city_id'],
-            'load_order': 4
+            'load_order': 4,
+            'column_mapping': {
+                'city_id': 'city_id',
+                'nation_id': 'nation_id',
+                'state_id': 'state_id',
+                'name': 'name',
+                'abbreviation': 'abbreviation',
+                'population': 'population',
+                'main_language_id': 'main_language_id'
+                # Excluding latitude and longitude due to bad data
+            }
         },
         'languages.csv': {
             'table': 'languages',
@@ -40,7 +52,34 @@ class ReferenceLoader(BaseLoader):
         'parks.csv': {
             'table': 'parks',
             'primary_keys': ['park_id'],
-            'load_order': 6
+            'load_order': 6,
+            'column_mapping': {
+                'park_id': 'park_id',
+                'name': 'name',
+                'nation_id': 'nation_id',
+                'capacity': 'capacity',
+                'type': 'type',
+                'foul_ground': 'foul_ground',
+                'turf': 'turf',
+                'distances0': 'distances0',
+                'distances1': 'distances1',
+                'distances2': 'distances2',
+                'distances3': 'distances3',
+                'distances4': 'distances4',
+                'distances5': 'distances5',
+                'distances6': 'distances6',
+                'wall_heights0': 'wall_heights0',
+                'wall_heights1': 'wall_heights1',
+                'wall_heights2': 'wall_heights2',
+                'wall_heights3': 'wall_heights3',
+                'wall_heights4': 'wall_heights4',
+                'wall_heights5': 'wall_heights5',
+                'wall_heights6': 'wall_heights6',
+                'avg': 'avg',
+                'd': 'd',
+                't': 't',
+                'hr': 'hr',
+            }
         }
     }
 
@@ -51,7 +90,13 @@ class ReferenceLoader(BaseLoader):
 
         if csv_filename not in self.REFERENCE_TABLES:
             raise ValueError(f"Unknown reference table CSV: {csv_filename}")
+        self.config = self.REFERENCE_TABLES[csv_filename]
         self.table_name = self.config['table']
+
+
+    def get_column_mapping(self) -> Optional[Dict[str, str]]:
+        """Return column mapping if defined in config"""
+        return self.config.get('column_mapping')
 
 
     def get_load_strategy(self) -> str:
@@ -77,7 +122,7 @@ class ReferenceLoader(BaseLoader):
         current_checksum = calculate_file_checksum(csv_path)
 
         # Get stored checksum from metadata
-        stored_checksum = self.get_stored_checksum(csv_path.name)
+        stored_checksum = self._get_stored_checksum(csv_path.name)
 
         if stored_checksum and current_checksum == stored_checksum:
             logger.info(f"File {csv_path.name} unchanged (checksum: {current_checksum[:8]}...")
@@ -95,7 +140,7 @@ class ReferenceLoader(BaseLoader):
 
 
     def _get_stored_checksum(self, filename: str) -> str:
-        """Get stored checksum from metagata table"""
+        """Get stored checksum from metadata table"""
         sql = text("""
         SELECT checksum
         FROM etl_file_metadata
@@ -111,7 +156,7 @@ class ReferenceLoader(BaseLoader):
         """Update stored checksum in metadata table"""
         sql = text(f"""INSERT INTO etl_file_metadata (filename, checksum, load_strategy, last_processed)
         VALUES (:filename, :checksum, :strategy, CURRENT_TIMESTAMP)
-        ON CONFLICT DO UPDATE SET
+        ON CONFLICT (filename) DO UPDATE SET
         checksum = EXCLUDED.checksum,
         last_processed = EXCLUDED.last_processed""")
 

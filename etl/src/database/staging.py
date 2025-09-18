@@ -1,8 +1,9 @@
-"""Staging table management for ETL pipline"""
+"""Staging table management for ETL pipeline"""
+from pandas.core.interchange.dataframe_protocol import DataFrame
 from sqlalchemy import text, inspect
 from loguru import logger
 from .connection import db
-
+import pandas as pd
 
 class StagingTableManager:
     def __init__(self, connection=None):
@@ -24,7 +25,7 @@ class StagingTableManager:
             CREATE TABLE {staging_table} (LIKE {source_table} INCLUDING ALL)""")
             self.db.execute_sql(sql)
             logger.success(f"Successfully created staging table: {staging_table}")
-            return True
+            return staging_table
 
         except Exception as e:
             logger.error(f"Error creating staging table {staging_table}: {e}")
@@ -45,10 +46,10 @@ class StagingTableManager:
                 column_defs.append(f"{col_name} {col_type}")
 
             # Create SQL
-            sql = f"""
+            sql = text(f"""
                 CREATE TABLE {staging_table} (
                     {', '.join(column_defs)}
-                )"""
+                )""")
             self.db.execute_sql(sql)
             logger.success(f"Successfully created staging table: {staging_table}")
             return staging_table
@@ -59,7 +60,7 @@ class StagingTableManager:
 
 
     def analyze_staging_changes(self, staging_table: str, target_table: str, key_columns: list):
-        """Analyze differences between staging and target tbles"""
+        """Analyze differences between staging and target tables"""
         logger.info(f"Analyzing changes between {staging_table} and {target_table}")
         key_join = ' AND '.join([f"s.{col} = t.{col}" for col in key_columns])
 
@@ -75,7 +76,7 @@ class StagingTableManager:
         changed_records_sql = text(f"""
         SELECT COUNT(*) FROM {staging_table} s
         INNER JOIN {target_table} t ON {key_join}
-        WHERE s != t --this needs proper column-wise comparison""")
+        WHERE s != t""")
 
         with self.db.get_session() as session:
             new_count = session.execute(new_records_sql).scalar()
@@ -99,7 +100,7 @@ class StagingTableManager:
         """)
 
         with self.db.get_session() as session:
-            results = session.execute(sql).fetchall()
+            results = session.execute(sql_text).fetchall()
             return [r[0] for r in results]
 
 
@@ -110,3 +111,37 @@ class StagingTableManager:
             if table.startswith(pattern.replace('%', '')):
                 self.drop_staging_table(table)
         logger.info(f"Cleaned up {len(staging_tables)} staging tables")
+
+    def drop_staging_table(self, staging_table: str):
+        """Drop staging table if exists"""
+        try:
+            sql = text(f"DROP TABLE IF EXISTS {staging_table} CASCADE")
+            self.db.execute_sql(sql)
+            logger.debug(f"Dropped staging table: {staging_table}")
+        except Exception as e:
+            logger.warning(f"Error dropping staging table {staging_table}: {e}")
+
+    def copy_csv_to_staging(self, csv_path: str, staging_table: str, delimiter: str = ',', df: DataFrame = None):
+        """Copy CSV data into staging table using pandas"""
+        logger.info(f"Loading CSV data from {csv_path} into {staging_table}")
+        try:
+            # Use provided df or read from CSV
+            if df is None:
+                df = pd.read_csv(csv_path, delimiter=delimiter)
+
+            # Use pandas to_sql for bulk insert
+            with self.db.engine.connect() as conn:
+                rows_affected = df.to_sql(
+                    staging_table,
+                    conn,
+                    if_exists='append',
+                    index=False,
+                    method='multi',
+                    chunksize=1000
+                )
+            logger.success(f"Loaded {len(df)} rows into {staging_table}")
+            return len(df)
+
+        except Exception as e:
+            logger.error(f"Error loading CSV into {staging_table}: {e}")
+            raise

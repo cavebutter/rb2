@@ -61,7 +61,7 @@ echo "Syncing OOTP CSV data from game machine..."
 echo "Source: ${GAME_MACHINE}:\"${REMOTE_DATA_PATH}/\""
 echo "Target: ${LOCAL_DATA}/"
 
-rsync -avz --delete --dry-run --progress --stats \
+rsync -avz --delete --progress --stats \
     "${GAME_MACHINE}:${REMOTE_DATA_PATH}/" \
     "${LOCAL_DATA}/"
 
@@ -73,7 +73,7 @@ echo "Syncing player pictures..."
 echo "Source: ${GAME_MACHINE}:\"${REMOTE_PICTURES_PATH}/\""
 echo "Target: ${LOCAL_PICTURES}/"
 
-rsync -avz --update --progress --stats --dry-run \
+rsync -avz --update --progress --stats \
     "${GAME_MACHINE}:${REMOTE_PICTURES_PATH}/" \
     "${LOCAL_PICTURES}/"
 

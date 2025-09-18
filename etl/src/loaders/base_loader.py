@@ -40,6 +40,11 @@ class BaseLoader(ABC):
         pass
 
     @abstractmethod
+    def get_column_mapping(self) -> Optional[Dict[str, str]]:
+        """Return a mapping of CSV columns to database columns, if any."""
+        pass
+
+
     def load_csv(self, csv_path: Path) -> bool:
         """Load data from a CSV file."""
         target_table = self.get_target_table()
@@ -50,19 +55,21 @@ class BaseLoader(ABC):
             self._record_file_start(csv_path)
 
             if strategy == 'skip':
-                return self.handle_skip_strategy(csv_path)
+                return self._handle_skip_strategy(csv_path)
             elif strategy == 'full':
-                return self.handle_full_load(csv_path)
+                return self._handle_full_load(csv_path)
             elif strategy == 'incremental':
-                return self.handle_incremental_load(csv_path)
+                return self._handle_incremental_load(csv_path)
             elif strategy == 'append':
-                return self.handle_append_load(csv_path)
+                return self._handle_append_load(csv_path)
             else:
                 raise ValueError(f"Unknown load strategy: {strategy}")
         except Exception as e:
+            import traceback
             logger.error(f"Error loading {csv_path}: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             self.stats['errors'].append(str(e))
-            self._record_file_commpletion(csv_path, 'failed', str(e))
+            self._record_file_completion(csv_path, 'failed', str(e))
             return False
 
 
@@ -73,19 +80,37 @@ class BaseLoader(ABC):
         self._record_file_completion(csv_path, 'skipped')
         return True
 
-
     def _handle_full_load(self, csv_path: Path) -> bool:
         """Handle full load - truncate and reload"""
         target_table = self.get_target_table()
         staging_table = f"staging_{target_table}"
 
-        # Create staging table
-        df = pd.read_csv(csv_path, nrows=5)  # Read a few rows to infer schema
-        columns = self._infer_column_types(df)
+        # Check if column mapping exists
+        column_mapping = self.get_column_mapping()
+
+        # Read CSV
+        df = pd.read_csv(csv_path)
+
+        # Apply column filtering if mapping exists
+        if column_mapping:
+            csv_columns = list(column_mapping.keys())
+            df_filtered = df[csv_columns]
+
+            # Rename columns if needed
+            df_filtered = df_filtered.rename(columns=column_mapping)
+
+            # Use filtered dataframe
+            df_to_load = df_filtered
+        else:
+            # Use original dataframe
+            df_to_load = df
+
+        # Create staging table based on filtered columns
+        columns = self._infer_column_types(df_to_load)
         self.staging_mgr.create_staging_from_csv_structure(target_table, columns)
 
-        # Load data into staging table
-        row_count = self.staging_mgr.copy_csv_to_staging(str(csv_path), staging_table)
+        # Load data into staging table - pass the filtered df
+        row_count = self.staging_mgr.copy_csv_to_staging(str(csv_path), staging_table, df=df_to_load)
         self.stats['rows_read'] = row_count
 
         # Truncate target and insert from staging
@@ -97,11 +122,10 @@ class BaseLoader(ABC):
                 """))
             self.stats['rows_inserted'] = row_count
 
-        # Cleanup
+        # Cleanup staging table
         self.staging_mgr.drop_staging_table(staging_table)
         self._record_file_completion(csv_path, 'success')
         return True
-
 
     def _handle_incremental_load(self, csv_path: Path) -> bool:
         """Handle incremental load - only insert/update changed records"""
@@ -118,7 +142,7 @@ class BaseLoader(ABC):
 
 
     def _infer_column_types(self, df: pd.DataFrame) -> Dict[str, str]:
-        """Infer PostreSQL column types from DataFrame dtypes"""
+        """Infer PostgreSQL column types from DataFrame dtypes"""
         type_mapping = {
             'int64': 'BIGINT',
             'float64': 'DOUBLE PRECISION',
@@ -138,11 +162,12 @@ class BaseLoader(ABC):
     def _record_file_start(self, csv_path: Path):
         """Record file processing start in metadata"""
         sql = text("""
-        UPDATE etl_file_metadata
-        SET last_status = 'in_progress',
+        INSERT INTO etl_file_metadata (filename, last_status, last_batch_id, last_processed)
+        VALUES (:filename, 'in_progress', :batch_id, CURRENT_TIMESTAMP)
+        ON CONFLICT (filename) DO UPDATE SET
+        last_status = 'in_progress',
         last_batch_id = :batch_id,
         last_processed = CURRENT_TIMESTAMP
-        WHERE filename = :filename
         """)
 
         self.db.execute_sql(sql, {
@@ -154,19 +179,20 @@ class BaseLoader(ABC):
     def _record_file_completion(self, csv_path: Path, status: str, error: str = None):
         """Record file processing completion in metadata"""
         sql = text("""
-            UPDATE etl_file_metadata
-            SET last_status = :status,
-            rows_inserted = :rows_inserted,
+            INSERT INTO etl_file_metadata (filename, last_status, rows_processed, rows_updated, rows_deleted, error_message, processing_time_seconds)
+            VALUES (:filename, :status, :rows_processed, :rows_updated, :rows_deleted, :error_message, 0)
+            ON CONFLICT (filename) DO UPDATE SET
+            last_status = :status,
+            rows_processed = :rows_processed,
             rows_updated = :rows_updated,
             rows_deleted = :rows_deleted,
             error_message = :error_message,
-            processing_time_seconds = EXTRACT(EPOCH FROM CURRENT_TIMESTAMP - last_processed)
-            
+            processing_time_seconds = EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - etl_file_metadata.last_processed))         
             """)
         self.db.execute_sql(sql, {
             'filename': csv_path.name,
             'status': status,
-            'rows_inserted': self.stats['rows_inserted'],
+            'rows_processed': self.stats['rows_inserted'],
             'rows_updated': self.stats['rows_updated'],
             'rows_deleted': self.stats['rows_deleted'],
             'error_message': error
