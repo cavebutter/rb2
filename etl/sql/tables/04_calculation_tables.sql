@@ -50,6 +50,13 @@ CREATE TABLE IF NOT EXISTS run_values (
     FOREIGN KEY (league_id, sub_league_id) 
         REFERENCES sub_leagues(league_id, sub_league_id)
 );
+ALTER TABLE run_values
+    ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS calculated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE run_values DROP CONSTRAINT run_values_pkey;
+ALTER TABLE run_values
+   ADD PRIMARY KEY (year, league_id, sub_league_id, version);
+
 
 -- FIP constant for pitching calculations (replaces FIPConstant)
 CREATE TABLE IF NOT EXISTS fip_constants (
@@ -66,6 +73,13 @@ CREATE TABLE IF NOT EXISTS fip_constants (
     PRIMARY KEY (year, league_id),
     FOREIGN KEY (league_id) REFERENCES leagues(league_id)
 );
+ALTER TABLE fip_constants
+    ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS calculated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE fip_constants DROP CONSTRAINT fip_constants_pkey;
+ALTER TABLE fip_constants
+    ADD PRIMARY KEY (year, league_id, version);
+
 
 -- Sub-league batting environment (replaces sub_league_history_batting)
 CREATE TABLE IF NOT EXISTS sub_league_batting_environment (

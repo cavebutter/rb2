@@ -52,6 +52,10 @@ CREATE TABLE IF NOT EXISTS players_career_batting_stats (
     FOREIGN KEY (team_id) REFERENCES teams(team_id),
     FOREIGN KEY (league_id) REFERENCES leagues(league_id)
 );
+ALTER TABLE players_career_batting_stats
+ADD COLUMN IF NOT EXISTS sub_league_id INTEGER,
+ADD COLUMN IF NOT EXISTS constants_version INTEGER,
+ADD COLUMN IF NOT EXISTS last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 -- Players career pitching stats (from players_career_pitching_stats.csv)
 CREATE TABLE IF NOT EXISTS players_career_pitching_stats (
@@ -127,6 +131,10 @@ CREATE TABLE IF NOT EXISTS players_career_pitching_stats (
     FOREIGN KEY (team_id) REFERENCES teams(team_id),
     FOREIGN KEY (league_id) REFERENCES leagues(league_id)
 );
+ALTER TABLE players_career_pitching_stats
+ADD COLUMN IF NOT EXISTS sub_league_id INTEGER,
+ADD COLUMN IF NOT EXISTS constants_version INTEGER,
+ADD COLUMN IF NOT EXISTS last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 -- Players career fielding stats (from players_career_fielding_stats.csv)
 CREATE TABLE IF NOT EXISTS players_career_fielding_stats (
