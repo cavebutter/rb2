@@ -8,6 +8,7 @@ from loguru import logger
 from dotenv import load_dotenv
 import sys
 from pathlib import Path
+from utils.batch import generate_batch_id
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -152,6 +153,36 @@ def load_reference_data(file, force):
         except Exception as e:
             logger.error(f"Error loading {csv_path}: {e}")
             click.echo(f"Error loading {csv_path}: {e}")
+
+
+@click.command()
+def load_stats():
+    """Load all player statistics"""
+    from src.loaders.players_loader import PlayersLoader
+    from src.loaders.batting_stats_loader import BattingStatsLoader
+    # from src.loaders.pitching_stats_loader import PitchingStatsLoader
+    from sqlalchemy import text
+    # Phase 1 - Load raw data
+    logger.info('Loading players...')
+    players_loader = PlayersLoader(batch_id=generate_batch_id())
+    players_loader.load_csv(Path("data/incoming/csv/players.csv"))
+
+    logger.info('Loading batting stats...')
+    batting_loader = BattingStatsLoader(batch_id=generate_batch_id())
+    batting_loader.load_csv(Path("data/incoming/csv/players_career_batting_stats.csv"))
+
+    logger.info('Loading pitching stats...')
+    # TODO Implement pitching stats loader
+    click.echo("Loading player statistics not yet fully implemented.")
+
+    # Phase 2 - Calculate league constants
+    logger.info('Calculating league constants...')
+    with db.get_session() as session:
+        session.execute(text("SELECT refresh_all_calculations()"))
+        session.commit()
+
+    logger.info("Stats loading complete!")
+cli.add_command(load_stats)
 
 
 if __name__ == "__main__":
