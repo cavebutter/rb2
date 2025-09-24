@@ -35,6 +35,8 @@ class BattingStatsLoader(StatsLoader):
             'woba': 'NULL::DECIMAL(4,3)',
             'wrc': 'NULL::INTEGER',
             'wrc_plus': 'NULL::INTEGER',
+            # Version Tracking for constants calculation
+            'constants_version': 'NULL::INTEGER',
             # Metadata
             'last_updated': 'CURRENT_TIMESTAMP'
         }

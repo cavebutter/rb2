@@ -100,8 +100,6 @@ class PlayersLoader(BaseLoader):
 
         return core_df
 
-
-
     def _prepare_status_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Prepare data for players_current_status table"""
         status_columns = [
@@ -117,7 +115,6 @@ class PlayersLoader(BaseLoader):
         status_df['last_updated'] = pd.Timestamp.now()
 
         return status_df
-
 
     def _prepare_contracts_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Prepare data for players_contracts table"""
@@ -232,34 +229,146 @@ class PlayersLoader(BaseLoader):
 
         return ratings_records
 
-
-
     def _load_core_table(self, core_df: pd.DataFrame, session) -> int:
         """Load data into players_core table"""
         logger.info("Loading players_core table")
-        core_df.to_sql('players_core', self.db.engine, if_exists='append', index=False, method='multi')
-        return len(core_df)
 
+        # Create temporary staging table
+        staging_table = "staging_players_core"
+        core_df.to_sql(staging_table, self.db.engine, if_exists='replace', index=False, method='multi')
+
+        # Perform UPSERT from staging to target
+        upsert_sql = text(f"""
+            INSERT INTO players_core 
+            SELECT * FROM {staging_table}
+            ON CONFLICT (player_id) DO UPDATE SET
+                first_name = EXCLUDED.first_name,
+                last_name = EXCLUDED.last_name,
+                nick_name = EXCLUDED.nick_name,
+                date_of_birth = EXCLUDED.date_of_birth,
+                city_of_birth_id = EXCLUDED.city_of_birth_id,
+                nation_id = EXCLUDED.nation_id,
+                second_nation_id = EXCLUDED.second_nation_id,
+                height = EXCLUDED.height,
+                weight = EXCLUDED.weight,
+                bats = EXCLUDED.bats,
+                throws = EXCLUDED.throws,
+                updated_at = CURRENT_TIMESTAMP;
+
+            DROP TABLE {staging_table};
+        """)
+
+        session.execute(upsert_sql)
+        return len(core_df)
 
     def _load_status_table(self, status_df: pd.DataFrame, session) -> int:
         """Load data into players_current_status table"""
         logger.info("Loading players_current_status table")
-        status_df.to_sql('players_current_status', self.db.engine, if_exists='append', index=False, method='multi')
-        return len(status_df)
 
+        # Create temporary staging table
+        staging_table = "staging_players_current_status"
+        status_df.to_sql(staging_table, self.db.engine, if_exists='replace', index=False, method='multi')
+
+        # Perform UPSERT from staging to target
+        upsert_sql = text(f"""
+            INSERT INTO players_current_status 
+            SELECT * FROM {staging_table}
+            ON CONFLICT (player_id) DO UPDATE SET
+                team_id = EXCLUDED.team_id,
+                league_id = EXCLUDED.league_id,
+                position = EXCLUDED.position,
+                role = EXCLUDED.role,
+                uniform_number = EXCLUDED.uniform_number,
+                age = EXCLUDED.age,
+                retired = EXCLUDED.retired,
+                free_agent = EXCLUDED.free_agent,
+                hall_of_fame = EXCLUDED.hall_of_fame,
+                inducted = EXCLUDED.inducted,
+                turned_coach = EXCLUDED.turned_coach,
+                last_league_id = EXCLUDED.last_league_id,
+                last_team_id = EXCLUDED.last_team_id,
+                organization_id = EXCLUDED.organization_id,
+                last_organization_id = EXCLUDED.last_organization_id,
+                experience = EXCLUDED.experience,
+                hidden = EXCLUDED.hidden,
+                rust = EXCLUDED.rust,
+                local_pop = EXCLUDED.local_pop,
+                national_pop = EXCLUDED.national_pop,
+                draft_protected = EXCLUDED.draft_protected,
+                on_loan = EXCLUDED.on_loan,
+                loan_league_id = EXCLUDED.loan_league_id,
+                loan_team_id = EXCLUDED.loan_team_id,
+                season_year = EXCLUDED.season_year,
+                last_updated = CURRENT_TIMESTAMP;
+            DROP TABLE {staging_table};
+        """)
+
+        session.execute(upsert_sql)
+        return len(status_df)
 
     def _load_contracts_table(self, contracts_df: pd.DataFrame, session) -> int:
         """Load data into players_contracts table"""
         logger.info("Loading players_contracts table")
-        contracts_df.to_sql('players_contracts', self.db.engine, if_exists='append', index=False, method='multi')
+
+        # Create temporary staging table
+        staging_table = "staging_players_contracts"
+        contracts_df.to_sql(staging_table, self.db.engine, if_exists='replace', index=False, method='multi')
+
+        # Perform UPSERT from staging to target
+        upsert_sql = text(f"""
+             INSERT INTO players_contracts 
+             SELECT * FROM {staging_table}
+             ON CONFLICT (player_id, season_year) DO UPDATE SET
+                 team_id = EXCLUDED.team_id,
+                 best_contract_offer_id = EXCLUDED.best_contract_offer_id,
+                 morale = EXCLUDED.morale,
+                 morale_mod = EXCLUDED.morale_mod,
+                 morale_player_performance = EXCLUDED.morale_player_performance,
+                 morale_team_performance = EXCLUDED.morale_team_performance,
+                 morale_team_transactions = EXCLUDED.morale_team_transactions,
+                 morale_team_chemistry = EXCLUDED.morale_team_chemistry,
+                 morale_player_role = EXCLUDED.morale_player_role,
+                 expectation = EXCLUDED.expectation;
+
+             DROP TABLE {staging_table};
+         """)
+
+        session.execute(upsert_sql)
         return len(contracts_df)
 
-    def _load_ratings_table(self, ratings_data: List[Dict], session) -> int:
+    def _load_ratings_table(self, ratings_df: pd.DataFrame, session) -> int:
         """Load data into players_ratings table"""
         logger.info("Loading players_ratings table")
-        ratings_df = pd.DataFrame(ratings_data)
-        ratings_df.to_sql('players_ratings', self.db.engine, if_exists='append', index=False, method='multi')
-        return len(ratings_df)
+
+        # Convert DataFrame to list of dicts if it's a DataFrame
+        if isinstance(ratings_df, pd.DataFrame):
+            ratings_records = ratings_df.to_dict('records')
+        else:
+            # It's already a list of dicts from _prepare_ratings_data
+            ratings_records = ratings_df
+
+        if not ratings_records:
+            logger.warning("No ratings data to load")
+            return 0
+
+        # Insert directly without staging table due to JSONB complexity
+        import json
+        for record in ratings_records:
+            insert_sql = text("""
+                INSERT INTO players_ratings (player_id, season_year, rating_type, ratings)
+                VALUES (:player_id, :season_year, :rating_type, :ratings)
+                ON CONFLICT (player_id, season_year, rating_type) DO UPDATE SET
+                    ratings = EXCLUDED.ratings
+            """)
+
+            session.execute(insert_sql, {
+                'player_id': record['player_id'],
+                'season_year': record['season_year'],
+                'rating_type': record['rating_type'],
+                'ratings': json.dumps(record['ratings'])
+            })
+
+        return len(ratings_records)
 
     def _get_current_season(self) -> int:
         """Get current season from leagues table"""

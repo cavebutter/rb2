@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS players_career_batting_stats (
     wrc INTEGER,
     wrc_plus INTEGER,
     PRIMARY KEY (player_id, year, team_id, split_id, stint),
-    FOREIGN KEY (player_id) REFERENCES players(player_id),
+    FOREIGN KEY (player_id) REFERENCES players_core(player_id),
     FOREIGN KEY (team_id) REFERENCES teams(team_id),
     FOREIGN KEY (league_id) REFERENCES leagues(league_id)
 );
@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS players_career_pitching_stats (
     era_plus INTEGER,
     fip_plus INTEGER,
     PRIMARY KEY (player_id, year, team_id, split_id, stint),
-    FOREIGN KEY (player_id) REFERENCES players(player_id),
+    FOREIGN KEY (player_id) REFERENCES players_core(player_id),
     FOREIGN KEY (team_id) REFERENCES teams(team_id),
     FOREIGN KEY (league_id) REFERENCES leagues(league_id)
 );
@@ -180,7 +180,7 @@ CREATE TABLE IF NOT EXISTS players_career_fielding_stats (
     range_factor DECIMAL(4,2),
     zone_rating DECIMAL(4,3),
     PRIMARY KEY (player_id, year, team_id, position),
-    FOREIGN KEY (player_id) REFERENCES players(player_id),
+    FOREIGN KEY (player_id) REFERENCES players_core(player_id),
     FOREIGN KEY (team_id) REFERENCES teams(team_id),
     FOREIGN KEY (league_id) REFERENCES leagues(league_id)
 );
@@ -225,7 +225,7 @@ CREATE TABLE IF NOT EXISTS players_batting (
     batting_ratings_misc_gb_hitter_type SMALLINT,
     batting_ratings_misc_fb_hitter_type SMALLINT,
     batting_ratings_misc_groundball_pct SMALLINT,
-    FOREIGN KEY (player_id) REFERENCES players(player_id)
+    FOREIGN KEY (player_id) REFERENCES players_core(player_id)
 );
 
 -- Players pitching ratings (from players_pitching.csv)
@@ -288,7 +288,7 @@ CREATE TABLE IF NOT EXISTS players_pitching (
     pitching_ratings_misc_stamina SMALLINT,
     pitching_ratings_misc_ground_fly SMALLINT,
     pitching_ratings_misc_hold SMALLINT,
-    FOREIGN KEY (player_id) REFERENCES players(player_id)
+    FOREIGN KEY (player_id) REFERENCES players_core(player_id)
 );
 
 -- Players fielding ratings (from players_fielding.csv)
@@ -326,7 +326,7 @@ CREATE TABLE IF NOT EXISTS players_fielding (
     fielding_rating_pos_7 SMALLINT,
     fielding_rating_pos_8 SMALLINT,
     fielding_rating_pos_9 SMALLINT,
-    FOREIGN KEY (player_id) REFERENCES players(player_id)
+    FOREIGN KEY (player_id) REFERENCES players_core(player_id)
 );
 
 -- Games (from games.csv)
@@ -356,11 +356,11 @@ CREATE TABLE IF NOT EXISTS games (
     PRIMARY KEY (game_id, date),
     FOREIGN KEY (home_team) REFERENCES teams(team_id),
     FOREIGN KEY (away_team) REFERENCES teams(team_id),
-    FOREIGN KEY (winning_pitcher) REFERENCES players(player_id),
-    FOREIGN KEY (losing_pitcher) REFERENCES players(player_id),
-    FOREIGN KEY (save_pitcher) REFERENCES players(player_id),
-    FOREIGN KEY (starter_0) REFERENCES players(player_id),
-    FOREIGN KEY (starter_1) REFERENCES players(player_id)
+    FOREIGN KEY (winning_pitcher) REFERENCES players_core(player_id),
+    FOREIGN KEY (losing_pitcher) REFERENCES players_core(player_id),
+    FOREIGN KEY (save_pitcher) REFERENCES players_core(player_id),
+    FOREIGN KEY (starter_0) REFERENCES players_core(player_id),
+    FOREIGN KEY (starter_1) REFERENCES players_core(player_id)
 );
 
 -- Create indexes for performance
