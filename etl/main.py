@@ -160,7 +160,7 @@ def load_stats():
     """Load all player statistics"""
     from src.loaders.players_loader import PlayersLoader
     from src.loaders.batting_stats_loader import BattingStatsLoader
-    # from src.loaders.pitching_stats_loader import PitchingStatsLoader
+    from src.loaders.pitching_stats_loader import PitchingStatsLoader
     from sqlalchemy import text
     # Phase 1 - Load raw data
     logger.info('Loading players...')
@@ -172,8 +172,8 @@ def load_stats():
     batting_loader.load_csv(Path("data/incoming/csv/players_career_batting_stats.csv"))
 
     logger.info('Loading pitching stats...')
-    # TODO Implement pitching stats loader
-    click.echo("Loading player statistics not yet fully implemented.")
+    pitching_loader = PitchingStatsLoader(batch_id=generate_batch_id())
+    pitching_loader.load_csv(Path("data/incoming/csv/players_career_pitching_stats.csv"))
 
     # Phase 2 - Calculate league constants
     logger.info('Calculating league constants...')
