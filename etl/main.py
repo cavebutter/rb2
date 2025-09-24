@@ -8,8 +8,8 @@ from loguru import logger
 from dotenv import load_dotenv
 import sys
 from pathlib import Path
-from utils.batch import generate_batch_id
-
+from src.utils.batch import generate_batch_id
+from src.database.schema import db
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 

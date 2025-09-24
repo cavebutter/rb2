@@ -40,7 +40,13 @@ class ReferenceLoader(BaseLoader):
                 'name': 'name',
                 'abbreviation': 'abbreviation',
                 'population': 'population',
-                'main_language_id': 'main_language_id'
+                'main_language_id': 'main_language_id',
+            },
+            'calculated_fields': {
+                'state_id': 'NULLIF(state_id, 0)',
+                 'main_language_id': 'NULLIF(main_language_id, 0)'
+
+
                 # Excluding latitude and longitude due to bad data
             }
         },
@@ -80,8 +86,49 @@ class ReferenceLoader(BaseLoader):
                 't': 't',
                 'hr': 'hr',
             }
+        },
+          'leagues.csv': {
+              'table': 'leagues',
+              'primary_keys': ['league_id'],
+              'load_order': 7,
+              'column_mapping': {
+                  'league_id': 'league_id',
+                  'name': 'name',
+                  'abbr': 'abbr',
+                  'nation_id': 'nation_id',
+                  'language_id': 'language_id',
+                  'logo_file_name': 'logo_file_name',
+                  'parent_league_id': 'parent_league_id',
+                  'league_state': 'league_state',
+                  'season_year': 'season_year',
+                  'league_level': 'league_level',
+              },
+              'calculated_fields': {
+                  'current_date_year': 'EXTRACT(YEAR FROM current_date::date)',
+                  'parent_league_id': 'NULLIF(parent_league_id, 0)'
+              }
+  },
+        'teams.csv': {
+            'table': 'teams',
+            'primary_keys': ['team_id'],
+            'load_order': 8,
+            'calculated_fields': {
+                'parent_team_id': 'NULLIF(parent_team_id, 0)',
+                'city_id': 'NULLIF(city_id, 0)',
+                'park_id': 'NULLIF(park_id, 0)',
+                'league_id': 'NULLIF(league_id, 0)',
+                'sub_league_id': 'NULLIF(sub_league_id, 0)',
+                'division_id': 'NULLIF(division_id, 0)',
+                'nation_id': 'NULLIF(nation_id, 0)',
+                'human_id': 'NULLIF(human_id, 0)',
+        },
+        'team_relations.csv': {
+            'table': 'team_relations',
+            'primary_keys': ['team_id'],
+            'load_order': 9
         }
-    }
+  }
+}
 
 
     def __init__(self, csv_filename: str, batch_id: str = None):
@@ -113,6 +160,17 @@ class ReferenceLoader(BaseLoader):
         """Return the target table name"""
         return self.table_name
 
+    def get_calculated_fields(self) -> Dict[str, str]:
+        """Reference tables don't need calculated fields"""
+        return self.config.get('calculated_fields', {})
+
+    def get_upsert_keys(self) -> List[str]:
+        """Use primary keys for UPSERT operations"""
+        return self.get_primary_keys()
+
+    def get_update_columns(self) -> List[str]:
+        """Reference tables typically don't update, just insert"""
+        return []
 
     def _handle_skip_strategy(self, csv_path: Path) -> bool:
         """Override to implement checksum comparison"""
@@ -137,6 +195,28 @@ class ReferenceLoader(BaseLoader):
             # Update stored checksum
             self._update_stored_checksum(csv_path.name, current_checksum)
         return success
+
+    def _handle_full_load(self, csv_path: Path) -> bool:
+        """Override to handle special post-load operations"""
+        # Call parent's full load method
+        success = super()._handle_full_load(csv_path)
+
+        if success and self.csv_filename == 'nations.csv':
+            # Add nation_id=0 record for parks table foreign key
+            self._add_placeholder_nation()
+
+        return success
+
+    def _add_placeholder_nation(self):
+        """Add nation_id=0 placeholder record"""
+        logger.info("Adding nation_id=0 placeholder record")
+        sql = text("""
+            INSERT INTO nations (nation_id, name, abbreviation, continent_id)
+            VALUES (0, 'Unknown', 'UNK', 1)
+            ON CONFLICT (nation_id) DO NOTHING
+        """)
+        self.db.execute_sql(sql)
+        logger.info("Nation placeholder record added")
 
 
     def _get_stored_checksum(self, filename: str) -> str:

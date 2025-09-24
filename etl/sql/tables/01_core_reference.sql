@@ -1,8 +1,24 @@
 -- Core Reference Tables - Created in dependency order
 -- Table names match OOTP CSV export files exactly
 
+
+  -- Drop tables in reverse dependency order
+DROP TABLE IF EXISTS team_affiliations CASCADE;
+DROP TABLE IF EXISTS team_relations CASCADE;
+DROP TABLE IF EXISTS teams CASCADE;
+DROP TABLE IF EXISTS divisions CASCADE;
+DROP TABLE IF EXISTS sub_leagues CASCADE;
+DROP TABLE IF EXISTS leagues CASCADE;
+DROP TABLE IF EXISTS parks CASCADE;
+DROP TABLE IF EXISTS languages CASCADE;
+DROP TABLE IF EXISTS cities CASCADE;
+DROP TABLE IF EXISTS states CASCADE;
+DROP TABLE IF EXISTS nations CASCADE;
+DROP TABLE IF EXISTS continents CASCADE;
+
+
 -- Continents (referenced by nations)
-CREATE TABLE IF NOT EXISTS continents (
+CREATE TABLE continents (
     continent_id INTEGER PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
     abbreviation VARCHAR(10),
@@ -12,7 +28,7 @@ CREATE TABLE IF NOT EXISTS continents (
 );
 
 -- Nations (top of geographic hierarchy)
-CREATE TABLE IF NOT EXISTS nations (
+CREATE TABLE nations (
     nation_id INTEGER PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
     short_name VARCHAR(50),
@@ -29,9 +45,10 @@ CREATE TABLE IF NOT EXISTS nations (
     this_is_the_usa SMALLINT,
     FOREIGN KEY (continent_id) REFERENCES continents(continent_id)
 );
+-- Add nation_id 0 to nations table
 
 -- States/Provinces
-CREATE TABLE IF NOT EXISTS states (
+CREATE TABLE states (
     state_id INTEGER,
     nation_id INTEGER,
     name VARCHAR(50) NOT NULL,
@@ -43,7 +60,7 @@ CREATE TABLE IF NOT EXISTS states (
 );
 
 -- Cities
-CREATE TABLE IF NOT EXISTS cities (
+CREATE TABLE cities (
     city_id INTEGER PRIMARY KEY,
     nation_id INTEGER NOT NULL,
     state_id INTEGER,
@@ -55,65 +72,66 @@ CREATE TABLE IF NOT EXISTS cities (
 );
 
 -- Parks/Stadiums (Simplified essential fields only)
-DROP TABLE IF EXISTS parks CASCADE;
-  CREATE TABLE parks (
-      park_id INTEGER PRIMARY KEY,
+
+CREATE TABLE parks (
+  park_id INTEGER PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  nation_id INTEGER,
+  capacity INTEGER,
+  type SMALLINT,
+  foul_ground SMALLINT,
+  turf SMALLINT,
+
+  -- Key outfield distances (match CSV: distances0, distances1, etc.)
+  distances0 SMALLINT,
+  distances1 SMALLINT,
+  distances2 SMALLINT,
+  distances3 SMALLINT,
+  distances4 SMALLINT,
+  distances5 SMALLINT,
+  distances6 SMALLINT,
+
+  -- Wall heights (match CSV: wall_heights0, wall_heights1, etc.)
+  wall_heights0 SMALLINT,
+  wall_heights1 SMALLINT,
+  wall_heights2 SMALLINT,
+  wall_heights3 SMALLINT,
+  wall_heights4 SMALLINT,
+  wall_heights5 SMALLINT,
+  wall_heights6 SMALLINT,
+
+  -- Park factors (match CSV exactly)
+  avg DECIMAL(6,4),
+  d DECIMAL(6,4),
+  t DECIMAL(6,4),
+  hr DECIMAL(6,4),
+
+  FOREIGN KEY (nation_id) REFERENCES nations(nation_id)
+);
+-- Languages (needed for various references)
+CREATE TABLE languages (
+    language_id INTEGER PRIMARY KEY,
+    name VARCHAR(50) NOT NULL
+);
+-- League hierarchy
+  CREATE TABLE leagues (
+      league_id INTEGER PRIMARY KEY,
       name VARCHAR(100) NOT NULL,
+      abbr VARCHAR(10),
       nation_id INTEGER,
-      capacity INTEGER,
-      type SMALLINT,
-      foul_ground SMALLINT,
-      turf SMALLINT,
-
-      -- Key outfield distances (match CSV: distances0, distances1, etc.)
-      distances0 SMALLINT,
-      distances1 SMALLINT,
-      distances2 SMALLINT,
-      distances3 SMALLINT,
-      distances4 SMALLINT,
-      distances5 SMALLINT,
-      distances6 SMALLINT,
-
-      -- Wall heights (match CSV: wall_heights0, wall_heights1, etc.)
-      wall_heights0 SMALLINT,
-      wall_heights1 SMALLINT,
-      wall_heights2 SMALLINT,
-      wall_heights3 SMALLINT,
-      wall_heights4 SMALLINT,
-      wall_heights5 SMALLINT,
-      wall_heights6 SMALLINT,
-
-      -- Park factors (match CSV exactly)
-      avg DECIMAL(6,4),
-      d DECIMAL(6,4),
-      t DECIMAL(6,4),
-      hr DECIMAL(6,4),
-
-      FOREIGN KEY (nation_id) REFERENCES nations(nation_id)
+      language_id INTEGER,
+      logo_file_name VARCHAR(200),
+      parent_league_id INTEGER,
+      league_state SMALLINT,
+      season_year INTEGER,
+      league_level SMALLINT,
+      current_date_year INTEGER,  -- Renamed from current_date to avoid reserved keyword
+      FOREIGN KEY (nation_id) REFERENCES nations(nation_id),
+      FOREIGN KEY (language_id) REFERENCES languages(language_id),
+      FOREIGN KEY (parent_league_id) REFERENCES leagues(league_id)
   );
 
--- League hierarchy
-CREATE TABLE IF NOT EXISTS leagues (
-    league_id INTEGER PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    abbr VARCHAR(10),
-    nation_id INTEGER,
-    language_id INTEGER,
-    gender INTEGER,
-    historical_league SMALLINT,
-    logo_file_name VARCHAR(200),
-    start_date DATE,
-    season_year INTEGER,
-    historical_year SMALLINT,
-    league_level SMALLINT,
-    league_state SMALLINT,
-    current_lg_date DATE,
-    background_color_id VARCHAR(8),
-    text_color_id VARCHAR(8),
-    FOREIGN KEY (nation_id) REFERENCES nations(nation_id)
-);
-
-CREATE TABLE IF NOT EXISTS sub_leagues (
+CREATE TABLE sub_leagues (
     league_id INTEGER,
     sub_league_id INTEGER,
     name VARCHAR(50) NOT NULL,
@@ -124,7 +142,7 @@ CREATE TABLE IF NOT EXISTS sub_leagues (
     FOREIGN KEY (league_id) REFERENCES leagues(league_id)
 );
 
-CREATE TABLE IF NOT EXISTS divisions (
+CREATE TABLE divisions (
     league_id INTEGER,
     sub_league_id INTEGER,
     division_id INTEGER,
@@ -135,7 +153,7 @@ CREATE TABLE IF NOT EXISTS divisions (
 );
 
 -- Teams
-CREATE TABLE IF NOT EXISTS teams (
+CREATE TABLE teams (
     team_id INTEGER PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     abbr VARCHAR(10),
@@ -171,7 +189,7 @@ CREATE TABLE IF NOT EXISTS teams (
 );
 
 -- Team Relations (associates teams with divisions)
-CREATE TABLE IF NOT EXISTS team_relations (
+CREATE TABLE team_relations (
     team_id INTEGER,
     league_id INTEGER,
     sub_league_id INTEGER,
@@ -183,7 +201,7 @@ CREATE TABLE IF NOT EXISTS team_relations (
 );
 
 -- Team Affiliations (parent/child relationships)
-CREATE TABLE IF NOT EXISTS team_affiliations (
+CREATE TABLE team_affiliations (
     team_id INTEGER,
     affiliated_team_id INTEGER,
     PRIMARY KEY (team_id, affiliated_team_id),
@@ -191,11 +209,10 @@ CREATE TABLE IF NOT EXISTS team_affiliations (
     FOREIGN KEY (affiliated_team_id) REFERENCES teams(team_id)
 );
 
--- Languages (needed for various references)
-CREATE TABLE IF NOT EXISTS languages (
-    language_id INTEGER PRIMARY KEY,
-    name VARCHAR(50) NOT NULL
-);
+
+
+
+
 
 -- Insert special record for Free Agents
 -- This will be done after initial data load:

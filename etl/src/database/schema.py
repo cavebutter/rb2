@@ -2,7 +2,7 @@
 from pathlib import Path
 from loguru import logger
 from .connection import db
-
+from sqlalchemy import text
 
 class SchemaManager:
     """Manage database schema creation and updates"""
@@ -34,7 +34,7 @@ class SchemaManager:
                     stmt_preview = statement.strip()[:100].replace('\n', ' ')
                     logger.debug(f"Executing statement {i+1}/{len(statements)}: {stmt_preview}...")
                     try:
-                        db.execute_sql(statement)
+                        db.execute_sql(text(statement))
                     except Exception as e:
                         logger.error(f"Failed on statement {i+1}: {stmt_preview} \nError: {e}")
                         raise

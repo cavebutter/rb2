@@ -15,12 +15,7 @@ def generate_batch_id(prefix: Optional[str] = None) -> str:
     Returns:
         Unique batch ID string
     """
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    unique_suffix = str(uuid.uuid4())[:8]
-    
-    if prefix:
-        return f"{prefix}_{timestamp}_{unique_suffix}"
-    return f"batch_{timestamp}_{unique_suffix}"
+    return str(uuid.uuid4())
 
 
 def get_current_batch_timestamp() -> str:

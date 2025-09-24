@@ -12,7 +12,7 @@ DROP TABLE IF EXISTS etl_performance_metrics CASCADE;
 
 -- Drop existing indexes if needed (for development)
 DROP INDEX IF EXISTS idx_batch_runs_status_date;
-DROP INDEX IF EXISTS idx_etl_metadata_status;
+DROP  INDEX IF EXISTS idx_etl_metadata_status;
 DROP INDEX IF EXISTS idx_etl_metadata_strategy;
 DROP INDEX IF EXISTS idx_change_log_table_operation;
 DROP INDEX IF EXISTS idx_change_log_game;

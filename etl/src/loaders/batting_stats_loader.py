@@ -1,10 +1,19 @@
-from loaders.stats_loader import StatsLoader
 from typing import List, Dict, Optional
+from pathlib import Path
+from loguru import logger
+import pandas as pd
+from sqlalchemy import text
+from .stats_loader import StatsLoader
+from ..utils.batch import generate_batch_id
 
 class BattingStatsLoader(StatsLoader):
     """Loader for batting statistics"""
+    
     def get_target_table(self) -> str:
         return 'players_career_batting_stats'
+
+    def get_primary_keys(self) -> List[str]:
+        return ['player_id', 'year', 'team_id', 'split_id', 'stint']
 
     def get_upsert_keys(self) -> List[str]:
         return ['player_id', 'year', 'team_id', 'split_id', 'stint']
@@ -32,22 +41,26 @@ class BattingStatsLoader(StatsLoader):
 
     def get_update_columns(self) -> List[str]:
         """What to update on UPSERT"""
-        current_season = self.get_current_season()
-
         # Always update counting stats
         base_columns = [
-            'ab', 'h', 'k', 'pa', 'pitches-seen', 'g', 'gs',
+            'ab', 'h', 'k', 'pa', 'pitches_seen', 'g', 'gs',
             'd', 't', 'hr', 'r', 'rbi', 'sb', 'cs', 'bb', 'ibb',
-            'gdp', 'sh', 'sf', 'hp', 'ci', 'wpa', 'ubr', 'war'
+            'gdp', 'sh', 'sf', 'hp', 'ci', 'wpa', 'ubr', 'war',
+            'sub_league_id'
         ]
 
         # Add calculated fields for current season
         if self.should_update_calculated_fields():
             base_columns.extend([
-                'batthing_average', 'on_base_percentage',
+                'batting_average', 'on_base_percentage',
                 'slugging_percentage', 'ops', 'iso', 'babip',
                 'woba', 'wrc', 'wrc_plus', 'last_updated'
             ])
 
         return base_columns
+
+    def should_update_calculated_fields(self) -> bool:
+        """Update calculated fields for current season only"""
+        # Simple implementation - could be enhanced to check current season
+        return True
 

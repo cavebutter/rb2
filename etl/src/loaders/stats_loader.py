@@ -1,8 +1,10 @@
+from typing import Dict, List, Optional
 from pathlib import Path
 import pandas as pd
-from loaders.base_loader import BaseLoader
+from .base_loader import BaseLoader
 from loguru import logger
 from sqlalchemy import text
+from ..utils.batch import generate_batch_id
 
 class StatsLoader(BaseLoader):
     """Base loader for player statistics tables"""
@@ -13,20 +15,34 @@ class StatsLoader(BaseLoader):
 
     def get_load_strategy(self) -> str:
         return 'incremental'
+    
+    def should_update_calculated_fields(self) -> bool:
+        """
+        Determine if calculated fields should be updated.
+        Subclasses can override this method for specific logic.
+        """
+        return True
 
     def _populate_subleague_id(self, staging_table: str):
         """Populate sub_league_id from team_relations"""
         logger.info(f"Populating sub_league_id in {staging_table} from team_relations")
+        # Add sub_league_id column if not exists
+        add_column_sql = text(f""" ALTER TABLE {staging_table}
+        ADD COLUMN IF NOT EXISTS sub_league_id INTEGER
+        """)
+        self.db.execute_sql(add_column_sql)
 
-        update_sql = text(f"""
-            UPDATE {staging_table} s
-            SET sub_league_id = tr.sub_league_id
-            FROM team_relations tr
-            WHERE s.team_id = tr.team_id
-             """)
+        # Populate sub_league_id
+        update_sql = text(f""" UPDATE {staging_table} s
+        SET sub_league_id = tr.sub_league_id
+        FROM team_relations tr
+        WHERE s.team_id = tr.team_id""")
 
-        self.db.execute(update_sql)
-        logger.info("Sub_league ID populated successfully")
+        self.db.execute_sql(update_sql)
+        logger.info(f"sub_league_id population complete in {staging_table}")
+
+
+
 
     def _handle_incremental_load(self, csv_path: Path) -> bool:
         """Stats-specific incremental load with sub_league population"""
@@ -38,10 +54,7 @@ class StatsLoader(BaseLoader):
         df = pd.read_csv(csv_path)
 
         if column_mapping:
-            csv_columns = list(column_mapping.keys())
-            df_filtered = df[csv_columns]
-            df_filtered = df_filtered.rename(columns=column_mapping)
-            df = df_filtered
+            df = df.rename(columns=column_mapping)
 
         # Create staging table
         columns = self._infer_column_types(df)
