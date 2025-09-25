@@ -40,20 +40,25 @@ class PitchingStatsLoader(StatsLoader):
             'last_updated': 'CURRENT_TIMESTAMP'
         }
 
-    def _fix_staging_column_types(self, staging_table: str):
-        """Fix staging table column precision to match target table"""
+    def _add_calculated_columns(self, staging_table: str):
+        """Add calculated columns to staging table with proper types"""
         from sqlalchemy import text
 
+        # ADD columns first (they don't exist in CSV)
         alter_sql = text(f"""
             ALTER TABLE {staging_table}
-            ALTER COLUMN era TYPE DECIMAL(5,2),
-            ALTER COLUMN whip TYPE DECIMAL(4,2),
-            ALTER COLUMN k9 TYPE DECIMAL(4,1),
-            ALTER COLUMN bb9 TYPE DECIMAL(4,1), 
-            ALTER COLUMN hr9 TYPE DECIMAL(4,1),
-            ALTER COLUMN h9 TYPE DECIMAL(4,1),
-            ALTER COLUMN babip TYPE DECIMAL(4,3),
-            ALTER COLUMN fip TYPE DECIMAL(4,2);
+            ADD COLUMN IF NOT EXISTS era DECIMAL(5,2),
+            ADD COLUMN IF NOT EXISTS whip DECIMAL(4,2),
+            ADD COLUMN IF NOT EXISTS k9 DECIMAL(4,1),
+            ADD COLUMN IF NOT EXISTS bb9 DECIMAL(4,1), 
+            ADD COLUMN IF NOT EXISTS hr9 DECIMAL(4,1),
+            ADD COLUMN IF NOT EXISTS h9 DECIMAL(4,1),
+            ADD COLUMN IF NOT EXISTS babip DECIMAL(4,3),
+            ADD COLUMN IF NOT EXISTS fip DECIMAL(4,2),
+            ADD COLUMN IF NOT EXISTS era_plus INTEGER,
+            ADD COLUMN IF NOT EXISTS fip_plus INTEGER,
+            ADD COLUMN IF NOT EXISTS constants_version INTEGER,
+            ADD COLUMN IF NOT EXISTS last_updated TIMESTAMP;
         """)
 
         self.db.execute_sql(alter_sql)
@@ -80,24 +85,28 @@ class PitchingStatsLoader(StatsLoader):
 
     def _handle_incremental_load(self, csv_path: Path) -> bool:
         """Handle incremental load with staging table column fix"""
-        # Call parent method but intercept before calculating derived fields
         staging_table = f"staging_{self.get_target_table()}"
 
         # Create staging and load data
         df = pd.read_csv(csv_path)
+
+        # CREATE FRESH STAGING TABLE - This was missing!
+        target_table = self.get_target_table()
+        columns = self._infer_column_types(df)
+        self.staging_mgr.create_staging_from_csv_structure(target_table, columns)
+
         row_count = self.staging_mgr.copy_csv_to_staging(str(csv_path), staging_table, df=df)
 
         # Populate sub_league_id
         self._populate_subleague_id(staging_table)
 
         # Fix column types BEFORE calculating derived fields
-        self._fix_staging_column_types(staging_table)
+        self._add_calculated_columns(staging_table)
 
         # Now calculate derived fields with proper column types
         self._calculate_derived_fields(staging_table)
 
         # Complete the UPSERT
-        target_table = self.get_target_table()
         upserted = self._upsert_from_staging(staging_table, target_table)
 
         self.stats["rows_inserted"] = upserted
