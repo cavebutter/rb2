@@ -102,25 +102,19 @@ class BaseLoader(ABC):
         """Handle full load - truncate and reload"""
         target_table = self.get_target_table()
         staging_table = f"staging_{target_table}"
-
-        # Check if column mapping exists
         column_mapping = self.get_column_mapping()
 
-        # Read CSV
+        # Read CSV and apply column mapping if needed
         df = pd.read_csv(csv_path)
 
-        # Apply column filtering if mapping exists
+        # Filter columns based on column mapping
         if column_mapping:
+            # Only keep columns that are in the mapping
             csv_columns = list(column_mapping.keys())
-            df_filtered = df[csv_columns]
-
-            # Rename columns if needed
-            df_filtered = df_filtered.rename(columns=column_mapping)
-
-            # Use filtered dataframe
-            df_to_load = df_filtered
+            df_to_load = df[csv_columns].copy()
+            # Rename columns according to mapping
+            df_to_load = df_to_load.rename(columns=column_mapping)
         else:
-            # Use original dataframe
             df_to_load = df
 
         # Create staging table based on filtered columns
@@ -147,10 +141,27 @@ class BaseLoader(ABC):
                     SELECT {cols_str} FROM {staging_table}
                 """))
             else:
-                # Simple insert for non-mapped tables
+                # Get column names from staging table to ensure proper order
+                cols_sql = text("""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name = :table_name
+                    ORDER BY ordinal_position
+                """)
+                result = self.db.execute_sql(cols_sql, {'table_name': staging_table})
+                staging_columns = [row[0] for row in result]
+
+                # Get target table columns
+                result = self.db.execute_sql(cols_sql, {'table_name': target_table})
+                target_columns = [row[0] for row in result]
+
+                # Find common columns (staging might have extra calculated fields)
+                common_columns = [col for col in staging_columns if col in target_columns]
+                cols_str = ', '.join(common_columns)
+
                 session.execute(text(f"""
-                    INSERT INTO {target_table}
-                    SELECT * FROM {staging_table}
+                    INSERT INTO {target_table} ({cols_str})
+                    SELECT {cols_str} FROM {staging_table}
                 """))
 
             self.stats['rows_inserted'] = row_count

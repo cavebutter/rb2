@@ -121,14 +121,28 @@ class ReferenceLoader(BaseLoader):
                 'division_id': 'NULLIF(division_id, 0)',
                 'nation_id': 'NULLIF(nation_id, 0)',
                 'human_id': 'NULLIF(human_id, 0)',
+                }
+        },
+        'sub_leagues.csv': {
+            'table': 'sub_leagues',
+            'primary_keys': ['league_id', 'sub_league_id'],
+            'load_order': 9,
+        },
+        'divisions.csv': {
+            'table': 'divisions',
+            'primary_keys': ['league_id', 'sub_league_id', 'division_id'],
+            'load_order': 10,
+            'calculated_fields': {
+                'name': "CASE WHEN name = '' OR name IS NULL THEN 'No Division' ELSE name END"
+            }
         },
         'team_relations.csv': {
             'table': 'team_relations',
             'primary_keys': ['team_id'],
-            'load_order': 9
+            'load_order': 11
         }
   }
-}
+
 
 
     def __init__(self, csv_filename: str, batch_id: str = None):
