@@ -29,10 +29,11 @@ class PitchingStatsLoader(StatsLoader):
             'hr9': 'CASE WHEN outs > 0 THEN (ROUND((hra * 9.0) / (outs / 3.0), 1))::DECIMAL(4,1) ELSE 0::DECIMAL(4,1) END',
             'h9': 'CASE WHEN outs > 0 THEN (ROUND((ha * 9.0) / (outs / 3.0), 1))::DECIMAL(4,1) ELSE 0::DECIMAL(4,1) END',
             'babip': '''CASE 
-                    WHEN (bf - bb - k - hra + sf) > 0 AND (ha - hra) >= 0 
-                    THEN (LEAST(0.999, ROUND((ha - hra)::numeric / (bf - bb - k - hra + sf), 3)))::DECIMAL(4,3)
-                    ELSE 0::DECIMAL(4,3)
-                END''',
+          WHEN (ab - k - hra + sf) > 0 AND (ha - hra) >= 0 
+          THEN (LEAST(0.999, ROUND((ha - hra)::numeric / (ab - k - hra + sf), 3)))::DECIMAL(4,3)
+          ELSE 0::DECIMAL(4,3)
+          END''',
+
             'fip': 'NULL::DECIMAL(4,2)',
             'era_plus': 'NULL::INTEGER',
             'fip_plus': 'NULL::INTEGER',
@@ -90,6 +91,9 @@ class PitchingStatsLoader(StatsLoader):
         # Create staging and load data
         df = pd.read_csv(csv_path)
 
+        # FILTER TO ONLY SPLIT_ID=1
+        df = df[df['split_id'] == 1]
+        logger.info(f"Filtered to split_id=1: {len(df)} rows remaining from {len(pd.read_csv(csv_path))} total")
         # CREATE FRESH STAGING TABLE - This was missing!
         target_table = self.get_target_table()
         columns = self._infer_column_types(df)

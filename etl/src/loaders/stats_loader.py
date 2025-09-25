@@ -41,9 +41,6 @@ class StatsLoader(BaseLoader):
         self.db.execute_sql(update_sql)
         logger.info(f"sub_league_id population complete in {staging_table}")
 
-
-
-
     def _handle_incremental_load(self, csv_path: Path) -> bool:
         """Stats-specific incremental load with sub_league population"""
         target_table = self.get_target_table()
@@ -52,6 +49,10 @@ class StatsLoader(BaseLoader):
         # Standard column mapping and staging load
         column_mapping = self.get_column_mapping()
         df = pd.read_csv(csv_path)
+
+        # FILTER TO ONLY SPLIT_ID=1 (regular season totals)
+        df = df[df['split_id'] == 1]
+        logger.info(f"Filtered to split_id=1: {len(df)} rows remaining from {len(pd.read_csv(csv_path))} total")
 
         if column_mapping:
             df = df.rename(columns=column_mapping)
