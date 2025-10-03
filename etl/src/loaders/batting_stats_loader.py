@@ -33,6 +33,7 @@ class BattingStatsLoader(StatsLoader):
             'babip': 'CASE WHEN (ab - k - hr + sf) > 0 THEN ROUND((h - hr)::numeric / (ab - k - hr + sf), 3 ) ELSE 0 END',
             # Advanced stats placeholders - these are calculated post-load
             'woba': 'NULL::DECIMAL(4,3)',
+            'wraa': 'NULL::DECIMAL(4,3)',
             'wrc': 'NULL::INTEGER',
             'wrc_plus': 'NULL::INTEGER',
             # Version Tracking for constants calculation

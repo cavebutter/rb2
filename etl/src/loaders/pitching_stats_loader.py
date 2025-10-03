@@ -35,8 +35,11 @@ class PitchingStatsLoader(StatsLoader):
           END''',
 
             'fip': 'NULL::DECIMAL(4,2)',
+            'xfip': 'NULL::DECIMAL(4,2)',
             'era_plus': 'NULL::INTEGER',
+            'era_minus': 'NULL::INTEGER',
             'fip_plus': 'NULL::INTEGER',
+            'fip_minus': 'NULL::INTEGER',
             'constants_version': 'NULL::INTEGER',
             'last_updated': 'CURRENT_TIMESTAMP'
         }
@@ -56,8 +59,11 @@ class PitchingStatsLoader(StatsLoader):
             ADD COLUMN IF NOT EXISTS h9 DECIMAL(4,1),
             ADD COLUMN IF NOT EXISTS babip DECIMAL(4,3),
             ADD COLUMN IF NOT EXISTS fip DECIMAL(4,2),
+            ADD COLUMN IF NOT EXISTS xfip DECIMAL(4,2),
             ADD COLUMN IF NOT EXISTS era_plus INTEGER,
+            ADD COLUMN IF NOT EXISTS era_minus INTEGER,
             ADD COLUMN IF NOT EXISTS fip_plus INTEGER,
+            ADD COLUMN IF NOT EXISTS fip_minus INTEGER,
             ADD COLUMN IF NOT EXISTS constants_version INTEGER,
             ADD COLUMN IF NOT EXISTS last_updated TIMESTAMP;
         """)

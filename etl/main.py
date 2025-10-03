@@ -2,6 +2,7 @@
 """
 OOTP ETL Pipeline Entry Point
 """
+import uuid
 
 import click
 from loguru import logger
@@ -155,35 +156,46 @@ def load_reference_data(file, force):
             click.echo(f"Error loading {csv_path}: {e}")
 
 
-@click.command()
-def load_stats():
-    """Load all player statistics"""
-    from src.loaders.players_loader import PlayersLoader
-    from src.loaders.batting_stats_loader import BattingStatsLoader
-    from src.loaders.pitching_stats_loader import PitchingStatsLoader
-    from sqlalchemy import text
-    # Phase 1 - Load raw data
-    logger.info('Loading players...')
-    players_loader = PlayersLoader(batch_id=generate_batch_id())
-    players_loader.load_csv(Path("data/incoming/csv/players.csv"))
+@cli.command('load-stats')
+@click.option('--force-all-constants', is_flag=True, help="Recalculate constants for all years")
+def load_stats(force_all_constants):
+  """Load all player statistics"""
+  from src.loaders.players_loader import PlayersLoader
+  from src.loaders.batting_stats_loader import BattingStatsLoader
+  from src.loaders.pitching_stats_loader import PitchingStatsLoader
+  from src.transformers.league_constants_transformer import LeagueConstantsTransformer
+  from sqlalchemy import text
 
-    logger.info('Loading batting stats...')
-    batting_loader = BattingStatsLoader(batch_id=generate_batch_id())
-    batting_loader.load_csv(Path("data/incoming/csv/players_career_batting_stats.csv"))
+  batch_id = generate_batch_id()
 
-    logger.info('Loading pitching stats...')
-    pitching_loader = PitchingStatsLoader(batch_id=generate_batch_id())
-    pitching_loader.load_csv(Path("data/incoming/csv/players_career_pitching_stats.csv"))
+  # Phase 1 - Load raw data
+  logger.info('Loading players...')
+  players_loader = PlayersLoader(batch_id)
+  players_loader.load_csv(Path("data/incoming/csv/players.csv"))
 
-    # Phase 2 - Calculate league constants
-    logger.info('Calculating league constants...')
-    with db.get_session() as session:
-        session.execute(text("SELECT refresh_all_calculations()"))
-        session.commit()
+  logger.info('Loading batting stats...')
+  batting_loader = BattingStatsLoader(batch_id=generate_batch_id())
+  batting_loader.load_csv(Path("data/incoming/csv/players_career_batting_stats.csv"))
 
-    logger.info("Stats loading complete!")
-cli.add_command(load_stats)
+  logger.info('Loading pitching stats...')
+  pitching_loader = PitchingStatsLoader(batch_id=generate_batch_id())
+  pitching_loader.load_csv(Path("data/incoming/csv/players_career_pitching_stats.csv"))
 
+  # Phase 2 - Calculate league constants
+  logger.info('Calculating league constants...')
+  constants_transformer = LeagueConstantsTransformer(
+      batch_id=batch_id,
+      force_all=force_all_constants
+  )
+  if not constants_transformer.transform_constants():
+      logger.error("Constants calculation failed")
+      return
+
+  logger.info("Stats loading complete!")
+
+# def _is_initial_load() -> bool:
+#   """Check if this is the first time loading data"""
+#   return constants.is_initial_load()
 
 if __name__ == "__main__":
     cli()

@@ -55,7 +55,8 @@ CREATE TABLE IF NOT EXISTS players_career_batting_stats (
 ALTER TABLE players_career_batting_stats
 ADD COLUMN IF NOT EXISTS sub_league_id INTEGER,
 ADD COLUMN IF NOT EXISTS constants_version INTEGER,
-ADD COLUMN IF NOT EXISTS last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ADD COLUMN IF NOT EXISTS last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN IF NOT EXISTS wraa DECIMAL(6,1);
 
 -- Players career pitching stats (from players_career_pitching_stats.csv)
 CREATE TABLE IF NOT EXISTS players_career_pitching_stats (
@@ -122,7 +123,7 @@ CREATE TABLE IF NOT EXISTS players_career_pitching_stats (
     bb9 DECIMAL(4,1),
     hr9 DECIMAL(4,1),
     h9 DECIMAL(4,1),
-    fip DECIMAL(4,2),
+    fip DECIMAL(5,2),
     babip DECIMAL(4,3),
     era_plus INTEGER,
     fip_plus INTEGER,
@@ -134,6 +135,9 @@ CREATE TABLE IF NOT EXISTS players_career_pitching_stats (
 ALTER TABLE players_career_pitching_stats
 ADD COLUMN IF NOT EXISTS sub_league_id INTEGER,
 ADD COLUMN IF NOT EXISTS constants_version INTEGER,
+ADD COLUMN IF NOT EXISTS xfip DECIMAL(5,2),
+ADD COLUMN IF NOT EXISTS era_minus INTEGER,
+ADD COLUMN IF NOT EXISTS fip_minus INTEGER,
 ADD COLUMN IF NOT EXISTS last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 -- Players career fielding stats (from players_career_fielding_stats.csv)
