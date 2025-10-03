@@ -43,27 +43,16 @@ class BattingStatsLoader(StatsLoader):
         }
 
     def get_update_columns(self) -> List[str]:
-        """What to update on UPSERT"""
-        # Always update counting stats
-        base_columns = [
+        """What to update on UPSERT - counting stats only"""
+        # Calculated fields are managed by Phase C (refresh_player_* functions)
+        return [
             'ab', 'h', 'k', 'pa', 'pitches_seen', 'g', 'gs',
             'd', 't', 'hr', 'r', 'rbi', 'sb', 'cs', 'bb', 'ibb',
             'gdp', 'sh', 'sf', 'hp', 'ci', 'wpa', 'ubr', 'war',
             'sub_league_id'
         ]
 
-        # Add calculated fields for current season
-        if self.should_update_calculated_fields():
-            base_columns.extend([
-                'batting_average', 'on_base_percentage',
-                'slugging_percentage', 'ops', 'iso', 'babip',
-                'woba', 'wrc', 'wrc_plus', 'last_updated'
-            ])
-
-        return base_columns
-
     def should_update_calculated_fields(self) -> bool:
-        """Update calculated fields for current season only"""
-        # Simple implementation - could be enhanced to check current season
-        return True
+        """Calculated fields are NEVER updated during UPSERT"""
+        return False
 

@@ -71,9 +71,9 @@ class PitchingStatsLoader(StatsLoader):
         self.db.execute_sql(alter_sql)
 
     def get_update_columns(self) -> List[str]:
-        """What to update on UPSERT"""
-        # Always update counting stats
-        base_columns = [
+        """What to update on UPSERT - counting stats only"""
+        # Calculated fields are managed by Phase C (refresh_player_* functions)
+        return [
             'ip', 'ab', 'tb', 'ha', 'k', 'bf', 'rs', 'bb', 'r', 'er',
             'gb', 'fb', 'pi', 'ipf', 'g', 'gs', 'w', 'l', 's', 'sa',
             'da', 'sh', 'sf', 'ta', 'hra', 'bk', 'ci', 'iw', 'wp', 'hp',
@@ -81,14 +81,9 @@ class PitchingStatsLoader(StatsLoader):
             'hld', 'ir', 'irs', 'wpa', 'li', 'outs', 'war', 'sub_league_id'
         ]
 
-        # Add calculated fields for current season
-        if self.should_update_calculated_fields():
-            base_columns.extend([
-                'era', 'whip', 'k9', 'bb9', 'h9', 'hr9', 'babip',
-                'fip', 'era_plus', 'fip_plus', 'last_updated'
-            ])
-
-        return base_columns
+    def should_update_calculated_fields(self) -> bool:
+        """Calculated fields are NEVER updated during UPSERT"""
+        return False
 
     def _handle_incremental_load(self, csv_path: Path) -> bool:
         """Handle incremental load with staging table column fix"""
@@ -124,6 +119,4 @@ class PitchingStatsLoader(StatsLoader):
 
         return True
 
-    def should_update_calculated_fields(self) -> bool:
-        """Update calculated fields for current season only"""
-        return True
+
