@@ -21,3 +21,4 @@ htmlcov/
 Thumbs.db
 *.log
 data/stat_tests
+.claude

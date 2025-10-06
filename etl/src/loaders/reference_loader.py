@@ -102,6 +102,7 @@ class ReferenceLoader(BaseLoader):
                   'league_state': 'league_state',
                   'season_year': 'season_year',
                   'league_level': 'league_level',
+                  'current_date': 'game_date',
               },
               'calculated_fields': {
                   'current_date_year': 'EXTRACT(YEAR FROM current_date::date)',
@@ -140,6 +141,11 @@ class ReferenceLoader(BaseLoader):
             'table': 'team_relations',
             'primary_keys': ['team_id'],
             'load_order': 11
+        },
+        'team_record.csv': {
+            'table': 'team_record',
+            'primary_keys': ['team_id'],
+            'load_order': 12,
         }
   }
 

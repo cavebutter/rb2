@@ -4,6 +4,7 @@
 
   -- Drop tables in reverse dependency order
 DROP TABLE IF EXISTS team_affiliations CASCADE;
+DROP TABLE IF EXISTS team_record CASCADE;
 DROP TABLE IF EXISTS team_relations CASCADE;
 DROP TABLE IF EXISTS teams CASCADE;
 DROP TABLE IF EXISTS divisions CASCADE;
@@ -125,6 +126,7 @@ CREATE TABLE languages (
       league_state SMALLINT,
       season_year INTEGER,
       league_level SMALLINT,
+      game_date DATE, -- Current in-game date, renamed from current_date to avoid reserved keyword
       current_date_year INTEGER,  -- Renamed from current_date to avoid reserved keyword
       FOREIGN KEY (nation_id) REFERENCES nations(nation_id),
       FOREIGN KEY (language_id) REFERENCES languages(language_id),
@@ -208,6 +210,21 @@ CREATE TABLE team_affiliations (
     FOREIGN KEY (team_id) REFERENCES teams(team_id),
     FOREIGN KEY (affiliated_team_id) REFERENCES teams(team_id)
 );
+
+ -- Team Record (current season standings)
+  CREATE TABLE team_record (
+      team_id INTEGER PRIMARY KEY,
+      g SMALLINT,
+      w SMALLINT,
+      l SMALLINT,
+      t SMALLINT,
+      pos SMALLINT,
+      pct DECIMAL(6,4),
+      gb DECIMAL(7,4),
+      streak SMALLINT,
+      magic_number SMALLINT,
+      FOREIGN KEY (team_id) REFERENCES teams(team_id)
+  );
 
 
 
