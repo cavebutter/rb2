@@ -1,0 +1,27 @@
+# Core Web Framework
+  Flask==3.0.0
+  Flask-SQLAlchemy==3.1.1
+
+  # Database (match ETL versions)
+  psycopg2-binary==2.9.9
+  SQLAlchemy==2.0.23
+
+  # Logging (match ETL version)
+  loguru==0.7.0
+
+  # Configuration
+  python-dotenv==1.0.0
+
+  # Caching (for later)
+  Flask-Caching==2.1.0
+  redis==5.0.1
+
+  # Server (for production)
+  gunicorn==21.2.0
+
+  # Utilities
+  python-slugify==8.0.1
+
+  # Development/Testing
+  pytest==7.4.3
+  pytest-flask==1.3.0
