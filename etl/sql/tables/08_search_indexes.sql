@@ -13,7 +13,7 @@
   USING GIN(to_tsvector('english',
       COALESCE(first_name, '') || ' ' ||
       COALESCE(last_name, '') || ' ' ||
-      COALESCE(nickname, '')
+      COALESCE(nick_name, '')
   ));
 
   -- Additional index for simple prefix matching (faster for autocomplete)
@@ -74,8 +74,9 @@
   -- These support frequent web application queries
 
   -- Player queries by position and birth date
-  CREATE INDEX IF NOT EXISTS idx_player_position
-  ON players_core(position);
+  -- Note: position is in players_current_status, not players_core
+  -- CREATE INDEX IF NOT EXISTS idx_player_position
+  -- ON players_core(position);
 
   CREATE INDEX IF NOT EXISTS idx_player_dob
   ON players_core(date_of_birth)
@@ -88,7 +89,7 @@
       EXTRACT(DAY FROM date_of_birth)
   ) WHERE date_of_birth IS NOT NULL;
 
-  COMMENT ON INDEX idx_player_position IS 'Filter players by position';
+  -- COMMENT ON INDEX idx_player_position IS 'Filter players by position';
   COMMENT ON INDEX idx_player_dob IS 'Player birth date queries';
   COMMENT ON INDEX idx_player_birth_month_day IS 'Supports "born this week" feature (ignores year)';
 

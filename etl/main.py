@@ -193,6 +193,36 @@ def load_stats(force_all_constants):
 
   logger.info("Stats loading complete!")
 
+  # Load coaches and rosters after players are loaded
+  logger.info('Loading coaches...')
+  try:
+      from src.loaders.reference_loader import ReferenceLoader
+      coaches_loader = ReferenceLoader('coaches.csv', batch_id)
+      coaches_loader.load_csv(Path("data/incoming/csv/coaches.csv"))
+      click.echo("✓ Coaches loaded successfully")
+  except Exception as e:
+      logger.error(f"Error loading coaches: {e}")
+      click.echo(f"Error loading coaches: {e}")
+
+  logger.info('Loading team rosters...')
+  try:
+      roster_loader = ReferenceLoader('team_roster.csv', batch_id)
+      roster_loader.load_csv(Path("data/incoming/csv/team_roster.csv"))
+      click.echo("✓ Rosters loaded successfully")
+  except Exception as e:
+      logger.error(f"Error loading rosters: {e}")
+      click.echo(f"Error loading rosters: {e}")
+
+  logger.info('Loading team roster staff...')
+  try:
+      staff_loader = ReferenceLoader('staff.csv', batch_id)
+      staff_loader.load_csv(Path("data/incoming/csv/staff.csv"))
+      click.echo("✓ Roster staff loaded successfully")
+  except Exception as e:
+      logger.error(f"Error loading staff: {e}")
+      click.echo(f"Error loading staff: {e}")
+  logger.info('All stats, coaches, and rosters loaded!')
+
 # def _is_initial_load() -> bool:
 #   """Check if this is the first time loading data"""
 #   return constants.is_initial_load()

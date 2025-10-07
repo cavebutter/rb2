@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS etl_batch_runs (
     stats JSONB
     );
 
-CREATE INDEX idx_batch_runs_status_date2 ON etl_batch_runs(status, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_batch_runs_status_date2 ON etl_batch_runs(status, started_at DESC);
 
 -- File metadata tracking
 CREATE TABLE IF NOT EXISTS etl_file_metadata (
@@ -65,8 +65,8 @@ CREATE TABLE IF NOT EXISTS etl_file_metadata (
     error_message TEXT,
     metadata JSONB
 );
-CREATE INDEX idx_etl_metadata_status ON etl_file_metadata(last_status, last_processed);
-CREATE INDEX idx_etl_metadata_strategy ON etl_file_metadata(load_strategy);
+CREATE INDEX IF NOT EXISTS idx_etl_metadata_status ON etl_file_metadata(last_status, last_processed);
+CREATE INDEX IF NOT EXISTS idx_etl_metadata_strategy ON etl_file_metadata(load_strategy);
 
 -- Change log for data lineage
 CREATE TABLE IF NOT EXISTS etl_change_log (
@@ -82,9 +82,9 @@ CREATE TABLE IF NOT EXISTS etl_change_log (
     season_year INTEGER,
     game_id INTEGER
 );
-  CREATE INDEX idx_change_log_table_operation ON etl_change_log(table_name, operation, changed_at);
-  CREATE INDEX idx_change_log_game ON etl_change_log(game_id) WHERE game_id IS NOT NULL;
-  CREATE INDEX idx_change_log_batch ON etl_change_log(batch_id);
+  CREATE INDEX IF NOT EXISTS idx_change_log_table_operation ON etl_change_log(table_name, operation, changed_at);
+  CREATE INDEX IF NOT EXISTS idx_change_log_game ON etl_change_log(game_id) WHERE game_id IS NOT NULL;
+  CREATE INDEX IF NOT EXISTS idx_change_log_batch ON etl_change_log(batch_id);
 
 --Watermark tracking for Append-Only tables
 CREATE TABLE IF NOT EXISTS etl_watermarks (
@@ -114,9 +114,9 @@ CREATE TABLE IF NOT EXISTS etl_calculation_queue (
     retry_count INTEGER DEFAULT 0,
     error_message TEXT
 );
-  CREATE INDEX idx_calc_queue_status_priority ON etl_calculation_queue(status, priority DESC, created_at);
-  CREATE INDEX idx_calc_queue_player ON etl_calculation_queue(player_id, year) WHERE player_id IS NOT NULL;
-  CREATE INDEX idx_calc_queue_batch ON etl_calculation_queue(batch_id);
+  CREATE INDEX IF NOT EXISTS idx_calc_queue_status_priority ON etl_calculation_queue(status, priority DESC, created_at);
+  CREATE INDEX IF NOT EXISTS idx_calc_queue_player ON etl_calculation_queue(player_id, year) WHERE player_id IS NOT NULL;
+  CREATE INDEX IF NOT EXISTS idx_calc_queue_batch ON etl_calculation_queue(batch_id);
 
 -- Table Load Strategies Configuration
 CREATE TABLE IF NOT EXISTS etl_table_config (
@@ -145,8 +145,8 @@ CREATE TABLE IF NOT EXISTS etl_performance_metrics (
     memory_usage_mb INTEGER,
     notes TEXT
 );
-CREATE INDEX idx_perf_metrics_batch ON etl_performance_metrics(batch_id);
-CREATE INDEX idx_perf_metrics_type_table ON etl_performance_metrics(metric_type, table_name);
+CREATE INDEX IF NOT EXISTS idx_perf_metrics_batch ON etl_performance_metrics(batch_id);
+CREATE INDEX IF NOT EXISTS idx_perf_metrics_type_table ON etl_performance_metrics(metric_type, table_name);
 
 -- Helper views for Monitoring
 CREATE OR REPLACE VIEW v_etl_recent_runs AS

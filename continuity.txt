@@ -1,0 +1,56 @@
+# ETL Debugging Session Summary - 2025-10-07
+
+## Issues Fixed
+
+### 1. Data Quality Issues (CSV Preprocessing)
+- **Problem**: Source CSVs contained dirty data: quoted empty strings `''`, duplicate rows, malformed lines
+- **Solution**: Created `csv_preprocessor.py` with automatic cleaning:
+  - `clean_quoted_empty_strings()` - converts `''` to actual empty strings
+  - `deduplicate_rows()` - removes duplicate rows
+  - `fix_malformed_csv()` - handles lines with wrong field counts (uses `on_bad_lines='skip'`)
+- **Integration**: Added to `base_loader.py:112` - all CSVs now auto-cleaned before loading
+
+### 2. Schema Issues
+
+#### trade_history duplicate keys
+- **Problem**: CSV had duplicate `message_id` values (multiple trades with same ID)
+- **Solution**: Changed PK from `message_id` to auto-generated `trade_id SERIAL` in `07_newspaper.sql:147`
+- **Config**: Updated `reference_loader.py:188` with column_mapping to exclude auto-generated `trade_id`
+
+#### messages foreign key violations
+- **Problem**: `messages.trade_id` contained 0 and negative values (-5, -1) for non-trade messages
+- **Solution**: Added calculated field in `reference_loader.py:250`: `CASE WHEN trade_id > 0 THEN trade_id ELSE NULL END`
+- **Schema**: Added `ON DELETE SET NULL` to FK constraint in `07_newspaper.sql:245`
+
+### 3. Load Order Issue
+- **Problem**: Coaches/rosters loading before players existed (FK violation on `former_player_id`)
+- **Solution**: Modified `get_load_order()` in `reference_loader.py:391` to exclude tables with `load_order >= 99`
+- **Result**: These tables now only load during `load-stats` command after players
+
+### 4. Python Code Bugs
+
+#### _infer_column_types bug
+- **Problem**: Used `df.dtype` instead of `df[col].dtype` causing AttributeError
+- **Fix**: Changed to `df.loc[:, col].dtype` in `base_loader.py:284` (ensures Series, not DataFrame)
+- **Caching issue**: Had to use `python -B` flag to bypass persistent bytecode cache
+
+#### Malformed CSV handling
+- **Problem**: `messages.csv` line 318 had 42 fields instead of 40 (unescaped commas in text)
+- **Solution**: Added try/except in `base_loader.py:109-118` to retry with `on_bad_lines='skip'`
+
+## Current Status
+- ✅ All reference data loads successfully (21 tables)
+- ✅ Preprocessing handles: quoted strings, duplicates, malformed lines
+- ✅ Schema accommodates: duplicate message_ids, invalid FK values
+- ⚠️ Must use `python -B main.py` to bypass bytecode cache issues
+
+## Next Steps
+1. Test full `load-stats` pipeline
+2. Verify coaches/rosters load correctly after players
+3. Consider adding pre-commit hook to always run with `-B` flag
+
+## Key Files Modified
+- `etl/src/utils/csv_preprocessor.py` (new)
+- `etl/src/loaders/base_loader.py` (preprocessing + error handling)
+- `etl/src/loaders/reference_loader.py` (load order + calculated fields)
+- `etl/sql/tables/07_newspaper.sql` (schema changes)

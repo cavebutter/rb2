@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 from loguru import logger
 from ..database.connection import db
 from ..database.staging import StagingTableManager
+from ..utils.csv_preprocessor import CSVPreprocessor
 from sqlalchemy import text
 
 class BaseLoader(ABC):
@@ -104,8 +105,23 @@ class BaseLoader(ABC):
         staging_table = f"staging_{target_table}"
         column_mapping = self.get_column_mapping()
 
-        # Read CSV and apply column mapping if needed
-        df = pd.read_csv(csv_path)
+        # Read CSV with error handling for malformed rows
+        try:
+            df = pd.read_csv(csv_path)
+        except pd.errors.ParserError as e:
+            logger.warning(f"Malformed CSV detected, attempting to skip bad lines: {e}")
+            try:
+                df = pd.read_csv(csv_path, on_bad_lines='skip', engine='python')
+                logger.info(f"Successfully loaded CSV with {len(df)} rows (skipped bad lines)")
+            except Exception as e2:
+                logger.error(f"Could not parse CSV even with error handling: {e2}")
+                raise
+
+        # Apply CSV preprocessing (clean quoted strings, deduplicate, etc.)
+        df = CSVPreprocessor.preprocess(df, config={
+            'clean_quoted_strings': True,
+            'deduplicate': True
+        })
 
         # Filter columns based on column mapping
         if column_mapping:
@@ -135,34 +151,100 @@ class BaseLoader(ABC):
             if column_mapping:
                 # Build explicit column list for mapped tables
                 target_cols = list(column_mapping.values())
-                cols_str = ', '.join(target_cols)
-                session.execute(text(f"""
-                    INSERT INTO {target_table} ({cols_str})
-                    SELECT {cols_str} FROM {staging_table}
-                """))
-            else:
-                # Get column names from staging table to ensure proper order
-                cols_sql = text("""
-                    SELECT column_name
+
+                # Get column types for both staging and target tables
+                cols_with_types_sql = text("""
+                    SELECT column_name, data_type
                     FROM information_schema.columns
                     WHERE table_name = :table_name
                     ORDER BY ordinal_position
                 """)
-                result = self.db.execute_sql(cols_sql, {'table_name': staging_table})
-                staging_columns = [row[0] for row in result]
 
-                # Get target table columns
-                result = self.db.execute_sql(cols_sql, {'table_name': target_table})
-                target_columns = [row[0] for row in result]
+                # Get staging column types
+                result = self.db.execute_sql(cols_with_types_sql, {'table_name': staging_table})
+                staging_column_types = {row[0]: row[1] for row in result}
 
-                # Find common columns (staging might have extra calculated fields)
-                common_columns = [col for col in staging_columns if col in target_columns]
-                cols_str = ', '.join(common_columns)
+                # Get target column types
+                result = self.db.execute_sql(cols_with_types_sql, {'table_name': target_table})
+                target_column_types = {row[0]: row[1] for row in result}
+
+                # Build SELECT clause with type casting only when staging is TEXT
+                select_parts = []
+                for col in target_cols:
+                    staging_type = staging_column_types.get(col, 'text')
+                    target_type = target_column_types.get(col, 'text')
+
+                    # Only cast if staging column is text and target needs it
+                    if staging_type == 'text':
+                        if target_type in ('date', 'timestamp without time zone', 'timestamp with time zone'):
+                            select_parts.append(f"NULLIF({col}, '')::DATE" if target_type == 'date'
+                                              else f"NULLIF({col}, '')::TIMESTAMP")
+                        elif target_type == 'numeric':
+                            select_parts.append(f"NULLIF({col}, '')::NUMERIC")
+                        elif target_type in ('integer', 'bigint', 'smallint'):
+                            select_parts.append(f"NULLIF({col}, '')::INTEGER")
+                        else:
+                            select_parts.append(col)
+                    else:
+                        # Staging column is already correct type, no cast needed
+                        select_parts.append(col)
+
+                cols_str = ', '.join(target_cols)
+                select_str = ', '.join(select_parts)
 
                 session.execute(text(f"""
                     INSERT INTO {target_table} ({cols_str})
-                    SELECT {cols_str} FROM {staging_table}
+                    SELECT {select_str} FROM {staging_table}
                 """))
+            else:
+                # Get column types for both staging and target tables
+                cols_with_types_sql = text("""
+                    SELECT column_name, data_type
+                    FROM information_schema.columns
+                    WHERE table_name = :table_name
+                    ORDER BY ordinal_position
+                """)
+
+                # Get staging column types
+                result = self.db.execute_sql(cols_with_types_sql, {'table_name': staging_table})
+                staging_column_types = {row[0]: row[1] for row in result}
+                staging_columns = list(staging_column_types.keys())
+
+                # Get target column types
+                result = self.db.execute_sql(cols_with_types_sql, {'table_name': target_table})
+                target_column_types = {row[0]: row[1] for row in result}
+
+                # Find common columns
+                common_columns = [col for col in staging_columns if col in target_column_types]
+
+                # Build SELECT clause with type casting only when staging is TEXT
+                select_parts = []
+                for col in common_columns:
+                    staging_type = staging_column_types.get(col, 'text')
+                    target_type = target_column_types[col]
+
+                    # Only cast if staging column is text and target needs it
+                    if staging_type == 'text':
+                        if target_type in ('date', 'timestamp without time zone', 'timestamp with time zone'):
+                            select_parts.append(f"NULLIF({col}, '')::DATE" if target_type == 'date'
+                                              else f"NULLIF({col}, '')::TIMESTAMP")
+                        elif target_type == 'numeric':
+                            select_parts.append(f"NULLIF({col}, '')::NUMERIC")
+                        elif target_type in ('integer', 'bigint', 'smallint'):
+                            select_parts.append(f"NULLIF({col}, '')::INTEGER")
+                        else:
+                            select_parts.append(col)
+                    else:
+                        # Staging column is already correct type, no cast needed
+                        select_parts.append(col)
+
+                cols_str = ', '.join(common_columns)
+                select_str = ', '.join(select_parts)
+
+                session.execute(text(f"""
+                                      INSERT INTO {target_table} ({cols_str})
+                                      SELECT {select_str} FROM {staging_table}
+                                  """))
 
             self.stats['rows_inserted'] = row_count
 
@@ -197,8 +279,9 @@ class BaseLoader(ABC):
 
         columns = {}
         for col in df.columns:
-            dtype = str(df[col].dtype)
-            pg_type = type_mapping.get(dtype, 'TEXT')
+            # Get dtype using dtypes Series (guaranteed to return scalar dtype)
+            dtype_str = str(df.dtypes[col])
+            pg_type = type_mapping.get(dtype_str, 'TEXT')
             columns[col] = pg_type
         return columns
 

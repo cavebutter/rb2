@@ -17,7 +17,7 @@
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
 
-  CREATE INDEX idx_team_logos_filename ON team_logos(logo_filename);
+  CREATE INDEX IF NOT EXISTS idx_team_logos_filename ON team_logos(logo_filename);
 
   COMMENT ON TABLE team_logos IS 'Stores team logo file references for web display';
   COMMENT ON COLUMN team_logos.logo_filename IS 'Name of the logo file';
@@ -33,7 +33,7 @@
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
 
-  CREATE INDEX idx_league_logos_filename ON league_logos(logo_filename);
+  CREATE INDEX IF NOT EXISTS idx_league_logos_filename ON league_logos(logo_filename);
 
   COMMENT ON TABLE league_logos IS 'Stores league logo file references for web display';
   COMMENT ON COLUMN league_logos.logo_filename IS 'Name of the logo file';

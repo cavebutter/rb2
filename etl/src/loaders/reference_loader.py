@@ -108,7 +108,7 @@ class ReferenceLoader(BaseLoader):
                   'current_date_year': 'EXTRACT(YEAR FROM current_date::date)',
                   'parent_league_id': 'NULLIF(parent_league_id, 0)'
               }
-  },
+        },
         'teams.csv': {
             'table': 'teams',
             'primary_keys': ['team_id'],
@@ -146,8 +146,129 @@ class ReferenceLoader(BaseLoader):
             'table': 'team_record',
             'primary_keys': ['team_id'],
             'load_order': 12,
+        },
+        # League History Tables
+        'league_history.csv': {
+            'table': 'league_history',
+            'primary_keys': ['league_id', 'sub_league_id', 'year'],
+            'load_order': 13,
+        },
+        'league_history_batting_stats.csv': {
+            'table': 'league_history_batting_stats',
+            'primary_keys': ['year', 'team_id', 'game_id', 'league_id', 'level_id', 'split_id'],
+            'load_order': 14,
+        },
+        'league_history_pitching_stats.csv': {
+            'table': 'league_history_pitching_stats',
+            'primary_keys': ['year', 'team_id', 'game_id', 'level_id', 'split_id'],
+            'load_order': 15,
+        },
+        # Team history tables
+        'team_history.csv': {
+            'table': 'team_history',
+            'primary_keys': ['team_id', 'year'],
+            'load_order': 16,
+        },
+        'team_history_batting_stats.csv': {
+            'table': 'team_history_batting_stats',
+            'primary_keys': ['team_id', 'year'],
+            'load_order': 17,
+        },
+        'team_history_pitching_stats.csv': {
+            'table': 'team_history_pitching_stats',
+            'primary_keys': ['team_id', 'year'],
+            'load_order': 18,
+        },
+        'team_history_record.csv': {
+            'table': 'team_history_record',
+            'primary_keys': ['team_id', 'year'],
+            'load_order': 19,
+        },
+        # Newspaper/transaction tables (no player FKs)
+        'trade_history.csv': {
+            'table': 'trade_history',
+            'primary_keys': ['trade_id'],
+            'load_order': 20,
+            'column_mapping': {
+                # Exclude trade_id - it's auto-generated SERIAL
+                'date': 'date',
+                'summary': 'summary',
+                'message_id': 'message_id',
+                'team_id_0': 'team_id_0',
+                'player_id_0_0': 'player_id_0_0',
+                'player_id_0_1': 'player_id_0_1',
+                'player_id_0_2': 'player_id_0_2',
+                'player_id_0_3': 'player_id_0_3',
+                'player_id_0_4': 'player_id_0_4',
+                'player_id_0_5': 'player_id_0_5',
+                'player_id_0_6': 'player_id_0_6',
+                'player_id_0_7': 'player_id_0_7',
+                'player_id_0_8': 'player_id_0_8',
+                'player_id_0_9': 'player_id_0_9',
+                'draft_round_0_0': 'draft_round_0_0',
+                'draft_team_0_0': 'draft_team_0_0',
+                'draft_round_0_1': 'draft_round_0_1',
+                'draft_team_0_1': 'draft_team_0_1',
+                'draft_round_0_2': 'draft_round_0_2',
+                'draft_team_0_2': 'draft_team_0_2',
+                'draft_round_0_3': 'draft_round_0_3',
+                'draft_team_0_3': 'draft_team_0_3',
+                'draft_round_0_4': 'draft_round_0_4',
+                'draft_team_0_4': 'draft_team_0_4',
+                'cash_0': 'cash_0',
+                'iafa_cap_0': 'iafa_cap_0',
+                'team_id_1': 'team_id_1',
+                'player_id_1_0': 'player_id_1_0',
+                'player_id_1_1': 'player_id_1_1',
+                'player_id_1_2': 'player_id_1_2',
+                'player_id_1_3': 'player_id_1_3',
+                'player_id_1_4': 'player_id_1_4',
+                'player_id_1_5': 'player_id_1_5',
+                'player_id_1_6': 'player_id_1_6',
+                'player_id_1_7': 'player_id_1_7',
+                'player_id_1_8': 'player_id_1_8',
+                'player_id_1_9': 'player_id_1_9',
+                'draft_round_1_0': 'draft_round_1_0',
+                'draft_team_1_0': 'draft_team_1_0',
+                'draft_round_1_1': 'draft_round_1_1',
+                'draft_team_1_1': 'draft_team_1_1',
+                'draft_round_1_2': 'draft_round_1_2',
+                'draft_team_1_2': 'draft_team_1_2',
+                'draft_round_1_3': 'draft_round_1_3',
+                'draft_team_1_3': 'draft_team_1_3',
+                'draft_round_1_4': 'draft_round_1_4',
+                'draft_team_1_4': 'draft_team_1_4',
+                'cash_1': 'cash_1',
+                'iafa_cap_1': 'iafa_cap_1'
+            }
+        },
+        'messages.csv': {
+            'table': 'messages',
+            'primary_keys': ['message_id'],
+            'load_order': 21,
+            'calculated_fields': {
+                # Convert 0 and negative values to NULL (non-trade messages use 0, -1, -5, etc.)
+                'trade_id': 'CASE WHEN trade_id > 0 THEN trade_id ELSE NULL END'
+            }
+        },
+        # Coaches and rosters (loaded manually after players in load-stats command)
+        'coaches.csv': {
+            'table': 'coaches',
+            'primary_keys': ['coach_id'],
+            'load_order': 99  # Manual load only
+        },
+        'team_roster.csv': {
+            'table': 'team_roster',
+            'primary_keys': ['team_id', 'player_id'],
+            'load_order': 100  # Manual load only
+        },
+        'team_roster_staff.csv': {
+            'table': 'team_roster_staff',
+            'primary_keys': ['team_id'],
+            'load_order': 101  # Manual load only
         }
-  }
+
+    }
 
 
 
@@ -269,8 +390,8 @@ class ReferenceLoader(BaseLoader):
 
     @classmethod
     def get_load_order(cls) -> List[str]:
-        """Return CSV files in dependency order"""
+        """Return CSV files in dependency order (excludes manual-load-only tables with load_order >= 99)"""
         return sorted(
-            cls.REFERENCE_TABLES.keys(),
+            [k for k, v in cls.REFERENCE_TABLES.items() if v['load_order'] < 99],
             key=lambda x: cls.REFERENCE_TABLES[x]['load_order']
         )
