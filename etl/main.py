@@ -215,8 +215,8 @@ def load_stats(force_all_constants):
 
   logger.info('Loading team roster staff...')
   try:
-      staff_loader = ReferenceLoader('staff.csv', batch_id)
-      staff_loader.load_csv(Path("data/incoming/csv/staff.csv"))
+      staff_loader = ReferenceLoader('team_roster_staff.csv', batch_id)
+      staff_loader.load_csv(Path("data/incoming/csv/team_roster_staff.csv"))
       click.echo("✓ Roster staff loaded successfully")
   except Exception as e:
       logger.error(f"Error loading staff: {e}")

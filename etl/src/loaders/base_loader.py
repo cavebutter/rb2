@@ -117,10 +117,27 @@ class BaseLoader(ABC):
                 logger.error(f"Could not parse CSV even with error handling: {e2}")
                 raise
 
-        # Apply CSV preprocessing (clean quoted strings, deduplicate, etc.)
+        # Apply CSV preprocessing (clean quoted strings, deduplicate on PK, etc.)
+        primary_keys = self.get_primary_keys()
+
+        # If there's a column mapping, we need to find the CSV column names for the PKs
+        # Otherwise the PKs won't exist yet (e.g., trade_id is auto-generated)
+        dedup_subset = None
+        if primary_keys and column_mapping:
+            # Reverse map to find CSV columns that map to PK columns
+            reverse_mapping = {v: k for k, v in column_mapping.items()}
+            dedup_subset = [reverse_mapping.get(pk) for pk in primary_keys if reverse_mapping.get(pk)]
+            # Only use subset if all PKs are mapped (otherwise use all columns)
+            if not dedup_subset or len(dedup_subset) != len(primary_keys):
+                dedup_subset = None
+        elif primary_keys:
+            # No mapping, use PKs directly
+            dedup_subset = primary_keys
+
         df = CSVPreprocessor.preprocess(df, config={
             'clean_quoted_strings': True,
-            'deduplicate': True
+            'deduplicate': True,
+            'dedup_subset': dedup_subset
         })
 
         # Filter columns based on column mapping

@@ -28,6 +28,7 @@
 - **Result**: These tables now only load during `load-stats` command after players
 
 ### 4. Python Code Bugs
+master
 
 #### _infer_column_types bug
 - **Problem**: Used `df.dtype` instead of `df[col].dtype` causing AttributeError
@@ -40,17 +41,27 @@
 
 ## Current Status
 - ✅ All reference data loads successfully (21 tables)
+- ✅ All player stats load successfully (players, batting, pitching)
+- ✅ Coaches and rosters load successfully after players
 - ✅ Preprocessing handles: quoted strings, duplicates, malformed lines
 - ✅ Schema accommodates: duplicate message_ids, invalid FK values
-- ⚠️ Must use `python -B main.py` to bypass bytecode cache issues
+- ✅ Final fixes applied (2025-10-07 session 2):
+  - Fixed `_infer_column_types` to use `df.dtypes[col]` (reliable dtype access)
+  - Fixed duplicate column mapping in trade_history (`draft_round_0_4`)
+  - Added DROP statements to `07_newspaper.sql` for proper schema updates
+  - Fixed deduplication to handle column-mapped tables (reverse map PKs to CSV columns)
+  - Added `former_player_id: NULLIF(former_player_id, 0)` to coaches calculated_fields
+  - Fixed staff filename from `staff.csv` to `team_roster_staff.csv` in main.py
 
-## Next Steps
-1. Test full `load-stats` pipeline
-2. Verify coaches/rosters load correctly after players
-3. Consider adding pre-commit hook to always run with `-B` flag
+## ETL Pipeline Complete
+The ETL now successfully:
+1. Loads 21 reference tables via `load-reference`
+2. Loads player stats, calculates league constants via `load-stats --force-all-constants`
+3. Loads coaches and rosters after players to satisfy FK constraints
+4. Handles all data quality issues automatically through preprocessing
 
 ## Key Files Modified
 - `etl/src/utils/csv_preprocessor.py` (new)
-- `etl/src/loaders/base_loader.py` (preprocessing + error handling)
-- `etl/src/loaders/reference_loader.py` (load order + calculated fields)
-- `etl/sql/tables/07_newspaper.sql` (schema changes)
+- `etl/src/loaders/base_loader.py` (preprocessing + error handling + dtype fix)
+- `etl/src/loaders/reference_loader.py` (load order + calculated fields + column mapping fix)
+- `etl/sql/tables/07_newspaper.sql` (schema changes + DROP statements)

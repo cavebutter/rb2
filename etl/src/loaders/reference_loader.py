@@ -255,7 +255,10 @@ class ReferenceLoader(BaseLoader):
         'coaches.csv': {
             'table': 'coaches',
             'primary_keys': ['coach_id'],
-            'load_order': 99  # Manual load only
+            'load_order': 99,  # Manual load only
+            'calculated_fields': {
+                'former_player_id': 'NULLIF(former_player_id, 0)'
+            }
         },
         'team_roster.csv': {
             'table': 'team_roster',
