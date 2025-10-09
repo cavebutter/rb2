@@ -2,9 +2,64 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RB2 Baseball{% endblock %}</title>
 
+    <!-- Tailwind CSS CDN for quick styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-blue-900 text-white shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-8">
+                    <a href="{{ url_for('main.index') }}" class="text-xl font-bold">RB2 Baseball</a>
+                    <div class="hidden md:flex space-x-4">
+                        <a href="{{ url_for('main.index') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Home</a>
+                        <a href="{{ url_for('teams.teams_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Teams</a>
+                        <a href="{{ url_for('players.players_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Players</a>
+                        <a href="{{ url_for('leaderboards.batting') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Leaderboards</a>
+                    </div>
+                </div>
+                <!-- Search bar placeholder -->
+                <div class="flex items-center">
+                    <input type="text" placeholder="Search players, teams..."
+                           class="px-4 py-2 rounded bg-blue-800 text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mx-auto px-4 mt-4">
+                {% for category, message in messages %}
+                    <div class="bg-{{ category }}-100 border border-{{ category }}-400 text-{{ category }}-700 px-4 py-3 rounded relative mb-4" role="alert">
+                        <span class="block sm:inline">{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main content -->
+    <main class="container mx-auto px-4 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-gray-300 mt-12">
+        <div class="container mx-auto px-4 py-6">
+            <div class="text-center">
+                <p>&copy; 2025 RB2 Baseball. Generated from OOTP simulation.</p>
+            </div>
+        </div>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Home - RB2 Baseball{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold text-gray-900">Baseball Standings</h1>
+        {% if leagues_data and leagues_data[0].league %}
+            <p class="text-gray-600 mt-2">
+                {{ leagues_data[0].league.season_year }} Season
+                {% if leagues_data[0].league.game_date %}
+                    | Current Date: {{ leagues_data[0].league.game_date.strftime('%B %d, %Y') }}
+                {% endif %}
+            </p>
+        {% endif %}
+    </div>
+
+    {% if not leagues_data %}
+        <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+            <p>No standings data available. Make sure the database has been loaded with team and standings data.</p>
+        </div>
+    {% else %}
+        {% for league_data in leagues_data %}
+            <!-- League Header -->
+            <div class="mb-6">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">{{ league_data.league.name }}</h2>
+            </div>
+            <!-- Standings by League -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                {% for sub_league in league_data.standings %}
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <!-- Sub-League Header (AL/NL) -->
+                    <div class="bg-blue-700 text-white px-6 py-4">
+                        <h2 class="text-2xl font-bold">{{ sub_league.name }}</h2>
+                    </div>
+
+                    <!-- Divisions -->
+                    {% for division in sub_league.divisions %}
+                        <div class="border-b border-gray-200 last:border-b-0">
+                            <!-- Division Header -->
+                            <div class="bg-gray-100 px-6 py-3 border-b border-gray-300">
+                                <h3 class="text-lg font-semibold text-gray-800">{{ division.name }}</h3>
+                            </div>
+
+                            <!-- Standings Table -->
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full">
+                                    <thead class="bg-gray-50 border-b border-gray-200">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
+                                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">W</th>
+                                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">L</th>
+                                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PCT</th>
+                                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">GB</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        {% for team in division.teams %}
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <a href="{{ url_for('teams.team_detail', team_id=team.team_id) }}"
+                                                       class="text-blue-600 hover:text-blue-800 font-medium">
+                                                        {{ team.name }}{% if team.nickname %} {{ team.nickname }}{% endif %}
+                                                    </a>
+                                                </td>
+                                                <td class="px-3 py-4 text-center text-sm">
+                                                    {{ team.record.w if team.record else '-' }}
+                                                </td>
+                                                <td class="px-3 py-4 text-center text-sm">
+                                                    {{ team.record.l if team.record else '-' }}
+                                                </td>
+                                                <td class="px-3 py-4 text-center text-sm">
+                                                    {% if team.record and team.record.pct %}
+                                                        {{ "%.3f"|format(team.record.pct) }}
+                                                    {% else %}
+                                                        .000
+                                                    {% endif %}
+                                                </td>
+                                                <td class="px-3 py-4 text-center text-sm text-gray-600">
+                                                    {{ team.record.games_back_display if team.record else '-' }}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}

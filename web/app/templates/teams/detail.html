@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}{{ team.full_name }} - RB2 Baseball{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Team Header -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+        <div class="flex items-start justify-between">
+            <div>
+                <h1 class="text-4xl font-bold text-gray-900 mb-2">{{ team.name }}{% if team.nickname %} {{ team.nickname }}{% endif %}</h1>
+                <p class="text-xl text-gray-600">
+                    {% if team.league %}{{ team.league.name }}{% endif %}
+                    {% if team.record %} | {{ team.record.w }}-{{ team.record.l }} ({{ "%.3f"|format(team.record.pct) if team.record.pct else '.000' }}){% endif %}
+                </p>
+            </div>
+            {% if team.abbr %}
+                <div class="text-6xl font-bold text-gray-300">{{ team.abbr }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Team Info Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
+            {% if team.park %}
+                <div>
+                    <p class="text-sm text-gray-500">Home Park</p>
+                    <p class="font-semibold">{{ team.park.name }}</p>
+                </div>
+            {% endif %}
+            {% if team.record %}
+                <div>
+                    <p class="text-sm text-gray-500">Position</p>
+                    <p class="font-semibold">{{ team.record.pos }}{% if team.record.pos == 1 %}st{% elif team.record.pos == 2 %}nd{% elif team.record.pos == 3 %}rd{% else %}th{% endif %} in division</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Games Back</p>
+                    <p class="font-semibold">{{ team.record.games_back_display }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Streak</p>
+                    <p class="font-semibold">{{ team.record.streak_display }}</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Roster -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="bg-blue-700 text-white px-6 py-4">
+            <h2 class="text-2xl font-bold">Active Roster</h2>
+        </div>
+
+        {% if roster %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Player</th>
+                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Pos</th>
+                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
+                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">B/T</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">From</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for player in roster %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <a href="{{ url_for('players.player_detail', player_id=player.player_id) }}"
+                                       class="text-blue-600 hover:text-blue-800 font-medium">
+                                        {{ player.display_name }}
+                                    </a>
+                                </td>
+                                <td class="px-3 py-4 text-center text-sm">
+                                    {{ player.current_status.position_display if player.current_status else '-' }}
+                                </td>
+                                <td class="px-3 py-4 text-center text-sm">
+                                    {{ player.age if player.age else '-' }}
+                                </td>
+                                <td class="px-3 py-4 text-center text-sm">
+                                    {{ player.bats_display }}/{{ player.throws_display }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600">
+                                    {{ player.city_of_birth.name if player.city_of_birth else '' }}{% if player.nation %}, {{ player.nation.abbreviation }}{% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="p-8 text-center text-gray-500">
+                <p>No active roster available.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

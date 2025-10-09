@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Players - RB2 Baseball{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <h1 class="text-4xl font-bold text-gray-900 mb-8">Players</h1>
+
+    <div class="space-y-8">
+        {% for letter in players_by_letter.keys()|sort %}
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                {# Letter heading - clickable #}
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">
+                    <a href="{{ url_for('players.players_by_letter', letter=letter) }}"
+                       class="text-blue-600 hover:text-blue-800">
+                        {{ letter }}
+                    </a>
+                </h2>
+
+                {# Notable players for this letter #}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                    {% for player in players_by_letter[letter] %}
+                        <div>
+                            <a href="{{ url_for('players.player_detail', player_id=player.player_id) }}"
+                               class="text-blue-600 hover:text-blue-800 hover:underline">
+                                {{ player.display_name }}
+                            </a>
+                            {% if player.career_war %}
+                                <span class="text-gray-500 text-sm ml-1">({{ "%.1f"|format(player.career_war) }} WAR)</span>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

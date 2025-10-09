@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Players - {{ letter }} - RB2 Baseball{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-4xl font-bold text-gray-900 mb-8">
+        Players - {{ letter }}
+    </h1>
+
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="space-y-2">
+            {% for player_tuple in players %}
+                {% set player = player_tuple[0] %}
+                {% set first_year = player_tuple[1] %}
+                {% set last_year = player_tuple[2] %}
+                <div class="py-2 border-b border-gray-200 last:border-b-0">
+                    <a href="{{ url_for('players.player_detail', player_id=player.player_id) }}"
+                       class="text-blue-600 hover:text-blue-800 hover:underline font-medium">
+                        {{ player.display_name }}
+                    </a>
+                    {% if first_year and last_year %}
+                        <span class="text-gray-600 ml-2">
+                            ({{ first_year }}{% if first_year != last_year %}-{{ last_year }}{% endif %})
+                        </span>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="mt-6">
+        <a href="{{ url_for('players.players_list') }}"
+           class="text-blue-600 hover:text-blue-800 hover:underline">
+            &larr; Back to all players
+        </a>
+    </div>
+</div>
+{% endblock %}

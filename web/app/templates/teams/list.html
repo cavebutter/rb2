@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Teams - RB2 Baseball{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <h1 class="text-4xl font-bold text-gray-900 mb-8">All Teams</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for team in teams %}
+            <div class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow">
+                <a href="{{ url_for('teams.team_detail', team_id=team.team_id) }}" class="block p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-gray-900">
+                            {{ team.name }}{% if team.nickname %} {{ team.nickname }}{% endif %}
+                        </h2>
+                        {% if team.abbr %}
+                            <span class="text-sm font-mono bg-gray-200 px-2 py-1 rounded">{{ team.abbr }}</span>
+                        {% endif %}
+                    </div>
+
+                    {% if team.record %}
+                        <div class="text-gray-600">
+                            <div class="flex justify-between text-sm">
+                                <span>Record:</span>
+                                <span class="font-semibold">{{ team.record.w }}-{{ team.record.l }}</span>
+                            </div>
+                            <div class="flex justify-between text-sm mt-1">
+                                <span>Win%:</span>
+                                <span>{{ "%.3f"|format(team.record.pct) if team.record.pct else '.000' }}</span>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if team.park %}
+                        <div class="mt-4 text-sm text-gray-500">
+                            <span class="inline-block">🏟️ {{ team.park.name }}</span>
+                        </div>
+                    {% endif %}
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
