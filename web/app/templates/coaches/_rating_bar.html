@@ -1,0 +1,46 @@
+{# Reusable macro for coach rating bar charts #}
+{% macro rating_bar(label, value, max_value=200) %}
+{% if value is not none %}
+  {# Calculate percentage and color #}
+  {% set percentage = (value / max_value * 100) | round(1) %}
+  {% if value <= 40 %}
+    {% set color_class = 'bg-red-500' %}
+  {% elif value <= 80 %}
+    {% set color_class = 'bg-orange-500' %}
+  {% elif value <= 120 %}
+    {% set color_class = 'bg-yellow-500' %}
+  {% elif value <= 160 %}
+    {% set color_class = 'bg-green-500' %}
+  {% else %}
+    {% set color_class = 'bg-blue-500' %}
+  {% endif %}
+
+  <div class="mb-4">
+    <div class="flex items-center justify-between mb-1">
+      <span class="text-sm font-medium text-gray-700">{{ label }}</span>
+      <span class="text-sm font-semibold text-gray-900">{{ value }}/{{ max_value }}</span>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-6 relative overflow-hidden">
+      <div class="{{ color_class }} h-full rounded-full transition-all duration-300 flex items-center justify-end pr-2"
+           style="width: {{ percentage }}%">
+        {% if percentage > 15 %}
+        <span class="text-xs font-medium text-white">{{ percentage }}%</span>
+        {% endif %}
+      </div>
+      {% if percentage <= 15 %}
+      <span class="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs font-medium text-gray-600">{{ percentage }}%</span>
+      {% endif %}
+    </div>
+  </div>
+{% else %}
+  <div class="mb-4">
+    <div class="flex items-center justify-between mb-1">
+      <span class="text-sm font-medium text-gray-700">{{ label }}</span>
+      <span class="text-sm text-gray-400">N/A</span>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-6">
+      <div class="bg-gray-300 h-full rounded-full" style="width: 0%"></div>
+    </div>
+  </div>
+{% endif %}
+{% endmacro %}

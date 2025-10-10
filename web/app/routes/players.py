@@ -1,9 +1,11 @@
 """Player routes"""
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request, abort, send_file
 from app.models import Player, PlayerCurrentStatus, PlayerBattingStats, PlayerPitchingStats
+from app.services import player_service
 from sqlalchemy import desc, func, and_
 from app.extensions import db
 import string
+import os
 
 bp = Blueprint('players', __name__)
 
@@ -98,22 +100,69 @@ def players_by_letter(letter):
 
 @bp.route('/<int:player_id>')
 def player_detail(player_id):
-    """Player detail page - bio, stats, ratings"""
-    player = Player.query.get_or_404(player_id)
+    """Player detail page - bio, stats, ratings
 
-    # Get career batting stats (split_id=1 for overall)
-    career_batting = (PlayerBattingStats.query
-                     .filter_by(player_id=player_id, split_id=1)
-                     .order_by(desc(PlayerBattingStats.year))
-                     .all())
+    OPTIMIZATION: Use joinedload to explicitly control relationship loading
+    instead of relying on model's default lazy='joined' which can cause
+    cascading eager loads and N+1 query issues.
+    """
+    from sqlalchemy.orm import joinedload, raiseload
+    from app.models import PlayerCurrentStatus
 
-    # Get career pitching stats
-    career_pitching = (PlayerPitchingStats.query
-                      .filter_by(player_id=player_id, split_id=1)
-                      .order_by(desc(PlayerPitchingStats.year))
-                      .all())
+    # Query with explicit relationship loading control
+    # Load only what we need: city, nation, current_status (with team)
+    # Let ratings lazy-load only if needed (template checks for them)
+    # Block stats relationships (handled by service layer)
+    player = (Player.query
+              .options(
+                  joinedload(Player.city_of_birth),
+                  joinedload(Player.nation),
+                  joinedload(Player.second_nation),
+                  joinedload(Player.current_status).joinedload(PlayerCurrentStatus.team, innerjoin=False),  # Load status with team
+                  raiseload(Player.batting_stats),  # Block stats - service layer handles these
+                  raiseload(Player.pitching_stats)
+                  # Let ratings lazy-load on access (they're one-to-one, minimal cost)
+              )
+              .filter_by(player_id=player_id)
+              .first_or_404())
+
+    # Get batting stats with career totals from service layer
+    batting_data = player_service.get_player_career_batting_stats(player_id)
+
+    # Get pitching stats with career totals from service layer
+    pitching_data = player_service.get_player_career_pitching_stats(player_id)
+
+    # Get trade history
+    trade_history = player_service.get_player_trade_history(player_id)
+
+    # Get player news (contracts, injuries, awards, highlights, career milestones)
+    player_news = player_service.get_player_news(player_id)
 
     return render_template('players/detail.html',
                           player=player,
-                          career_batting=career_batting,
-                          career_pitching=career_pitching)
+                          batting_data=batting_data,
+                          pitching_data=pitching_data,
+                          trade_history=trade_history,
+                          player_news=player_news)
+
+
+@bp.route('/image/<int:player_id>')
+def player_image(player_id):
+    """Serve player image from ETL data directory.
+
+    Returns player_{player_id}.png or a placeholder if not found.
+    """
+    # Path to player images
+    # From web/app/routes -> up 3 levels to rb2/ -> etl/data/images/players
+    image_dir = os.path.abspath(os.path.join(
+        os.path.dirname(__file__),
+        '../../../etl/data/images/players'
+    ))
+
+    image_path = os.path.join(image_dir, f'player_{player_id}.png')
+
+    if os.path.exists(image_path):
+        return send_file(image_path, mimetype='image/png')
+    else:
+        # Return 404 or a placeholder image
+        abort(404)

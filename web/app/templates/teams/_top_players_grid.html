@@ -1,0 +1,43 @@
+{# Top Players by WAR Grid Component #}
+{# Shows grid of top 12 players with images #}
+{# Usage: {% include 'teams/_top_players_grid.html' with top_players=[...], year=1996 %} #}
+
+{% if top_players and top_players|length > 0 %}
+<div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6">Top Players ({{ year }})</h2>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+        {% for player_id, first_name, last_name, war, stat_type in top_players %}
+        <div class="flex flex-col items-center">
+            {# Player Image #}
+            <div class="relative mb-2">
+                <img src="{{ url_for('players.player_image', player_id=player_id) }}"
+                     alt="{{ first_name }} {{ last_name }}"
+                     class="w-20 h-30 object-cover rounded border-2 border-gray-300"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="w-20 h-30 bg-blue-100 rounded border-2 border-blue-300 flex items-center justify-center text-blue-700 font-bold text-xl"
+                     style="display: none;">
+                    {{ first_name[0] }}{{ last_name[0] }}
+                </div>
+            </div>
+
+            {# Player Info #}
+            <div class="text-center">
+                <a href="{{ url_for('players.player_detail', player_id=player_id) }}"
+                   class="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline">
+                    {{ first_name }} {{ last_name }}
+                </a>
+                <p class="text-xs text-gray-500 mt-1">
+                    {% if stat_type == 'pitching' %}
+                        <span class="inline-block px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs">P</span>
+                    {% else %}
+                        <span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">B</span>
+                    {% endif %}
+                    {{ "%.1f"|format(war) }} WAR
+                </p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}

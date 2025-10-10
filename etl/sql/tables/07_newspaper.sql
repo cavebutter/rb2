@@ -211,6 +211,29 @@ CREATE INDEX IF NOT EXISTS idx_trade_history_date ON trade_history(date DESC);
 CREATE INDEX IF NOT EXISTS idx_trade_history_team_0 ON trade_history(team_id_0);
 CREATE INDEX IF NOT EXISTS idx_trade_history_team_1 ON trade_history(team_id_1);
 
+-- Player indexes for trade history queries (US-I002 - 2025-10-09)
+-- Supports get_player_trade_history() which checks all 20 player slots
+CREATE INDEX IF NOT EXISTS idx_trade_player_0_0 ON trade_history(player_id_0_0) WHERE player_id_0_0 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_0_1 ON trade_history(player_id_0_1) WHERE player_id_0_1 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_0_2 ON trade_history(player_id_0_2) WHERE player_id_0_2 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_0_3 ON trade_history(player_id_0_3) WHERE player_id_0_3 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_0_4 ON trade_history(player_id_0_4) WHERE player_id_0_4 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_0_5 ON trade_history(player_id_0_5) WHERE player_id_0_5 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_0_6 ON trade_history(player_id_0_6) WHERE player_id_0_6 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_0_7 ON trade_history(player_id_0_7) WHERE player_id_0_7 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_0_8 ON trade_history(player_id_0_8) WHERE player_id_0_8 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_0_9 ON trade_history(player_id_0_9) WHERE player_id_0_9 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_1_0 ON trade_history(player_id_1_0) WHERE player_id_1_0 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_1_1 ON trade_history(player_id_1_1) WHERE player_id_1_1 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_1_2 ON trade_history(player_id_1_2) WHERE player_id_1_2 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_1_3 ON trade_history(player_id_1_3) WHERE player_id_1_3 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_1_4 ON trade_history(player_id_1_4) WHERE player_id_1_4 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_1_5 ON trade_history(player_id_1_5) WHERE player_id_1_5 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_1_6 ON trade_history(player_id_1_6) WHERE player_id_1_6 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_1_7 ON trade_history(player_id_1_7) WHERE player_id_1_7 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_1_8 ON trade_history(player_id_1_8) WHERE player_id_1_8 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_trade_player_1_9 ON trade_history(player_id_1_9) WHERE player_id_1_9 IS NOT NULL;
+
 COMMENT ON TABLE trade_history IS 'Transaction records with embedded player and draft pick details';
 COMMENT ON COLUMN trade_history.summary IS 'Human-readable transaction summary with embedded references';
 COMMENT ON COLUMN trade_history.player_id_0_0 IS 'First player involved for team 0 (0 = no player)';
@@ -259,6 +282,20 @@ CREATE INDEX IF NOT EXISTS idx_messages_type ON messages(message_type);
 CREATE INDEX IF NOT EXISTS idx_messages_importance ON messages(importance);
 CREATE INDEX IF NOT EXISTS idx_messages_trade ON messages(trade_id);
 CREATE INDEX IF NOT EXISTS idx_messages_deleted ON messages(deleted) WHERE deleted = 0;
+
+-- Player indexes for player news queries (US-I002 - 2025-10-09)
+-- Supports get_player_news() which checks all 10 player slots
+-- WHERE clause optimizes index size by excluding NULL values
+CREATE INDEX IF NOT EXISTS idx_messages_player_0 ON messages(player_id_0) WHERE player_id_0 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_messages_player_1 ON messages(player_id_1) WHERE player_id_1 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_messages_player_2 ON messages(player_id_2) WHERE player_id_2 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_messages_player_3 ON messages(player_id_3) WHERE player_id_3 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_messages_player_4 ON messages(player_id_4) WHERE player_id_4 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_messages_player_5 ON messages(player_id_5) WHERE player_id_5 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_messages_player_6 ON messages(player_id_6) WHERE player_id_6 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_messages_player_7 ON messages(player_id_7) WHERE player_id_7 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_messages_player_8 ON messages(player_id_8) WHERE player_id_8 IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_messages_player_9 ON messages(player_id_9) WHERE player_id_9 IS NOT NULL;
 
 COMMENT ON TABLE messages IS 'Game-generated news messages with embedded player/team references';
 COMMENT ON COLUMN messages.body IS 'Message text with embedded references like <Player Name:player#ID> and <Team Name:team#ID>';

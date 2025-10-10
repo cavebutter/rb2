@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from 'teams/_team_logo.html' import team_logo %}
 
 {% block title %}{{ team.full_name }} - RB2 Baseball{% endblock %}
 
@@ -6,17 +7,20 @@
 <div class="max-w-7xl mx-auto">
     <!-- Team Header -->
     <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
-        <div class="flex items-start justify-between">
-            <div>
+        <div class="flex items-start gap-6">
+            <!-- Team Logo (Top Left) -->
+            <div class="flex-shrink-0">
+                {{ team_logo(team, size='large') }}
+            </div>
+
+            <!-- Team Info (Center) -->
+            <div class="flex-1">
                 <h1 class="text-4xl font-bold text-gray-900 mb-2">{{ team.name }}{% if team.nickname %} {{ team.nickname }}{% endif %}</h1>
                 <p class="text-xl text-gray-600">
                     {% if team.league %}{{ team.league.name }}{% endif %}
                     {% if team.record %} | {{ team.record.w }}-{{ team.record.l }} ({{ "%.3f"|format(team.record.pct) if team.record.pct else '.000' }}){% endif %}
                 </p>
             </div>
-            {% if team.abbr %}
-                <div class="text-6xl font-bold text-gray-300">{{ team.abbr }}</div>
-            {% endif %}
         </div>
 
         <!-- Team Info Grid -->
@@ -44,6 +48,129 @@
         </div>
     </div>
 
+    <!-- Coaching Staff -->
+    {% include 'teams/_coaching_staff.html' %}
+
+    <!-- Franchise History Encyclopedia (US-T003) -->
+    {% if franchise_history %}
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+        <h2 class="text-3xl font-bold text-gray-900 mb-6">
+            {{ team.nickname if team.nickname else team.name }} Team History & Encyclopedia
+        </h2>
+
+        <!-- Franchise Summary Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8 p-6 bg-blue-50 rounded-lg">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Seasons</p>
+                <p class="text-3xl font-bold text-blue-700">{{ franchise_history.total_seasons }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600 mb-1">All-Time Record</p>
+                <p class="text-2xl font-bold text-gray-900">{{ franchise_history.all_time_wins }}-{{ franchise_history.all_time_losses }}</p>
+                <p class="text-sm text-gray-500">{{ "%.3f"|format(franchise_history.all_time_pct) }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Playoff Appearances</p>
+                <p class="text-3xl font-bold text-green-600">{{ franchise_history.playoff_appearances }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Championships</p>
+                <p class="text-3xl font-bold text-yellow-600">{{ franchise_history.championships }}</p>
+            </div>
+        </div>
+
+        <!-- Former Team Names -->
+        {% if franchise_history.former_names %}
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-800 mb-3">Former Team Names</h3>
+            <div class="flex flex-wrap gap-2">
+                {% for name in franchise_history.former_names %}
+                <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">{{ name }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Top 24 Franchise Players -->
+        {% if franchise_top_players %}
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Franchise Legends (Top 24 by WAR)</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {% for player in franchise_top_players %}
+                <a href="{{ url_for('players.player_detail', player_id=player.player_id) }}"
+                   class="block bg-white border-2 border-gray-200 rounded-lg p-3 hover:border-blue-500 hover:shadow-md transition-all">
+                    <div class="flex flex-col items-center">
+                        <img
+                            src="{{ url_for('players.player_image', player_id=player.player_id) }}"
+                            alt="{{ player.first_name }} {{ player.last_name }}"
+                            class="w-[60px] h-[90px] rounded mb-2"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        >
+                        <div class="w-[60px] h-[90px] bg-blue-500 text-white rounded flex items-center justify-center text-lg font-bold mb-2 hidden">
+                            {{ player.first_name[0] }}{{ player.last_name[0] }}
+                        </div>
+                        <p class="text-xs font-semibold text-center text-gray-900 leading-tight">
+                            {{ player.first_name }} {{ player.last_name }}
+                        </p>
+                        <p class="text-xs text-blue-600 font-bold mt-1">
+                            {{ "%.1f"|format(player.total_war) }} WAR
+                        </p>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Year-by-Year Franchise History -->
+        {% if franchise_year_by_year %}
+        <div>
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Year-by-Year Franchise History</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Year</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Team Name</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">W</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">L</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Pct</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Playoffs</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Champion</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for record in franchise_year_by_year %}
+                        <tr class="hover:bg-gray-50 {% if record.is_current %}bg-blue-50 font-semibold{% endif %}">
+                            <td class="px-4 py-3 text-sm">
+                                <a href="{{ url_for('teams.team_year', team_id=team.team_id, year=record.year) }}"
+                                   class="text-blue-600 hover:text-blue-800">
+                                    {{ record.year }}{% if record.is_current %} *{% endif %}
+                                </a>
+                            </td>
+                            <td class="px-4 py-3 text-sm">{{ record.team_name }}</td>
+                            <td class="px-4 py-3 text-sm text-center">{{ record.w if record.w else '-' }}</td>
+                            <td class="px-4 py-3 text-sm text-center">{{ record.l if record.l else '-' }}</td>
+                            <td class="px-4 py-3 text-sm text-center">
+                                {{ "%.3f"|format(record.pct) if record.pct else '-' }}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-center">
+                                {% if record.playoffs %}✓{% else %}-{% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-center">
+                                {% if record.wc %}🏆{% else %}-{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">* Current Season</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- Roster -->
     <div class="bg-white rounded-lg shadow-lg overflow-hidden">
         <div class="bg-blue-700 text-white px-6 py-4">
@@ -55,6 +182,7 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Player</th>
                             <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Pos</th>
                             <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
@@ -65,6 +193,17 @@
                     <tbody class="bg-white divide-y divide-gray-200">
                         {% for player in roster %}
                             <tr class="hover:bg-gray-50">
+                                <td class="px-3 py-4 whitespace-nowrap">
+                                    <img
+                                      src="{{ url_for('players.player_image', player_id=player.player_id) }}"
+                                      alt="{{ player.display_name }}"
+                                      class="w-[45px] h-[68px] object-cover rounded"
+                                      onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                                    >
+                                    <div class="w-[45px] h-[68px] bg-blue-500 text-white rounded flex items-center justify-center text-sm font-bold" style="display:none;">
+                                      {{ player.first_name[0] }}{{ player.last_name[0] }}
+                                    </div>
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <a href="{{ url_for('players.player_detail', player_id=player.player_id) }}"
                                        class="text-blue-600 hover:text-blue-800 font-medium">

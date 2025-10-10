@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% from 'teams/_team_logo.html' import team_logo %}
+
+{% block title %}{{ year }} {{ team.name }} - RB2 Baseball{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Team Year Header -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+        <div class="flex items-start gap-6">
+            <!-- Team Logo (Top Left) -->
+            <div class="flex-shrink-0">
+                {{ team_logo(team, size='large') }}
+            </div>
+
+            <!-- Team Info (Center) -->
+            <div class="flex-1">
+                <h1 class="text-4xl font-bold text-gray-900 mb-2">
+                    {{ year }} {{ team.name }}{% if team.nickname %} {{ team.nickname }}{% endif %} Statistics
+                </h1>
+                <p class="text-xl text-gray-600">
+                    {% if team.league %}{{ team.league.name }}{% endif %}
+                    {% if record %} | {{ record.w }}-{{ record.l }} ({{ "%.3f"|format(record.pct) if record.pct else '.000' }}){% endif %}
+                </p>
+
+                <!-- Year Navigation -->
+                <div class="flex gap-4 mt-4">
+                    {% if prev_year %}
+                    <a href="{{ url_for('teams.team_year', team_id=team.team_id, year=prev_year) }}"
+                       class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        ← {{ prev_year }}
+                    </a>
+                    {% else %}
+                    <span class="inline-flex items-center px-4 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed">
+                        ← Previous
+                    </span>
+                    {% endif %}
+
+                    <a href="{{ url_for('teams.team_detail', team_id=team.team_id) }}"
+                       class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                        Current Team
+                    </a>
+
+                    {% if next_year %}
+                    <a href="{{ url_for('teams.team_year', team_id=team.team_id, year=next_year) }}"
+                       class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        {{ next_year }} →
+                    </a>
+                    {% else %}
+                    <span class="inline-flex items-center px-4 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed">
+                        Next →
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Season Stats Grid -->
+        {% if record %}
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
+            <div>
+                <p class="text-sm text-gray-500">Record</p>
+                <p class="font-semibold">{{ record.w }}-{{ record.l }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Winning %</p>
+                <p class="font-semibold">{{ "%.3f"|format(record.pct) if record.pct else '.000' }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Position</p>
+                <p class="font-semibold">{{ record.pos }}{% if record.pos == 1 %}st{% elif record.pos == 2 %}nd{% elif record.pos == 3 %}rd{% else %}th{% endif %} in division</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Games Back</p>
+                <p class="font-semibold">{{ record.games_back_display if record.games_back_display else '-' }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Team Batting Stats -->
+    {% if batting_stats %}
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+        <div class="bg-blue-700 text-white px-6 py-4">
+            <h2 class="text-2xl font-bold">Team Batting Statistics</h2>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">G</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">PA</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">AB</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">R</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">H</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">2B</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">3B</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">HR</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">RBI</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SB</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">BB</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">K</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">AVG</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OBP</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SLG</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">OPS</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white">
+                    <tr>
+                        <td class="px-6 py-4 text-sm">{{ batting_stats.g if batting_stats.g else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ batting_stats.pa if batting_stats.pa else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ batting_stats.ab if batting_stats.ab else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ batting_stats.r if batting_stats.r else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ batting_stats.h if batting_stats.h else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ batting_stats.d if batting_stats.d else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ batting_stats.t if batting_stats.t else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ batting_stats.hr if batting_stats.hr else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ batting_stats.rbi if batting_stats.rbi else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ batting_stats.sb if batting_stats.sb else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ batting_stats.bb if batting_stats.bb else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ batting_stats.k if batting_stats.k else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ "%.3f"|format(batting_stats.avg)|replace('0.', '.') if batting_stats.avg else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ "%.3f"|format(batting_stats.obp)|replace('0.', '.') if batting_stats.obp else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ "%.3f"|format(batting_stats.slg)|replace('0.', '.') if batting_stats.slg else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ "%.3f"|format(batting_stats.ops)|replace('0.', '.') if batting_stats.ops else '-' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Team Pitching Stats -->
+    {% if pitching_stats %}
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+        <div class="bg-blue-700 text-white px-6 py-4">
+            <h2 class="text-2xl font-bold">Team Pitching Statistics</h2>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">W</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">L</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ERA</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">G</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">GS</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CG</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SHO</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SV</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">H</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">R</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ER</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">HR</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">BB</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">K</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">WHIP</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white">
+                    <tr>
+                        <td class="px-6 py-4 text-sm">{{ pitching_stats.w if pitching_stats.w else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ pitching_stats.l if pitching_stats.l else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ "%.2f"|format(pitching_stats.era) if pitching_stats.era else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ pitching_stats.g if pitching_stats.g else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ pitching_stats.gs if pitching_stats.gs else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ pitching_stats.cg if pitching_stats.cg else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ pitching_stats.sho if pitching_stats.sho else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ pitching_stats.s if pitching_stats.s else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">
+                            {% if pitching_stats.ip %}
+                                {{ pitching_stats.ip }}.{{ pitching_stats.ipf if pitching_stats.ipf else '0' }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm">{{ pitching_stats.ha if pitching_stats.ha else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ pitching_stats.r if pitching_stats.r else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ pitching_stats.er if pitching_stats.er else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ pitching_stats.hra if pitching_stats.hra else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ pitching_stats.bb if pitching_stats.bb else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ pitching_stats.k if pitching_stats.k else '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ "%.2f"|format(pitching_stats.whip) if pitching_stats.whip else '-' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Top Players Grid -->
+    {% include 'teams/_top_players_grid.html' %}
+
+    <!-- Individual Player Batting Stats -->
+    {% include 'teams/_roster_batting_table.html' %}
+
+    <!-- Individual Player Pitching Stats -->
+    {% include 'teams/_roster_pitching_table.html' %}
+
+</div>
+{% endblock %}

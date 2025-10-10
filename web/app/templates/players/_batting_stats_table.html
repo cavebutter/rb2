@@ -1,0 +1,335 @@
+{#
+    Batting Statistics Table Component
+
+    Displays yearly batting statistics with career totals.
+    Includes horizontal scroll for mobile, sticky first two columns.
+
+    Expected data structure:
+    - yearly_stats: List of PlayerBattingStats objects (with .age attribute added)
+    - career_totals: Dict with summed stats and calculated rate stats
+#}
+
+{% if yearly_stats %}
+<div class="mt-8">
+    <h3 class="text-2xl font-bold text-gray-900 mb-4">Batting Statistics</h3>
+
+    <div class="overflow-x-auto">
+        <table id="batting-stats-table" class="min-w-full bg-white border border-gray-300">
+            <thead class="bg-gray-100 sticky top-0">
+                <tr class="border-b border-gray-300">
+                    {# Sticky columns #}
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-100 sticky left-0 z-10 border-r border-gray-300">Year</th>
+                    <th class="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-100 sticky left-[60px] z-10 border-r border-gray-300">Age</th>
+
+                    {# Regular columns #}
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Team</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Lg</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">G</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">PA</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">AB</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">R</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">H</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">2B</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">3B</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">HR</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">RBI</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">SB</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">CS</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">BB</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">SO</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">BA</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">OBP</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">SLG</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">OPS</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">TB</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">GDP</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">HBP</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">SH</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">SF</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">IBB</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {# Yearly stats rows #}
+                {% for stat in yearly_stats %}
+                <tr class="hover:bg-gray-50 {% if loop.index % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}">
+                    {# Sticky columns #}
+                    <td class="px-3 py-2 text-sm whitespace-nowrap bg-inherit sticky left-0 border-r border-gray-200">
+                        <a href="{{ url_for('teams.team_year', team_id=stat.team_id, year=stat.year) }}"
+                           class="text-blue-600 hover:text-blue-800">
+                            {{ stat.year }}
+                        </a>
+                    </td>
+                    <td class="px-3 py-2 text-sm text-center whitespace-nowrap bg-inherit sticky left-[60px] border-r border-gray-200">
+                        {{ stat.age if stat.age else '-' }}
+                    </td>
+
+                    {# Regular columns #}
+                    <td class="px-3 py-2 text-sm whitespace-nowrap">
+                        <a href="{{ url_for('teams.team_detail', team_id=stat.team_id) }}"
+                           class="text-blue-600 hover:text-blue-800">
+                            {{ stat.team.abbr if stat.team else '-' }}
+                        </a>
+                    </td>
+                    <td class="px-3 py-2 text-sm whitespace-nowrap">
+                        {% if stat.league %}
+                        <a href="#" class="text-blue-600 hover:text-blue-800">
+                            {{ stat.league.abbr }}
+                        </a>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.g if stat.g else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.pa if stat.pa else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.ab if stat.ab else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.r if stat.r else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.h if stat.h else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.d if stat.d else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.t if stat.t else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.hr if stat.hr else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.rbi if stat.rbi else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.sb if stat.sb else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.cs if stat.cs else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.bb if stat.bb else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.k if stat.k else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">
+                        {{ stat.batting_average|format_stat('avg') }}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-right">
+                        {{ stat.on_base_percentage|format_stat('avg') }}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-right">
+                        {{ stat.slugging_percentage|format_stat('avg') }}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-right">
+                        {{ stat.ops|format_stat('avg') }}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.total_bases if stat.total_bases else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.gdp if stat.gdp else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.hp if stat.hp else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.sh if stat.sh else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.sf if stat.sf else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.ibb if stat.ibb else '-' }}</td>
+                </tr>
+                {% endfor %}
+
+                {# Career totals row #}
+                {% if career_totals %}
+                <tr class="bg-gray-200 border-t-2 border-gray-400 font-bold">
+                    {# Sticky columns #}
+                    <td class="px-3 py-3 text-sm whitespace-nowrap bg-gray-200 sticky left-0 border-r border-gray-300">
+                        Career
+                    </td>
+                    <td class="px-3 py-3 text-sm text-center whitespace-nowrap bg-gray-200 sticky left-[60px] border-r border-gray-300">
+                        -
+                    </td>
+
+                    {# Regular columns #}
+                    <td class="px-3 py-3 text-sm"></td>
+                    <td class="px-3 py-3 text-sm"></td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.g }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.pa }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.ab }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.r }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.h }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.d }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.t }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.hr }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.rbi }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.sb }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.cs }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.bb }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.k }}</td>
+                    <td class="px-2 py-3 text-sm text-right">
+                        {{ career_totals.batting_average|format_stat('avg') }}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-right">
+                        {{ career_totals.on_base_percentage|format_stat('avg') }}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-right">
+                        {{ career_totals.slugging_percentage|format_stat('avg') }}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-right">
+                        {{ career_totals.ops|format_stat('avg') }}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.total_bases }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.gdp }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.hp }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.sh }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.sf }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.ibb }}</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <p class="text-xs text-gray-500 mt-2">
+        * Bold row indicates career totals.
+    </p>
+</div>
+
+{# Advanced Batting Statistics Table #}
+<div class="mt-8">
+    <h3 class="text-2xl font-bold text-gray-900 mb-4">Advanced Batting Statistics</h3>
+
+    <div class="overflow-x-auto">
+        <table id="advanced-batting-stats-table" class="min-w-full bg-white border border-gray-300">
+            <thead class="bg-gray-100 sticky top-0">
+                <tr class="border-b border-gray-300">
+                    {# Sticky columns #}
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-100 sticky left-0 z-10 border-r border-gray-300">Year</th>
+                    <th class="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-100 sticky left-[60px] z-10 border-r border-gray-300">Age</th>
+
+                    {# Regular columns #}
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Team</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Lg</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">ISO</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">BABIP</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">wOBA</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">wRC</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">wRC+</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">wRAA</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">WPA</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">UBR</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">WAR</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {# Yearly stats rows #}
+                {% for stat in yearly_stats %}
+                <tr class="hover:bg-gray-50 {% if loop.index % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}">
+                    {# Sticky columns #}
+                    <td class="px-3 py-2 text-sm whitespace-nowrap bg-inherit sticky left-0 border-r border-gray-200">
+                        <a href="{{ url_for('teams.team_year', team_id=stat.team_id, year=stat.year) }}"
+                           class="text-blue-600 hover:text-blue-800">
+                            {{ stat.year }}
+                        </a>
+                    </td>
+                    <td class="px-3 py-2 text-sm text-center whitespace-nowrap bg-inherit sticky left-[60px] border-r border-gray-200">
+                        {{ stat.age if stat.age else '-' }}
+                    </td>
+
+                    {# Regular columns #}
+                    <td class="px-3 py-2 text-sm whitespace-nowrap">
+                        <a href="{{ url_for('teams.team_detail', team_id=stat.team_id) }}"
+                           class="text-blue-600 hover:text-blue-800">
+                            {{ stat.team.abbr if stat.team else '-' }}
+                        </a>
+                    </td>
+                    <td class="px-3 py-2 text-sm whitespace-nowrap">
+                        {% if stat.league %}
+                        <a href="#" class="text-blue-600 hover:text-blue-800">
+                            {{ stat.league.abbr }}
+                        </a>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-center">
+                        {{ stat.iso|format_stat('avg') if stat.iso else '-' }}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-center">
+                        {{ stat.babip|format_stat('avg') if stat.babip else '-' }}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-center">
+                        {{ stat.woba|format_stat('avg') if stat.woba else '-' }}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-center">{{ stat.wrc if stat.wrc else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-center">{{ stat.wrc_plus if stat.wrc_plus else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-center">
+                        {% if stat.wraa %}
+                            {{ "%.1f"|format(stat.wraa) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-center">
+                        {% if stat.wpa %}
+                            {{ "%.2f"|format(stat.wpa) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-center">
+                        {% if stat.ubr %}
+                            {{ "%.1f"|format(stat.ubr) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-center">
+                        {% if stat.war %}
+                            {{ "%.1f"|format(stat.war) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+
+                {# Career totals row #}
+                {% if career_totals %}
+                <tr class="bg-gray-200 border-t-2 border-gray-400 font-bold">
+                    {# Sticky columns #}
+                    <td class="px-3 py-3 text-sm whitespace-nowrap bg-gray-200 sticky left-0 border-r border-gray-300">
+                        Career
+                    </td>
+                    <td class="px-3 py-3 text-sm text-center whitespace-nowrap bg-gray-200 sticky left-[60px] border-r border-gray-300">
+                        -
+                    </td>
+
+                    {# Regular columns #}
+                    <td class="px-3 py-3 text-sm"></td>
+                    <td class="px-3 py-3 text-sm"></td>
+                    <td class="px-2 py-3 text-sm text-center">
+                        {{ career_totals.iso|format_stat('avg') if career_totals.iso else '-' }}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-center">
+                        {{ career_totals.babip|format_stat('avg') if career_totals.babip else '-' }}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-center">
+                        {{ career_totals.woba|format_stat('avg') if career_totals.woba else '-' }}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-center">{{ career_totals.wrc if career_totals.wrc else '-' }}</td>
+                    <td class="px-2 py-3 text-sm text-center">-</td>
+                    <td class="px-2 py-3 text-sm text-center">
+                        {% if career_totals.wraa %}
+                            {{ "%.1f"|format(career_totals.wraa) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-center">
+                        {% if career_totals.wpa %}
+                            {{ "%.2f"|format(career_totals.wpa) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-center">
+                        {% if career_totals.ubr %}
+                            {{ "%.1f"|format(career_totals.ubr) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-center">
+                        {% if career_totals.war %}
+                            {{ "%.1f"|format(career_totals.war) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <p class="text-xs text-gray-500 mt-2">
+        * Bold row indicates career totals. wRC+ cannot be averaged for career (context-dependent).
+    </p>
+</div>
+{% endif %}

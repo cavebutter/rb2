@@ -107,6 +107,15 @@ class PlayerBattingStats(BaseModel):
     # ===== HYBRID PROPERTIES =====
 
     @hybrid_property
+    def position_display(self):
+        """Human-readable position abbreviation."""
+        position_map = {
+            1: 'P', 2: 'C', 3: '1B', 4: '2B', 5: '3B',
+            6: 'SS', 7: 'LF', 8: 'CF', 9: 'RF', 10: 'DH'
+        }
+        return position_map.get(self.position, 'Unknown')
+
+    @hybrid_property
     def singles(self):
         """Calculate singles (hits - doubles - triples - home runs)."""
         if not self.h:

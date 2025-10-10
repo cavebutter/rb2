@@ -1,0 +1,71 @@
+{# Team Roster Batting Statistics Table #}
+{# Shows individual player batting stats for a team-year #}
+{# Usage: {% include 'teams/_roster_batting_table.html' with player_batting_stats=[(player, stats, current_status), ...] %} #}
+
+{% if player_batting_stats and player_batting_stats|length > 0 %}
+<div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+    <div class="bg-blue-700 text-white px-6 py-4">
+        <h2 class="text-2xl font-bold">Player Batting Statistics</h2>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200" id="roster-batting-table">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="sticky left-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">Player</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Pos</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">G</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PA</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">AB</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">R</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">H</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">2B</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">3B</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">HR</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">RBI</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">SB</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">CS</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">BB</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">K</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">AVG</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">OBP</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">SLG</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">OPS</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">WAR</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for player, stats, current_status in player_batting_stats %}
+                <tr class="hover:bg-gray-50">
+                    <td class="sticky left-0 bg-white hover:bg-gray-50 px-6 py-4 whitespace-nowrap text-sm font-medium z-10">
+                        <a href="{{ url_for('players.player_detail', player_id=player.player_id) }}"
+                           class="text-blue-600 hover:text-blue-800 hover:underline">
+                            {{ player.first_name }} {{ player.last_name }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ current_status.position_display }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.g if stats.g else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.pa if stats.pa else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.ab if stats.ab else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.r if stats.r else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.h if stats.h else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.d if stats.d else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.t if stats.t else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.hr if stats.hr else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.rbi if stats.rbi else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.sb if stats.sb else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.cs if stats.cs else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.bb if stats.bb else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.k if stats.k else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.batting_average|format_stat('avg') if stats.batting_average else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.on_base_percentage|format_stat('avg') if stats.on_base_percentage else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.slugging_percentage|format_stat('avg') if stats.slugging_percentage else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">{{ stats.ops|format_stat('avg') if stats.ops else '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center font-semibold">{{ "%.1f"|format(stats.war) if stats.war else '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}

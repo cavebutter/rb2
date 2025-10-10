@@ -20,9 +20,10 @@ def create_app(config_name='development'):
     cache.init_app(app)
 
     # Register blueprints
-    from .routes import main, players, teams, leaderboards, newspaper, search
+    from .routes import main, players, coaches, teams, leaderboards, newspaper, search
     app.register_blueprint(main.bp)
     app.register_blueprint(players.bp, url_prefix='/players')
+    app.register_blueprint(coaches.coaches_bp, url_prefix='/coaches')
     app.register_blueprint(teams.bp, url_prefix='/teams')
     app.register_blueprint(leaderboards.bp, url_prefix='/leaderboards')
     app.register_blueprint(newspaper.bp, url_prefix='/newspaper')

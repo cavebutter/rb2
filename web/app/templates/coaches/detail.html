@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}{{ coach.full_name }} - Coach - RB2 Baseball{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <!-- Header Section (matches player page style) -->
+  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div class="flex flex-col md:flex-row gap-6">
+      <!-- Coach Image (Top Left) -->
+      <div class="flex-shrink-0">
+        <img
+          src="{{ url_for('coaches.coach_image', coach_id=coach.coach_id) }}"
+          alt="{{ coach.full_name }}"
+          class="w-[90px] h-[135px] object-cover rounded"
+          onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';"
+        >
+        <!-- Fallback: Show initials if image fails to load -->
+        <div class="w-[90px] h-[135px] bg-blue-500 text-white rounded flex items-center justify-center text-3xl font-bold" style="display:none;">
+          {{ coach.first_name[0] }}{{ coach.last_name[0] }}
+        </div>
+      </div>
+
+      <!-- Coach Info (Center) -->
+      <div class="flex-1">
+        <h1 class="text-4xl font-bold text-gray-900 mb-2">{{ coach.full_name }}</h1>
+
+        <div class="flex items-center gap-4 mb-4">
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+            {{ coach.occupation_display }}
+          </span>
+          {% if current_team %}
+          <a href="{{ url_for('teams.team_detail', team_id=current_team.team_id) }}"
+             class="text-blue-600 hover:text-blue-800 font-medium">
+            {{ current_team.name }}
+          </a>
+          {% else %}
+          <span class="text-gray-500">Free Agent</span>
+          {% endif %}
+        </div>
+
+        <!-- Bio Information -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+          <div><span class="text-gray-600">Age:</span> <span class="font-medium">{{ coach.age }}</span></div>
+
+          {% if coach.date_of_birth %}
+          <div><span class="text-gray-600">Born:</span> <span class="font-medium">{{ coach.date_of_birth.strftime('%B %d, %Y') }}</span></div>
+          {% endif %}
+
+          <div><span class="text-gray-600">Experience:</span> <span class="font-medium">{{ coach.experience }} years</span></div>
+
+          {% if coach.height_display %}
+          <div><span class="text-gray-600">Height:</span> <span class="font-medium">{{ coach.height_display }}</span></div>
+          {% endif %}
+
+          {% if coach.weight_display %}
+          <div><span class="text-gray-600">Weight:</span> <span class="font-medium">{{ coach.weight_display }}</span></div>
+          {% endif %}
+
+          {% if coach.city_of_birth %}
+          <div>
+            <span class="text-gray-600">Birthplace:</span>
+            <span class="font-medium">{{ coach.city_of_birth.name }}{% if coach.nation %}, {{ coach.nation.abbreviation }}{% endif %}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Former Player Image (Top Right) -->
+      {% if former_player %}
+      <div class="flex-shrink-0">
+        <div class="text-center">
+          <p class="text-xs text-gray-600 mb-1">Former Player</p>
+          <a href="{{ url_for('players.player_detail', player_id=former_player.player_id) }}">
+            <img
+              src="{{ url_for('players.player_image', player_id=former_player.player_id) }}"
+              alt="{{ former_player.full_name }}"
+              class="w-[90px] h-[135px] object-cover rounded hover:opacity-75 transition-opacity"
+              onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            >
+            <!-- Fallback for former player image -->
+            <div class="w-[90px] h-[135px] bg-gray-500 text-white rounded flex items-center justify-center text-3xl font-bold hover:opacity-75 transition-opacity" style="display:none;">
+              {{ former_player.first_name[0] }}{{ former_player.last_name[0] }}
+            </div>
+          </a>
+          <a href="{{ url_for('players.player_detail', player_id=former_player.player_id) }}"
+             class="text-xs text-blue-600 hover:text-blue-800 mt-1 block">
+            View Playing Career
+          </a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Staff Ratings Section -->
+  {% from 'coaches/_rating_bar.html' import rating_bar %}
+
+  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6">Staff Ratings</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Left Column -->
+      <div>
+        {{ rating_bar('Manager Value', coach.manager_value) }}
+        {{ rating_bar('Pitching Coach Value', coach.pitching_coach_value) }}
+        {{ rating_bar('Hitting Coach Value', coach.hitting_coach_value) }}
+        {{ rating_bar('Teach Running', coach.teach_running) }}
+      </div>
+
+      <!-- Right Column -->
+      <div>
+        {{ rating_bar('Scout Value', coach.scout_value) }}
+        {{ rating_bar('Teach Hitting', coach.teach_hitting) }}
+        {{ rating_bar('Doctor Value', coach.doctor_value) }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Coach Preferences Section -->
+  {% from 'coaches/_preference_bar.html' import preference_bar %}
+
+  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6">Coach Preferences</h2>
+    <p class="text-sm text-gray-600 mb-6">
+      Scale ranges from -5 (left) to +5 (right), with 0 in the center.
+      <span class="inline-block w-3 h-3 bg-blue-500 rounded-full mx-1"></span> Blue: Neutral (0-2),
+      <span class="inline-block w-3 h-3 bg-green-500 rounded-full mx-1"></span> Green: Moderate (3-4),
+      <span class="inline-block w-3 h-3 bg-red-500 rounded-full mx-1"></span> Red: Strong (5)
+    </p>
+
+    <!-- Manager Tactical Preferences -->
+    <h3 class="text-xl font-semibold text-gray-800 mb-4 mt-6">Tactical Preferences</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        {{ preference_bar('Stealing', coach.stealing) }}
+        {{ preference_bar('Running Aggressiveness', coach.running) }}
+        {{ preference_bar('Use Pinch Runners', coach.pinchrun) }}
+        {{ preference_bar('Use Pinch Hitters', coach.pinchhit_pos) }}
+        {{ preference_bar('Pull Starters', coach.hook_start) }}
+        {{ preference_bar('Pull Relievers', coach.hook_relief) }}
+        {{ preference_bar('Use Closer', coach.closer) }}
+        {{ preference_bar('Favor L/R Matchups', coach.lr_matchup) }}
+      </div>
+      <div>
+        {{ preference_bar('Bunt For Hit', coach.bunt_hit) }}
+        {{ preference_bar('Bunt', coach.bunt) }}
+        {{ preference_bar('Hit and Run', coach.hit_run) }}
+        {{ preference_bar('Run and Hit', coach.run_hit) }}
+        {{ preference_bar('Squeeze', coach.squeeze) }}
+        {{ preference_bar('Pitch Around Hitters', coach.pitch_around) }}
+        {{ preference_bar('Intentional Walk', coach.intentional_walk) }}
+        {{ preference_bar('Hold Runner', coach.hold_runner) }}
+      </div>
+    </div>
+
+    <!-- Defensive Positioning -->
+    <h3 class="text-xl font-semibold text-gray-800 mb-4 mt-6">Defensive Positioning</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        {{ preference_bar('Guard Lines', coach.guard_lines) }}
+        {{ preference_bar('Infield In', coach.infield_in) }}
+        {{ preference_bar('Outfield In', coach.outfield_in) }}
+        {{ preference_bar('Corners In', coach.corners_in) }}
+      </div>
+      <div>
+        {{ preference_bar('Shift Infield', coach.shift_if) }}
+        {{ preference_bar('Shift Outfield', coach.shift_of) }}
+        {{ preference_bar('Use Opener', coach.opener) }}
+      </div>
+    </div>
+
+    <!-- GM/Front Office Philosophy -->
+    <h3 class="text-xl font-semibold text-gray-800 mb-4 mt-6">Front Office Philosophy</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        {{ preference_bar('Favor Speed to Power', coach.favor_speed_to_power) }}
+        {# Note: favor_defense_to_offense may need to be inverted for display #}
+        {{ preference_bar('Favor Offense to Defense', coach.favor_defense_to_offense if coach.favor_defense_to_offense is none else -coach.favor_defense_to_offense) }}
+        {{ preference_bar('Favor Pitching to Hitting', coach.favor_pitching_to_hitting) }}
+        {{ preference_bar('Favor Veterans to Prospects', coach.favor_veterans_to_prospects) }}
+      </div>
+      <div>
+        {{ preference_bar('Trade Aggressiveness', coach.trade_aggressiveness) }}
+        {{ preference_bar('Player Loyalty', coach.player_loyalty) }}
+        {{ preference_bar('Trade Frequency', coach.trade_frequency) }}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

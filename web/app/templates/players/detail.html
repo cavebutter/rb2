@@ -6,11 +6,28 @@
 <div class="max-w-7xl mx-auto">
     <!-- Player Header -->
     <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
-        <div class="flex items-start justify-between mb-6">
-            <div>
+        <div class="flex items-start gap-6 mb-6">
+            <!-- Player Image -->
+            <div class="flex-shrink-0">
+                <!-- Images are 90x135px (2:3 aspect ratio), display at natural size -->
+                <img src="{{ url_for('players.player_image', player_id=player.player_id) }}"
+                     alt="{{ player.full_name }}"
+                     class="w-[90px] h-[135px] rounded-lg border-2 border-gray-300"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <!-- Fallback if image doesn't exist -->
+                <div class="w-[90px] h-[135px] rounded-lg bg-gray-200 border-2 border-gray-300 flex items-center justify-center hidden">
+                    <span class="text-4xl font-bold text-gray-400">{{ player.first_name[0] }}{{ player.last_name[0] }}</span>
+                </div>
+            </div>
+
+            <!-- Player Info -->
+            <div class="flex-grow">
                 <h1 class="text-4xl font-bold text-gray-900 mb-2">{{ player.full_name }}</h1>
                 <p class="text-xl text-gray-600">
                     {% if player.current_status %}
+                        {% if player.current_status.retired %}
+                            <span class="font-semibold text-red-600">Retired</span> |
+                        {% endif %}
                         {{ player.current_status.position_display }} |
                         {% if player.current_status.team %}
                             <a href="{{ url_for('teams.team_detail', team_id=player.current_status.team.team_id) }}"
@@ -23,7 +40,9 @@
                     {% endif %}
                 </p>
             </div>
-            <div class="text-right">
+
+            <!-- Player ID Badge -->
+            <div class="flex-shrink-0 text-right">
                 <p class="text-sm text-gray-500">Player ID</p>
                 <p class="text-2xl font-mono font-bold text-gray-700">#{{ player.player_id }}</p>
             </div>
@@ -42,7 +61,7 @@
             <div>
                 <p class="text-sm text-gray-500">Height / Weight</p>
                 <p class="font-semibold">
-                    {% if player.height %}{{ player.height }}"{% endif %}
+                    {% if player.height_display %}{{ player.height_display }}{% endif %}
                     {% if player.weight %} / {{ player.weight }} lbs{% endif %}
                 </p>
             </div>
@@ -140,147 +159,59 @@
     {% endif %}
 
     <!-- Career Batting Stats -->
-    {% if career_batting %}
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-            <div class="bg-blue-700 text-white px-6 py-4">
-                <h2 class="text-2xl font-bold">Career Batting Stats</h2>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Year</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Team</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">G</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">PA</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">AB</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">H</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">2B</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">3B</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">HR</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">RBI</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">BB</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">K</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">AVG</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">OBP</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">SLG</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">OPS</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">WAR</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for stats in career_batting %}
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-3 text-sm">{{ stats.year }}</td>
-                                <td class="px-4 py-3 text-sm">
-                                    {% if stats.team %}
-                                        <a href="{{ url_for('teams.team_detail', team_id=stats.team.team_id) }}"
-                                           class="text-blue-600 hover:text-blue-800">
-                                            {{ stats.team.abbr }}
-                                        </a>
-                                    {% endif %}
-                                </td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.g or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.pa or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.ab or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.h or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.d or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.t or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.hr or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.rbi or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.bb or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.k or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm font-semibold">
-                                    {{ "%.3f"|format(stats.batting_average) if stats.batting_average else '.000' }}
-                                </td>
-                                <td class="px-3 py-3 text-center text-sm">
-                                    {{ "%.3f"|format(stats.on_base_percentage) if stats.on_base_percentage else '.000' }}
-                                </td>
-                                <td class="px-3 py-3 text-center text-sm">
-                                    {{ "%.3f"|format(stats.slugging_percentage) if stats.slugging_percentage else '.000' }}
-                                </td>
-                                <td class="px-3 py-3 text-center text-sm">
-                                    {{ "%.3f"|format(stats.ops) if stats.ops else '.000' }}
-                                </td>
-                                <td class="px-3 py-3 text-center text-sm font-semibold">
-                                    {{ "%.1f"|format(stats.war) if stats.war else '0.0' }}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+    {% if batting_data and batting_data.yearly_stats %}
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            {% set yearly_stats = batting_data.yearly_stats %}
+            {% set career_totals = batting_data.career_totals %}
+            {% include 'players/_batting_stats_table.html' with context %}
         </div>
     {% endif %}
 
     <!-- Career Pitching Stats -->
-    {% if career_pitching %}
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div class="bg-blue-700 text-white px-6 py-4">
-                <h2 class="text-2xl font-bold">Career Pitching Stats</h2>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Year</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Team</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">W</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">L</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">ERA</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">G</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">GS</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">IP</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">H</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">ER</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">HR</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">BB</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">K</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">WHIP</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">FIP</th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">WAR</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for stats in career_pitching %}
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-3 text-sm">{{ stats.year }}</td>
-                                <td class="px-4 py-3 text-sm">
-                                    {% if stats.team %}
-                                        <a href="{{ url_for('teams.team_detail', team_id=stats.team.team_id) }}"
-                                           class="text-blue-600 hover:text-blue-800">
-                                            {{ stats.team.abbr }}
-                                        </a>
-                                    {% endif %}
-                                </td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.w or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.l or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm font-semibold">
-                                    {{ "%.2f"|format(stats.era) if stats.era else '-.--' }}
-                                </td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.g or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.gs or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.innings_pitched_display }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.ha or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.er or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.hra or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.bb or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">{{ stats.k or 0 }}</td>
-                                <td class="px-3 py-3 text-center text-sm">
-                                    {{ "%.2f"|format(stats.whip) if stats.whip else '-.--' }}
-                                </td>
-                                <td class="px-3 py-3 text-center text-sm">
-                                    {{ "%.2f"|format(stats.fip) if stats.fip else '-.--' }}
-                                </td>
-                                <td class="px-3 py-3 text-center text-sm font-semibold">
-                                    {{ "%.1f"|format(stats.war) if stats.war else '0.0' }}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+    {% if pitching_data and pitching_data.yearly_stats %}
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            {% set yearly_stats = pitching_data.yearly_stats %}
+            {% set career_totals = pitching_data.career_totals %}
+            {% include 'players/_pitching_stats_table.html' with context %}
         </div>
     {% endif %}
+
+    <!-- Trade History Timeline -->
+    {% include 'players/_trade_history.html' with context %}
+
+    <!-- Player News & Highlights -->
+    {% include 'players/_player_news.html' with context %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/table-sort.js') }}"></script>
+<script>
+    // Initialize table sorters when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        // Standard batting stats table
+        if (document.getElementById('batting-stats-table')) {
+            new TableSorter('batting-stats-table', {
+                defaultColumn: 0,  // Year column
+                defaultDirection: 'asc'  // Ascending (oldest to newest)
+            });
+        }
+
+        // Advanced batting stats table
+        if (document.getElementById('advanced-batting-stats-table')) {
+            new TableSorter('advanced-batting-stats-table', {
+                defaultColumn: 0,  // Year column
+                defaultDirection: 'asc'  // Ascending (oldest to newest)
+            });
+        }
+
+        // Pitching stats table
+        if (document.getElementById('pitching-stats-table')) {
+            new TableSorter('pitching-stats-table', {
+                defaultColumn: 0,  // Year column
+                defaultDirection: 'asc'  // Ascending (oldest to newest)
+            });
+        }
+    });
+</script>
 {% endblock %}

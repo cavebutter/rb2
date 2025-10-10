@@ -1,0 +1,65 @@
+{# Player News Component - Displays contracts, injuries, awards, highlights, and career milestones grouped by type #}
+{% if player_news and player_news|length > 0 %}
+
+{# Group messages by type #}
+{% set news_by_type = {
+    'Award': [],
+    'Highlight': [],
+    'Injury': [],
+    'Contract': [],
+    'Career': []
+} %}
+
+{% for message in player_news %}
+    {% set _ = news_by_type[message.category].append(message) %}
+{% endfor %}
+
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+  <h2 class="text-2xl font-bold text-gray-900 mb-6">Player News & Highlights</h2>
+
+  {# Display each category that has messages #}
+  {% for category in ['Award', 'Highlight', 'Injury', 'Contract', 'Career'] %}
+    {% if news_by_type[category]|length > 0 %}
+      <div class="mb-8 last:mb-0">
+        {# Category header #}
+        <h3 class="text-xl font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <span class="text-2xl">
+            {% if category == 'Award' %}🏆
+            {% elif category == 'Highlight' %}⭐
+            {% elif category == 'Injury' %}🏥
+            {% elif category == 'Contract' %}✍️
+            {% else %}👋{% endif %}
+          </span>
+          {% if category == 'Injury' %}Injuries{% else %}{{ category }}s{% endif %} ({{ news_by_type[category]|length }})
+        </h3>
+
+        {# Messages in this category #}
+        <div class="space-y-3">
+          {% for message in news_by_type[category] %}
+          <div class="border-l-4 {% if category == 'Injury' %}border-red-500{% elif category == 'Award' %}border-blue-500{% elif category == 'Highlight' %}border-yellow-500{% elif category == 'Contract' %}border-green-500{% else %}border-purple-500{% endif %} pl-4 py-2 bg-gray-50 rounded-r">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                {# Date and badge #}
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ message.color_class }}">
+                    {{ message.date.strftime('%b %d, %Y') }}
+                  </span>
+                </div>
+
+                {# Subject line (headline) #}
+                <h4 class="font-semibold text-gray-900 mb-1">{{ message.subject }}</h4>
+
+                {# Body text with clickable links #}
+                <div class="text-sm text-gray-700 leading-relaxed">
+                  {{ message.body | clean_trade_summary | safe }}
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}

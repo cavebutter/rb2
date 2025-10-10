@@ -153,13 +153,29 @@ class Player(BaseModel, TimestampMixin, CacheableMixin):
 
     @hybrid_property
     def age(self):
-        """Calculate current age from date of birth."""
+        """Calculate current age from date of birth using game year.
+
+        Uses the current season year from the league, not real-world date.
+        Age is calculated as of June 30th (mid-season).
+        """
         if not self.date_of_birth:
             return None
+
         from datetime import date
-        today = date.today()
-        return today.year - self.date_of_birth.year - (
-            (today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day)
+        from app.models.league import League
+
+        # Get current game year from league
+        league = League.query.first()
+        if not league or not league.season_year:
+            # Fallback to real-world date if no league data
+            current_year = date.today().year
+        else:
+            current_year = league.season_year
+
+        # Calculate age as of June 30th (mid-season)
+        mid_season = date(current_year, 6, 30)
+        return mid_season.year - self.date_of_birth.year - (
+            (mid_season.month, mid_season.day) < (self.date_of_birth.month, self.date_of_birth.day)
         )
 
     @hybrid_property
@@ -173,6 +189,23 @@ class Player(BaseModel, TimestampMixin, CacheableMixin):
         """Human-readable throwing hand."""
         throws_map = {0: 'R', 1: 'L'}
         return throws_map.get(self.throws, 'Unknown')
+
+    @hybrid_property
+    def height_display(self):
+        """Convert height from centimeters to feet and inches.
+
+        Height is stored in centimeters in the database.
+        Returns formatted string like "5' 10\"" or None if height not set.
+        """
+        if not self.height:
+            return None
+
+        # Convert cm to inches
+        total_inches = self.height / 2.54
+        feet = int(total_inches // 12)
+        inches = int(round(total_inches % 12))
+
+        return f"{feet}' {inches}\""
 
     # ===== HELPER METHODS =====
 

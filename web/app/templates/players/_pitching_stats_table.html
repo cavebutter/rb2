@@ -1,0 +1,289 @@
+{#
+    Pitching Statistics Table Component
+
+    Displays yearly pitching statistics with career totals.
+    Includes horizontal scroll for mobile, sticky first two columns.
+
+    Expected data structure:
+    - yearly_stats: List of PlayerPitchingStats objects (with .age attribute added)
+    - career_totals: Dict with summed stats and calculated rate stats
+#}
+
+{% if yearly_stats %}
+<div class="mt-8">
+    <h3 class="text-2xl font-bold text-gray-900 mb-4">Pitching Statistics</h3>
+
+    <div class="overflow-x-auto">
+        <table id="pitching-stats-table" class="min-w-full bg-white border border-gray-300">
+            <thead class="bg-gray-100 sticky top-0">
+                <tr class="border-b border-gray-300">
+                    {# Sticky columns #}
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-100 sticky left-0 z-10 border-r border-gray-300">Year</th>
+                    <th class="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-100 sticky left-[60px] z-10 border-r border-gray-300">Age</th>
+
+                    {# Regular columns #}
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Team</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Lg</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">W</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">L</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">ERA</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">G</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">GS</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">GF</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">CG</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">SHO</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">SV</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">IP</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">H</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">R</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">ER</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">HR</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">BB</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">IBB</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">SO</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">HBP</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">BK</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">WP</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">BF</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">ERA+</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">FIP</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">WHIP</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">H/9</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">HR/9</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">BB/9</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">SO/9</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">SO/W</th>
+                    <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">WAR</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {# Yearly stats rows #}
+                {% for stat in yearly_stats %}
+                <tr class="hover:bg-gray-50 {% if loop.index % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}">
+                    {# Sticky columns #}
+                    <td class="px-3 py-2 text-sm whitespace-nowrap bg-inherit sticky left-0 border-r border-gray-200">
+                        <a href="{{ url_for('teams.team_year', team_id=stat.team_id, year=stat.year) }}"
+                           class="text-blue-600 hover:text-blue-800">
+                            {{ stat.year }}
+                        </a>
+                    </td>
+                    <td class="px-3 py-2 text-sm text-center whitespace-nowrap bg-inherit sticky left-[60px] border-r border-gray-200">
+                        {{ stat.age if stat.age else '-' }}
+                    </td>
+
+                    {# Regular columns #}
+                    <td class="px-3 py-2 text-sm whitespace-nowrap">
+                        <a href="{{ url_for('teams.team_detail', team_id=stat.team_id) }}"
+                           class="text-blue-600 hover:text-blue-800">
+                            {{ stat.team.abbr if stat.team else '-' }}
+                        </a>
+                    </td>
+                    <td class="px-3 py-2 text-sm whitespace-nowrap">
+                        {% if stat.league %}
+                        <a href="#" class="text-blue-600 hover:text-blue-800">
+                            {{ stat.league.abbr }}
+                        </a>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.w if stat.w else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.l if stat.l else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">
+                        {% if stat.era %}
+                            {{ "%.2f"|format(stat.era) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.g if stat.g else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.gs if stat.gs else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.gf if stat.gf else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.cg if stat.cg else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.sho if stat.sho else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.s if stat.s else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">
+                        {# IP formatted as XXX.Y #}
+                        {% if stat.ip is not none %}
+                            {{ stat.ip }}.{{ stat.ipf if stat.ipf else 0 }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.ha if stat.ha else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.r if stat.r else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.er if stat.er else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.hra if stat.hra else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.bb if stat.bb else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.iw if stat.iw else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.k if stat.k else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.hp if stat.hp else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.bk if stat.bk else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.wp if stat.wp else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.bf if stat.bf else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">{{ stat.era_plus if stat.era_plus else '-' }}</td>
+                    <td class="px-2 py-2 text-sm text-right">
+                        {% if stat.fip %}
+                            {{ "%.2f"|format(stat.fip) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-right">
+                        {% if stat.whip %}
+                            {{ "%.2f"|format(stat.whip) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-right">
+                        {% if stat.h9 %}
+                            {{ "%.1f"|format(stat.h9) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-right">
+                        {% if stat.hr9 %}
+                            {{ "%.1f"|format(stat.hr9) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-right">
+                        {% if stat.bb9 %}
+                            {{ "%.1f"|format(stat.bb9) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-right">
+                        {% if stat.k9 %}
+                            {{ "%.1f"|format(stat.k9) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-right">
+                        {% if stat.k and stat.bb and stat.bb > 0 %}
+                            {{ "%.2f"|format(stat.k / stat.bb) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-2 text-sm text-right">
+                        {% if stat.war %}
+                            {{ "%.1f"|format(stat.war) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+
+                {# Career totals row #}
+                {% if career_totals %}
+                <tr class="bg-gray-200 border-t-2 border-gray-400 font-bold">
+                    {# Sticky columns #}
+                    <td class="px-3 py-3 text-sm whitespace-nowrap bg-gray-200 sticky left-0 border-r border-gray-300">
+                        Career
+                    </td>
+                    <td class="px-3 py-3 text-sm text-center whitespace-nowrap bg-gray-200 sticky left-[60px] border-r border-gray-300">
+                        -
+                    </td>
+
+                    {# Regular columns #}
+                    <td class="px-3 py-3 text-sm"></td>
+                    <td class="px-3 py-3 text-sm"></td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.w }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.l }}</td>
+                    <td class="px-2 py-3 text-sm text-right">
+                        {% if career_totals.era %}
+                            {{ "%.2f"|format(career_totals.era) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.g }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.gs }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.gf }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.cg }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.sho }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.s }}</td>
+                    <td class="px-2 py-3 text-sm text-right">
+                        {# IP formatted as XXX.Y #}
+                        {{ career_totals.ip }}.{{ career_totals.ipf }}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.ha }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.r }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.er }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.hra }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.bb }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.iw }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.k }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.hp }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.bk }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.wp }}</td>
+                    <td class="px-2 py-3 text-sm text-right">{{ career_totals.bf }}</td>
+                    <td class="px-2 py-3 text-sm text-right">-</td>
+                    <td class="px-2 py-3 text-sm text-right">-</td>
+                    <td class="px-2 py-3 text-sm text-right">
+                        {% if career_totals.whip %}
+                            {{ "%.2f"|format(career_totals.whip) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-right">
+                        {% if career_totals.h9 %}
+                            {{ "%.1f"|format(career_totals.h9) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-right">
+                        {% if career_totals.hr9 %}
+                            {{ "%.1f"|format(career_totals.hr9) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-right">
+                        {% if career_totals.bb9 %}
+                            {{ "%.1f"|format(career_totals.bb9) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-right">
+                        {% if career_totals.k9 %}
+                            {{ "%.1f"|format(career_totals.k9) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-right">
+                        {% if career_totals.so_w %}
+                            {{ "%.2f"|format(career_totals.so_w) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-2 py-3 text-sm text-right">
+                        {% if career_totals.war %}
+                            {{ "%.1f"|format(career_totals.war) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <p class="text-xs text-gray-500 mt-2">
+        * Bold row indicates career totals. ERA+, FIP not averaged for career totals.
+    </p>
+</div>
+{% endif %}

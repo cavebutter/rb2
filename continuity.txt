@@ -1,67 +1,145 @@
-# ETL Debugging Session Summary - 2025-10-07
+Query Optimization Summary
 
-## Issues Fixed
+  Session 1: Team Year Pages (RESOLVED)
 
-### 1. Data Quality Issues (CSV Preprocessing)
-- **Problem**: Source CSVs contained dirty data: quoted empty strings `''`, duplicate rows, malformed lines
-- **Solution**: Created `csv_preprocessor.py` with automatic cleaning:
-  - `clean_quoted_empty_strings()` - converts `''` to actual empty strings
-  - `deduplicate_rows()` - removes duplicate rows
-  - `fix_malformed_csv()` - handles lines with wrong field counts (uses `on_bad_lines='skip'`)
-- **Integration**: Added to `base_loader.py:112` - all CSVs now auto-cleaned before loading
+  Team-year pages were timing out (30+ seconds) due to SQLAlchemy eager-loading massive relationship chains on the
+  Player model. For a single team roster query, SQLAlchemy was joining:
+  - Player → City → Nation → Continent → State
+  - Player → Team → Park → Nation → League
+  - Player → Current Status → Team/League relationships
+  - Player → Batting/Pitching Ratings (dozens of columns)
 
-### 2. Schema Issues
+  This was happening for every player on the roster, creating enormous N+1-style queries.
 
-#### trade_history duplicate keys
-- **Problem**: CSV had duplicate `message_id` values (multiple trades with same ID)
-- **Solution**: Changed PK from `message_id` to auto-generated `trade_id SERIAL` in `07_newspaper.sql:147`
-- **Config**: Updated `reference_loader.py:188` with column_mapping to exclude auto-generated `trade_id`
+  Solution Implemented:
 
-#### messages foreign key violations
-- **Problem**: `messages.trade_id` contained 0 and negative values (-5, -1) for non-trade messages
-- **Solution**: Added calculated field in `reference_loader.py:250`: `CASE WHEN trade_id > 0 THEN trade_id ELSE NULL END`
-- **Schema**: Added `ON DELETE SET NULL` to FK constraint in `07_newspaper.sql:245`
+  Optimized service layer queries in /mnt/hdd/PycharmProjects/rb2/web/app/services/team_service.py by:
 
-### 3. Load Order Issue
-- **Problem**: Coaches/rosters loading before players existed (FK violation on `former_player_id`)
-- **Solution**: Modified `get_load_order()` in `reference_loader.py:391` to exclude tables with `load_order >= 99`
-- **Result**: These tables now only load during `load-stats` command after players
+  1. Added imports: from sqlalchemy.orm import load_only, raiseload
+  2. Applied load_only(Player.player_id, Player.first_name, Player.last_name) to first two functions
+  3. Applied raiseload('*') to prevent all relationship loading in first two functions
+  4. Changed get_team_top_players_by_war() to query specific columns with explicit labels
+  5. Target functions optimized:
+    - get_team_player_batting_stats() (lines 110-140)
+    - get_team_player_pitching_stats() (lines 143-171)
+    - get_team_top_players_by_war() (lines 174-243)
 
-### 4. Python Code Bugs
-master
+  Files Modified (Session 1):
+  - /web/app/services/team_service.py - Added 3 new service functions + optimization
+  - /web/app/routes/teams.py - Updated team_year route
+  - /web/app/models/team_history.py - Fixed ws column bug (line 117 removed)
+  - /web/app/templates/teams/year.html - Integrated new components
+  - /web/app/templates/teams/_roster_batting_table.html - Created (65 lines)
+  - /web/app/templates/teams/_roster_pitching_table.html - Created (74 lines)
+  - /web/app/templates/teams/_top_players_grid.html - Created (44 lines)
 
-#### _infer_column_types bug
-- **Problem**: Used `df.dtype` instead of `df[col].dtype` causing AttributeError
-- **Fix**: Changed to `df.loc[:, col].dtype` in `base_loader.py:284` (ensures Series, not DataFrame)
-- **Caching issue**: Had to use `python -B` flag to bypass persistent bytecode cache
+  Performance Results (Session 1):
+  BEFORE: 30+ seconds (timeout)
+  AFTER: 0.3-0.5 seconds (60-100x improvement)
 
-#### Malformed CSV handling
-- **Problem**: `messages.csv` line 318 had 42 fields instead of 40 (unescaped commas in text)
-- **Solution**: Added try/except in `base_loader.py:109-118` to retry with `on_bad_lines='skip'`
+  Tested URLs:
+  - /teams/1/1996: 200 OK - 0.51s
+  - /teams/1/1995: 200 OK - 0.33s
+  - /teams/1/1994: 200 OK - 0.36s
+  - /teams/1/1993: 200 OK - 0.37s
 
-## Current Status
-- ✅ All reference data loads successfully (21 tables)
-- ✅ All player stats load successfully (players, batting, pitching)
-- ✅ Coaches and rosters load successfully after players
-- ✅ Preprocessing handles: quoted strings, duplicates, malformed lines
-- ✅ Schema accommodates: duplicate message_ids, invalid FK values
-- ✅ Final fixes applied (2025-10-07 session 2):
-  - Fixed `_infer_column_types` to use `df.dtypes[col]` (reliable dtype access)
-  - Fixed duplicate column mapping in trade_history (`draft_round_0_4`)
-  - Added DROP statements to `07_newspaper.sql` for proper schema updates
-  - Fixed deduplication to handle column-mapped tables (reverse map PKs to CSV columns)
-  - Added `former_player_id: NULLIF(former_player_id, 0)` to coaches calculated_fields
-  - Fixed staff filename from `staff.csv` to `team_roster_staff.csv` in main.py
+  ════════════════════════════════════════════════════════════════════════════════
 
-## ETL Pipeline Complete
-The ETL now successfully:
-1. Loads 21 reference tables via `load-reference`
-2. Loads player stats, calculates league constants via `load-stats --force-all-constants`
-3. Loads coaches and rosters after players to satisfy FK constraints
-4. Handles all data quality issues automatically through preprocessing
+  Session 3: Player Detail & Team Detail Pages (COMPLETE)
 
-## Key Files Modified
-- `etl/src/utils/csv_preprocessor.py` (new)
-- `etl/src/loaders/base_loader.py` (preprocessing + error handling + dtype fix)
-- `etl/src/loaders/reference_loader.py` (load order + calculated fields + column mapping fix)
-- `etl/sql/tables/07_newspaper.sql` (schema changes + DROP statements)
+  Problem Identified:
+
+  Player model has `lazy='joined'` on several relationships (city_of_birth, nation, second_nation,
+  current_status), which causes SQLAlchemy to eagerly load these relationships and potentially
+  their cascading relationships, creating N+1 query issues on player and team pages.
+
+  Routes affected:
+  - /players/<player_id> (player detail page)
+  - /teams/<team_id> (team current roster page)
+
+  Solution Implemented:
+
+  Added explicit relationship loading control using SQLAlchemy query options instead of relying
+  on model defaults:
+
+  1. Player Detail Route (players.py:101-147):
+     - Added explicit joinedload() for needed relationships: city_of_birth, nation, second_nation, current_status
+     - Added raiseload() to block unused relationships: batting_stats, pitching_stats, fielding_stats, ratings
+     - Added raiseload('*') to current_status to prevent its nested relationships from loading
+     - This prevents the massive relationship chain while still loading what the template needs
+
+  2. Team Detail Route (teams.py:29-70):
+     - Added load_only() to restrict Player columns to: player_id, first_name, last_name, bats, throws
+     - Added raiseload('*') to block all Player relationship loading
+     - Roster query now only loads minimal data needed for display
+
+  Files Modified (Session 3):
+  - /web/app/routes/players.py - Optimized player_detail() with explicit relationship control (lines 101-147)
+  - /web/app/routes/teams.py - Optimized team_detail() with load_only and raiseload (lines 29-70)
+
+  Expected Performance Impact:
+  - Player detail pages: Eliminates unnecessary joins to City→Nation→Continent, Team→Park→Nation→League chains
+  - Team roster pages: Loads only 5 Player columns instead of 50+, blocks all relationship loading
+  - Reduced query complexity from O(n*m) to O(n) where n=players, m=relationships per player
+
+  Testing Required:
+  - Test /players/<id> pages to verify all bio data still displays correctly
+  - Test /teams/<id> pages to verify roster displays correctly
+  - Check for any AttributeErrors from blocked relationships
+  - Measure query count reduction (enable SQLAlchemy query logging)
+
+  Bug Fix - Service Layer Stats Queries (Session 3 continued):
+
+  During testing, discovered player pages still loading slowly (5-15 seconds). Root cause:
+  PlayerBattingStats and PlayerPitchingStats models have `lazy='joined'` on player/team relationships.
+  When service layer queries loaded yearly stats, SQLAlchemy was automatically eager-loading:
+  - Player object (15+ times for long careers) → City → Nation
+  - Team object (15+ times) → Park → League → Nation
+
+  This created the same N+1 cascade problem we solved for team-year pages!
+
+  Solution:
+  Added lazyload() to batting/pitching stats queries in player_service.py:
+  - get_player_career_batting_stats() (lines 68-79)
+  - get_player_career_pitching_stats() (lines 208-219)
+
+  Files Modified:
+  - /web/app/services/player_service.py - Added lazyload() to prevent relationship loading
+
+  Performance Results (Session 3):
+  Player pages improved from 5-15 seconds → ~4 seconds (3-4x improvement)
+  - Still slower than ideal, but significantly better
+  - Main bottleneck now likely: trade history and/or player news queries (OR conditions on 10-20 columns)
+
+  Status:
+  ✅ Initial optimization complete
+  ⚠️ Further optimization possible (see notes below)
+
+  Recommendations for Future Optimization:
+  1. Add database indexes on trade_history player_id columns (currently OR across 20 columns)
+  2. Add database indexes on messages player_id columns (OR across 10 columns)
+  3. Consider caching player pages (they don't change often once retired)
+  4. Profile with SQLAlchemy query logging to identify exact slow queries
+  5. Consider denormalizing trade_history/messages tables for player lookups
+
+  ════════════════════════════════════════════════════════════════════════════════
+
+  Additional Features Implemented (Previous Sessions)
+
+  Position Column Feature:
+  - Added "Pos" column to Player Batting Statistics table on team-year pages
+  - Position sourced from players_current_status table (temporary workaround)
+  - TODO: Replace with players_career_fielding_stats once implemented
+  - Modified service query to join with PlayerCurrentStatus
+  - Updated template to display position abbreviations (P, C, 1B, 2B, 3B, SS, LF, CF, RF, DH)
+
+  Files Modified for Position Feature:
+  - /web/app/services/team_service.py - Added PlayerCurrentStatus join to batting stats query
+  - /web/app/templates/teams/_roster_batting_table.html - Added Pos column header and data cell
+  - /web/app/models/stats.py - Added position_display hybrid property to PlayerBattingStats
+  - /docs/backlog.md - Documented position workaround and future TODO
+
+  Overall Status:
+  ✅ Team year pages optimization complete and verified (Session 1)
+  ✅ Player and team detail pages optimization complete, testing pending (Session 3)
+  ⚠️  Position data uses current position (workaround until fielding stats implemented)

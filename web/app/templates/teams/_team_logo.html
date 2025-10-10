@@ -1,0 +1,37 @@
+{% macro team_logo(team, size='large') %}
+  {#
+    Display team logo - uses image if available, otherwise shows stylized abbreviation
+
+    Args:
+      team: Team object
+      size: 'small' (64x64), 'medium' (90x90), or 'large' (120x120)
+  #}
+
+  {% if size == 'small' %}
+    {% set dimensions = 'w-16 h-16 text-xl' %}
+  {% elif size == 'medium' %}
+    {% set dimensions = 'w-24 h-24 text-3xl' %}
+  {% else %}
+    {% set dimensions = 'w-32 h-32 text-4xl' %}
+  {% endif %}
+
+  {# TODO: When team logo images are available, add image serving route and uncomment below
+  {% if team.logo_file_name %}
+    <img
+      src="{{ url_for('teams.team_logo_image', team_id=team.team_id) }}"
+      alt="{{ team.full_name }} logo"
+      class="{{ dimensions }} object-contain rounded"
+      onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';"
+    >
+    <div class="{{ dimensions }} bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold shadow-lg" style="display:none;">
+      {{ team.abbr if team.abbr else team.name[:3]|upper }}
+    </div>
+  {% else %}
+  {% endif %}
+  #}
+
+  {# Placeholder: Stylized abbreviation (always shown for now) #}
+  <div class="{{ dimensions }} bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold shadow-lg">
+    {{ team.abbr if team.abbr else team.name[:3]|upper }}
+  </div>
+{% endmacro %}
