@@ -1,6 +1,7 @@
 """Team routes"""
 from flask import Blueprint, render_template, abort
-from app.models import Team, TeamRecord, Player, PlayerCurrentStatus
+from app.models import Team, TeamRecord, Player, PlayerCurrentStatus, League, Park
+from app.extensions import db
 from app.services.team_service import (
     get_team_year_data,
     get_available_years_for_team,
@@ -14,6 +15,15 @@ from app.services.team_service import (
 from sqlalchemy.orm import joinedload
 
 bp = Blueprint('teams', __name__)
+
+
+def get_position_display(position):
+    """Convert position code to display abbreviation"""
+    position_map = {
+        1: 'P', 2: 'C', 3: '1B', 4: '2B', 5: '3B',
+        6: 'SS', 7: 'LF', 8: 'CF', 9: 'RF', 10: 'DH'
+    }
+    return position_map.get(position, 'N/A')
 
 
 @bp.route('/')
@@ -36,49 +46,130 @@ def team_detail(team_id):
     OPTIMIZATION: Use explicit query control to avoid N+1 issues
     with Player relationships. Only load what we need for display.
     """
-    from sqlalchemy.orm import load_only, raiseload, joinedload
+    import time
+    from sqlalchemy.orm import load_only, raiseload, joinedload, selectinload
+
+    start_time = time.time()
+    print(f"\n=== TEAM DETAIL PAGE PROFILING (team_id={team_id}) ===")
 
     # Get team with controlled relationship loading
-    team = Team.query.get_or_404(team_id)
+    # OPTIMIZATION: Use selectinload() instead of default joinedload() to fetch
+    # league, park, record, and city in separate queries (faster than huge JOIN)
+    t1 = time.time()
+    from app.models import City
 
-    # Get active roster with optimization
-    # Only load essential Player columns and specific relationships needed for display
-    roster = (Player.query
-             .options(
-                 load_only(
-                     Player.player_id,
-                     Player.first_name,
-                     Player.last_name,
-                     Player.bats,
-                     Player.throws,
-                     Player.date_of_birth  # Needed for age calculation
-                 ),
-                 joinedload(Player.city_of_birth),  # Needed for display
-                 joinedload(Player.nation),  # Needed for display
-                 joinedload(Player.current_status),  # Needed for position
-                 raiseload(Player.batting_stats),
-                 raiseload(Player.pitching_stats),
-                 raiseload(Player.batting_ratings),
-                 raiseload(Player.pitching_ratings),
-                 raiseload(Player.fielding_ratings)
-             )
-             .join(PlayerCurrentStatus)
-             .filter(PlayerCurrentStatus.team_id == team_id)
-             .filter(PlayerCurrentStatus.retired == 0)
-             .order_by(PlayerCurrentStatus.position)
-             .all())
+    team = (Team.query
+            .options(
+                load_only(
+                    Team.team_id,
+                    Team.name,
+                    Team.nickname,
+                    Team.abbr,
+                    Team.logo_file_name
+                ),
+                # Load city but block its nested relationships
+                selectinload(Team.city).options(
+                    load_only(City.city_id, City.name),
+                    raiseload('*')  # Block City's nation, state, continent relationships
+                ),
+                # Load league but block its nested relationships
+                selectinload(Team.league).options(
+                    load_only(League.league_id, League.name),
+                    raiseload('*')  # Block League's nation, continent relationships
+                ),
+                # Load park but block its nested relationships
+                selectinload(Team.park).options(
+                    load_only(Park.park_id, Park.name),
+                    raiseload('*')  # Block Park's nation, continent relationships
+                ),
+                selectinload(Team.record).raiseload('*'),  # Load all columns but block back-reference to Team
+                raiseload(Team.nation),     # Block nation loading
+                raiseload(Team.affiliates)  # Block affiliates loading
+            )
+            .filter_by(team_id=team_id)
+            .first_or_404())
+    print(f"1. Get team: {(time.time() - t1)*1000:.1f}ms")
+
+    # Get active roster with HEAVY optimization
+    # CRITICAL: The Player model also has lazy='joined' on relationships
+    # We need to load current_status, city_of_birth, and nation but block other relationships
+    t1 = time.time()
+    from sqlalchemy.orm import selectinload
+    from app.models import Nation
+
+    # CRITICAL FIX: Don't load Player relationships at all - use raw SQL columns
+    # The template only needs: first_name, last_name, bats, throws, position, city name, nation abbr
+    # Loading Player objects with relationships causes 1800+ cascade queries
+    from sqlalchemy import text
+
+    roster_query = text("""
+        SELECT
+            p.player_id,
+            p.first_name,
+            p.last_name,
+            p.bats,
+            p.throws,
+            pcs.position,
+            c.name as city_name,
+            n.abbreviation as nation_abbr
+        FROM players_core p
+        JOIN players_current_status pcs ON p.player_id = pcs.player_id
+        LEFT JOIN cities c ON p.city_of_birth_id = c.city_id
+        LEFT JOIN nations n ON p.nation_id = n.nation_id
+        WHERE pcs.team_id = :team_id
+        AND pcs.retired = 0
+        ORDER BY pcs.position
+    """)
+
+    roster_results = db.session.execute(roster_query, {'team_id': team_id}).fetchall()
+
+    # Convert to dict objects for template
+    roster = []
+    for row in roster_results:
+        # Create a simple object that mimics what the template needs
+        player_dict = {
+            'player_id': row.player_id,
+            'first_name': row.first_name,
+            'last_name': row.last_name,
+            'bats': row.bats,
+            'throws': row.throws,
+            'current_status': {
+                'position': row.position,
+                'position_display': get_position_display(row.position)
+            },
+            'city_of_birth': {'name': row.city_name} if row.city_name else None,
+            'nation': {'abbreviation': row.nation_abbr} if row.nation_abbr else None
+        }
+        roster.append(type('Player', (), player_dict)())  # Convert dict to object with attributes
+
+    print(f"2. Get roster: {(time.time() - t1)*1000:.1f}ms ({len(roster)} players)")
 
     # Get coaching staff for this team
+    t1 = time.time()
     from app.models import Coach
     coaches = Coach.query.filter(Coach.team_id == team_id).all()
+    print(f"3. Get coaches: {(time.time() - t1)*1000:.1f}ms")
 
     # Sort by occupation order: Owner, GM, Manager, Bench Coach, Pitching Coach, Hitting Coach, Base Coach, Scout, Trainer
+    t1 = time.time()
     coaches = sorted(coaches, key=lambda c: c.occupation_sort_order)
+    print(f"4. Sort coaches: {(time.time() - t1)*1000:.1f}ms")
 
     # Get franchise history data (US-T003)
+    t1 = time.time()
     franchise_history = get_franchise_history(team_id)
+    print(f"5. Get franchise history: {(time.time() - t1)*1000:.1f}ms")
+
+    t1 = time.time()
     franchise_top_players = get_franchise_top_players(team_id, limit=24)
+    print(f"6. Get franchise top players: {(time.time() - t1)*1000:.1f}ms")
+
+    t1 = time.time()
     franchise_year_by_year = get_franchise_year_by_year(team_id)
+    print(f"7. Get franchise year by year: {(time.time() - t1)*1000:.1f}ms")
+
+    print(f"TOTAL ROUTE TIME: {(time.time() - start_time)*1000:.1f}ms")
+    print("=== END PROFILING ===\n")
 
     return render_template('teams/detail.html',
                           team=team,

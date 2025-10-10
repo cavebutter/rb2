@@ -372,9 +372,19 @@ CREATE INDEX IF NOT EXISTS idx_batting_player_year ON players_career_batting_sta
 CREATE INDEX IF NOT EXISTS idx_batting_team_year ON players_career_batting_stats(team_id, year);
 CREATE INDEX IF NOT EXISTS idx_batting_year_split ON players_career_batting_stats(year, split_id);
 
+-- Franchise top players query optimization (added 2025-10-10)
+CREATE INDEX IF NOT EXISTS idx_batting_franchise_top_players
+ON players_career_batting_stats(team_id, player_id)
+WHERE split_id = 1 AND war IS NOT NULL;
+
 CREATE INDEX IF NOT EXISTS idx_pitching_player_year ON players_career_pitching_stats(player_id, year);
 CREATE INDEX IF NOT EXISTS idx_pitching_team_year ON players_career_pitching_stats(team_id, year);
 CREATE INDEX IF NOT EXISTS idx_pitching_year_split ON players_career_pitching_stats(year, split_id);
+
+-- Franchise top players query optimization (added 2025-10-10)
+CREATE INDEX IF NOT EXISTS idx_pitching_franchise_top_players
+ON players_career_pitching_stats(team_id, player_id)
+WHERE split_id = 1 AND war IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_fielding_player_year ON players_career_fielding_stats(player_id, year);
 CREATE INDEX IF NOT EXISTS idx_fielding_position ON players_career_fielding_stats(position);

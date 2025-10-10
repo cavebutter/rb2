@@ -143,3 +143,153 @@ Query Optimization Summary
   ✅ Team year pages optimization complete and verified (Session 1)
   ✅ Player and team detail pages optimization complete, testing pending (Session 3)
   ⚠️  Position data uses current position (workaround until fielding stats implemented)
+
+  ════════════════════════════════════════════════════════════════════════════════
+
+  Session 3 (continued): US-T003 - Team Home - Historical Summary (COMPLETE)
+
+  Implemented comprehensive franchise history encyclopedia for team home pages.
+
+  Features Implemented:
+  1. Franchise summary statistics card:
+     - Total seasons count
+     - All-time W-L record with winning percentage
+     - Playoff appearances count
+     - Championships count
+
+  2. Former team names display:
+     - Shows unique historical team names (if team was renamed)
+     - Displayed as pills/badges
+
+  3. Top 24 franchise players by WAR:
+     - Combined batting and pitching WAR across all seasons
+     - 2x12 responsive grid (6 columns on large screens)
+     - Player images with fallback to initials
+     - Shows total WAR for each player
+     - Clickable links to player detail pages
+
+  4. Year-by-year franchise history table:
+     - All seasons from team history
+     - Columns: Year, Team Name, W, L, Pct, Playoffs, Champion
+     - Current season highlighted and marked with *
+     - Clickable year links to team-year pages
+     - Shows playoff appearances (✓) and championships (🏆)
+
+  Service Functions Created (team_service.py):
+  - get_franchise_history() - Aggregates franchise stats from team_history tables (lines 252-331)
+  - get_franchise_top_players() - Gets top 24 players by total WAR for franchise (lines 334-419)
+  - get_franchise_year_by_year() - Gets all season records sorted descending (lines 422-471)
+
+  Files Modified (Session 3 - US-T003):
+  - /web/app/services/team_service.py - Added 3 new service functions (220 lines)
+  - /web/app/routes/teams.py - Added imports and franchise data fetching (lines 4-12, 78-89)
+  - /web/app/templates/teams/detail.html - Added franchise history section (lines 54-172)
+
+  Technical Highlights:
+  - SQL aggregation for franchise totals (no ORM overhead)
+  - UNION query to combine batting and pitching WAR
+  - Handles both historical (team_history) and current (team_record) data
+  - Responsive grid layout for player cards
+  - Optimized queries (no N+1 issues)
+
+  Status:
+  ✅ US-T003 code complete, ready for testing
+
+  ════════════════════════════════════════════════════════════════════════════════
+
+  Session 4: Team Home Pages Performance Optimization (COMPLETE)
+
+  Problem Identified:
+
+  Team home pages (/teams/<team_id>/) were taking 28+ seconds to load with 1,861 SQL queries.
+
+  Root Causes:
+  1. Massive JOIN queries when loading Team objects (Team model has lazy='joined' on city, park, nation, league)
+  2. Roster query generating 1,849 queries due to cascading eager loads
+  3. Player model has lazy='joined' on relationships (city, nation, current_status)
+  4. Even with raiseload('*'), SQLAlchemy still loads relationships defined by lazy='joined' in models
+
+  The critical issue: `raiseload('*')` only raises errors when ACCESSING relationships, but doesn't
+  prevent eager loading defined by `lazy='joined'` in the model definitions. The Player → City →
+  Nation → Continent → State cascade happens at query time, not access time.
+
+  Routes affected:
+  - /teams/<team_id> (team home/detail page)
+
+  Solution Implemented:
+
+  1. Query Optimizations in /web/app/services/team_service.py:
+     - get_franchise_history() (lines 252-326): Added load_only(Team.team_id) and raiseload('*')
+     - get_franchise_year_by_year() (lines 419-473): Added load_only() and raiseload('*')
+     - get_franchise_top_players() (lines 328-417): Already optimized with CTE
+
+  2. Team Query Optimization in /web/app/routes/teams.py (lines 51-80):
+     - Changed from Team.query.get_or_404() to explicit query with options
+     - Added load_only() for Team columns: team_id, name, nickname, abbr, logo_file_name
+     - Changed from joinedload() to selectinload() for league, park, record, city
+     - Added raiseload('*') to every selectinload() to block nested cascades
+     - BEFORE: Single massive JOIN with 100+ columns
+     - AFTER: Small initial query + 4 separate efficient queries
+
+  3. CRITICAL FIX - Raw SQL for Roster (/web/app/routes/teams.py lines 90-135):
+     - Switched from ORM query to raw SQL with text()
+     - Completely bypasses SQLAlchemy relationship machinery
+     - JOINs only for needed columns: city.name, nation.abbreviation as scalars
+     - Converts results to simple objects that mimic Player objects for template
+     - Added get_position_display() helper function (lines 20-26)
+     - This eliminated 1,849 cascading queries!
+
+  Database Indexes (already in place):
+
+  Partial indexes for franchise top players queries:
+  - idx_batting_franchise_top_players on (team_id, player_id) WHERE split_id=1 AND war IS NOT NULL
+  - idx_pitching_franchise_top_players on (team_id, player_id) WHERE split_id=1 AND war IS NOT NULL
+
+  Files Modified (Session 4):
+  - /web/app/routes/teams.py - Added db import, helper function, raw SQL roster query, optimized Team query
+  - /web/app/services/team_service.py - Added raiseload() to prevent relationship loading
+  - /etl/sql/tables/03_statistics_complete.sql - Partial indexes already present
+
+  Performance Results (Session 4 - FINAL):
+
+  Test Results (team_id=45):
+  - Total SQL Queries: 12 (down from 1,861)
+  - Route Execution Time: 120.5ms
+  - Page Load: 200 OK
+  - Query breakdown:
+    1. Get team: 80.2ms (5 queries: team + 4 selectinload for city, park, league, record)
+    2. Get roster: 12.1ms (1 raw SQL query, 97 players)
+    3. Get coaches: 9.5ms (1 query)
+    4. Get franchise history: 5.7ms (2 queries)
+    5. Get franchise top players: 7.6ms (1 CTE query)
+    6. Get franchise year by year: 5.4ms (2 queries)
+
+  BEFORE: 28+ seconds (28,000ms) with 1,861 SQL queries
+  AFTER: 120.5ms with 12 SQL queries
+  IMPROVEMENT: 99.6% reduction in page load time (232x faster), 99.4% reduction in query count
+
+  Key Learnings:
+  - `raiseload('*')` doesn't block `lazy='joined'` - it only blocks lazy loading
+  - When models have `lazy='joined'`, SQLAlchemy loads relationships during query construction
+  - Only way to prevent this is to NOT use the ORM at all for these queries
+  - Raw SQL with text() bypasses all ORM relationship machinery
+  - Nested raiseload('*') on selectinload() prevents cascading through related models
+
+  Technical Highlights:
+  - Raw SQL for roster query eliminates 1,849 cascading queries
+  - Helper function get_position_display() converts position codes to labels
+  - Simple objects from dictionaries work seamlessly with templates
+  - Used load_only() to restrict columns loaded
+  - Used raiseload('*') to prevent all relationship loading
+  - Used selectinload() for needed relationships (separate queries, not JOINs)
+  - PostgreSQL CTE (WITH clause) for franchise top players
+  - Partial indexes with WHERE clause reduce index bloat
+
+  Status:
+  ✅ Session 4 COMPLETE - all optimizations implemented and tested
+  ✅ Performance improvement: 99.6% reduction in page load time (28s → 120ms)
+  ✅ Query reduction: 99.4% fewer queries (1,861 → 12)
+  ✅ Indexes verified in database
+  ✅ Raw SQL roster query working perfectly
+  ✅ All franchise features enabled and functional
+  ✅ No template changes needed - all optimizations at query layer
