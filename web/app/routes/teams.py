@@ -17,15 +17,6 @@ from sqlalchemy.orm import joinedload
 bp = Blueprint('teams', __name__)
 
 
-def get_position_display(position):
-    """Convert position code to display abbreviation"""
-    position_map = {
-        1: 'P', 2: 'C', 3: '1B', 4: '2B', 5: '3B',
-        6: 'SS', 7: 'LF', 8: 'CF', 9: 'RF', 10: 'DH'
-    }
-    return position_map.get(position, 'N/A')
-
-
 @bp.route('/')
 def teams_list():
     """List all teams"""
@@ -90,94 +81,43 @@ def team_detail(team_id):
             .first_or_404())
     print(f"1. Get team: {(time.time() - t1)*1000:.1f}ms")
 
-    # Get active roster with HEAVY optimization
-    # CRITICAL: The Player model also has lazy='joined' on relationships
-    # We need to load current_status, city_of_birth, and nation but block other relationships
-    t1 = time.time()
-    from sqlalchemy.orm import selectinload
-    from app.models import Nation
-
-    # CRITICAL FIX: Don't load Player relationships at all - use raw SQL columns
-    # The template only needs: first_name, last_name, bats, throws, position, city name, nation abbr
-    # Loading Player objects with relationships causes 1800+ cascade queries
-    from sqlalchemy import text
-
-    roster_query = text("""
-        SELECT
-            p.player_id,
-            p.first_name,
-            p.last_name,
-            p.bats,
-            p.throws,
-            pcs.position,
-            c.name as city_name,
-            n.abbreviation as nation_abbr
-        FROM players_core p
-        JOIN players_current_status pcs ON p.player_id = pcs.player_id
-        LEFT JOIN cities c ON p.city_of_birth_id = c.city_id
-        LEFT JOIN nations n ON p.nation_id = n.nation_id
-        WHERE pcs.team_id = :team_id
-        AND pcs.retired = 0
-        ORDER BY pcs.position
-    """)
-
-    roster_results = db.session.execute(roster_query, {'team_id': team_id}).fetchall()
-
-    # Convert to dict objects for template
-    roster = []
-    for row in roster_results:
-        # Create a simple object that mimics what the template needs
-        player_dict = {
-            'player_id': row.player_id,
-            'first_name': row.first_name,
-            'last_name': row.last_name,
-            'bats': row.bats,
-            'throws': row.throws,
-            'current_status': {
-                'position': row.position,
-                'position_display': get_position_display(row.position)
-            },
-            'city_of_birth': {'name': row.city_name} if row.city_name else None,
-            'nation': {'abbreviation': row.nation_abbr} if row.nation_abbr else None
-        }
-        roster.append(type('Player', (), player_dict)())  # Convert dict to object with attributes
-
-    print(f"2. Get roster: {(time.time() - t1)*1000:.1f}ms ({len(roster)} players)")
-
     # Get coaching staff for this team
     t1 = time.time()
     from app.models import Coach
     coaches = Coach.query.filter(Coach.team_id == team_id).all()
-    print(f"3. Get coaches: {(time.time() - t1)*1000:.1f}ms")
+    print(f"2. Get coaches: {(time.time() - t1)*1000:.1f}ms")
 
     # Sort by occupation order: Owner, GM, Manager, Bench Coach, Pitching Coach, Hitting Coach, Base Coach, Scout, Trainer
     t1 = time.time()
     coaches = sorted(coaches, key=lambda c: c.occupation_sort_order)
-    print(f"4. Sort coaches: {(time.time() - t1)*1000:.1f}ms")
+    print(f"3. Sort coaches: {(time.time() - t1)*1000:.1f}ms")
 
     # Get franchise history data (US-T003)
     t1 = time.time()
     franchise_history = get_franchise_history(team_id)
-    print(f"5. Get franchise history: {(time.time() - t1)*1000:.1f}ms")
+    print(f"4. Get franchise history: {(time.time() - t1)*1000:.1f}ms")
 
     t1 = time.time()
     franchise_top_players = get_franchise_top_players(team_id, limit=24)
-    print(f"6. Get franchise top players: {(time.time() - t1)*1000:.1f}ms")
+    print(f"5. Get franchise top players: {(time.time() - t1)*1000:.1f}ms")
 
     t1 = time.time()
     franchise_year_by_year = get_franchise_year_by_year(team_id)
-    print(f"7. Get franchise year by year: {(time.time() - t1)*1000:.1f}ms")
+    print(f"6. Get franchise year by year: {(time.time() - t1)*1000:.1f}ms")
 
     print(f"TOTAL ROUTE TIME: {(time.time() - start_time)*1000:.1f}ms")
     print("=== END PROFILING ===\n")
 
+    # Current game year for linking to current season
+    CURRENT_YEAR = 1997
+
     return render_template('teams/detail.html',
                           team=team,
-                          roster=roster,
                           coaches=coaches,
                           franchise_history=franchise_history,
                           franchise_top_players=franchise_top_players,
-                          franchise_year_by_year=franchise_year_by_year)
+                          franchise_year_by_year=franchise_year_by_year,
+                          current_year=CURRENT_YEAR)
 
 
 @bp.route('/<int:team_id>/<int:year>')
