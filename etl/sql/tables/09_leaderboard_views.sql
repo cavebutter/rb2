@@ -180,7 +180,8 @@
   LEFT JOIN leagues l ON s.league_id = l.league_id
   LEFT JOIN teams t ON s.team_id = t.team_id
   WHERE s.split_id = 1  -- Only regular season stats
-    AND s.pa >= 100;    -- Minimum PA threshold for meaningful stats
+    AND s.pa >= 100     -- Minimum PA threshold for meaningful stats
+    AND s.team_id != 0; -- Exclude college/HS players (team_id=0 stats don't count)
 
   -- Indexes for fast lookups
   CREATE INDEX IF NOT EXISTS idx_lb_ss_bat_year ON leaderboard_single_season_batting(year DESC);
@@ -227,7 +228,8 @@
   LEFT JOIN leagues l ON s.league_id = l.league_id
   LEFT JOIN teams t ON s.team_id = t.team_id
   WHERE s.split_id = 1  -- Only regular season stats
-    AND s.ip >= 50;     -- Minimum IP threshold for meaningful stats
+    AND s.ip >= 50      -- Minimum IP threshold for meaningful stats
+    AND s.team_id != 0; -- Exclude college/HS players (team_id=0 stats don't count)
 
   -- Indexes for fast lookups
   CREATE INDEX IF NOT EXISTS idx_lb_ss_pit_year ON leaderboard_single_season_pitching(year DESC);
@@ -278,6 +280,7 @@
       LEFT JOIN leagues l ON s.league_id = l.league_id
       WHERE s.split_id = 1
         AND s.pa >= 100
+        AND s.team_id != 0  -- Exclude college/HS players
   )
   SELECT * FROM ranked_stats
   WHERE hr_rank <= 10
@@ -329,6 +332,7 @@
       LEFT JOIN leagues l ON s.league_id = l.league_id
       WHERE s.split_id = 1
         AND s.ip >= 50
+        AND s.team_id != 0  -- Exclude college/HS players
   )
   SELECT * FROM ranked_stats
   WHERE w_rank <= 10

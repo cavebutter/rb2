@@ -81,21 +81,28 @@ results = db.session.execute(text("""
 - Schools: Reference table doesn't exist
 - Position workaround: Using players_current_status (should use fielding when available)
 
+**Critical Data Quality Rules:**
+- **ALWAYS filter team_id != 0**: Players with team_id=0 are college/HS players whose stats don't count
+- College/HS players have ~11,685 stat records with team_id=0 and league_id=0
+- These must be excluded from ALL leaderboards (career, single-season, yearly, active)
+- Filter applied in both materialized views (database level) and service layer (application level)
+
 ═══════════════════════════════════════════════════════════════════════════════
 📈 Current Project Status
 ═══════════════════════════════════════════════════════════════════════════════
 
-**Progress: 28% (21/76 user stories complete)**
+**Progress: 30% (23/76 user stories complete)**
 
 **What's Done:**
 - ✅ Epic 1: Player Pages - 100% complete (includes all coach stories)
 - ✅ Epic 2: Team Pages - 100% complete (US-T001, US-T002, US-T002B, US-T003, US-T005 done)
+- 🚧 Epic 3: Leaderboards - 18% complete (US-L001, US-L002 done + data quality fix)
 
 **Active Work:**
-- None - ready for next sprint
+- Epic 3: Leaderboards (in progress, 2/11 stories done)
 
 **Top Priorities (Not Started):**
-- Epic 3: Leaderboards (65-85 hours) - **High business value**
+- Epic 3: Leaderboards - US-L003 through US-L010 (remaining 9 stories)
 - Epic 4: Front Page (25-35 hours) - 30% done
 - Epic 6: Search & Navigation (16-22 hours) - Critical UX
 
@@ -133,13 +140,15 @@ results = db.session.execute(text("""
 ═══════════════════════════════════════════════════════════════════════════════
 
 **Starting a New Session:**
-1. Read `docs/backlog.md` → Check "Current Sprint Focus" and "Summary Statistics"
+1. Read backlog files:
+   - `docs/backlog-epics-1-2.md` → Completed epics (Player & Team Pages)
+   - `docs/backlog-epics-3-9.md` → Active/remaining work
 2. Review this file → Refresh on architectural patterns and current status
-3. Check for any in-progress work → Look for session notes in backlog.md
+3. Check for any in-progress work → Look for session notes in backlog
 4. Identify next priority → Highest value incomplete work
 
 **Ending a Session:**
-1. Update `docs/backlog.md`:
+1. Update appropriate backlog file(s):
    - Mark completed stories as DONE with completion date
    - Update Summary Statistics (completion %, hours spent)
    - Add implementation notes to relevant user stories
@@ -147,9 +156,10 @@ results = db.session.execute(text("""
    - New critical architectural pattern discovered
    - New performance optimization technique learned
    - Database state changed (new data, schema changes)
-3. No need to archive detailed session logs here (backlog.md has full details)
+3. No need to archive detailed session logs here (backlog files have full details)
 
 **Quick References:**
-- All user stories & detailed status → `docs/backlog.md`
+- Completed epics (1-2) → `docs/backlog-epics-1-2.md`
+- Active/remaining work (3-9) → `docs/backlog-epics-3-9.md`
 - Architectural patterns & session continuity → `continuity.txt` (this file)
 - Original requirements → `docs/website-specs.md` 

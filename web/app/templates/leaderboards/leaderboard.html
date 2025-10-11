@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {{ stat_metadata[stat].name }} Leaders -
+    {% if leaderboard_type == 'career' %}Career{% elif leaderboard_type == 'active' %}Active Career{% elif leaderboard_type == 'single-season' %}Single-Season{% elif leaderboard_type == 'yearly' %}Yearly{% endif %} -
+    {{ 'Batting' if category == 'batting' else 'Pitching' }} - RB2 Baseball
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
+            <a href="{{ url_for('main.index') }}" class="hover:text-blue-600">Home</a>
+            <span>/</span>
+            <a href="{{ url_for('leaderboards.home') }}" class="hover:text-blue-600">Leaderboards</a>
+            <span>/</span>
+            <span class="text-gray-900">{{ 'Batting' if category == 'batting' else 'Pitching' }}</span>
+        </div>
+        <h1 class="text-4xl font-bold text-gray-900">
+            {{ stat_metadata[stat].name }} Leaders
+        </h1>
+        <p class="text-lg text-gray-600 mt-2">
+            {% if leaderboard_type == 'career' %}
+                All-Time Career Leaders
+            {% elif leaderboard_type == 'active' %}
+                Active Player Career Leaders
+            {% elif leaderboard_type == 'single-season' %}
+                {% if selected_year %}{{ selected_year }} Single-Season Leaders{% else %}All-Time Single-Season Leaders{% endif %}
+            {% elif leaderboard_type == 'yearly' %}
+                {% if selected_year %}{{ selected_year }} Yearly Leaders{% else %}Yearly Leaders{% endif %}
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <form method="GET" action="{{ url_for('leaderboards.' + category) }}" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Leaderboard Type Filter -->
+                <div>
+                    <label for="type-filter" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <select name="type" id="type-filter"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                        <option value="career" {% if leaderboard_type == 'career' %}selected{% endif %}>Career</option>
+                        <option value="active" {% if leaderboard_type == 'active' %}selected{% endif %}>Active</option>
+                        <option value="single-season" {% if leaderboard_type == 'single-season' %}selected{% endif %}>Single-Season</option>
+                        <option value="yearly" {% if leaderboard_type == 'yearly' %}selected{% endif %}>Yearly</option>
+                    </select>
+                </div>
+
+                <!-- Stat Filter -->
+                <div>
+                    <label for="stat-filter" class="block text-sm font-medium text-gray-700 mb-1">Statistic</label>
+                    <select name="stat" id="stat-filter"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                        {% if category == 'batting' %}
+                            <option value="hr" {% if stat == 'hr' %}selected{% endif %}>Home Runs</option>
+                            <option value="avg" {% if stat == 'avg' %}selected{% endif %}>Batting Average</option>
+                            <option value="rbi" {% if stat == 'rbi' %}selected{% endif %}>RBI</option>
+                            <option value="sb" {% if stat == 'sb' %}selected{% endif %}>Stolen Bases</option>
+                            <option value="h" {% if stat == 'h' %}selected{% endif %}>Hits</option>
+                            <option value="obp" {% if stat == 'obp' %}selected{% endif %}>On-Base %</option>
+                            <option value="slg" {% if stat == 'slg' %}selected{% endif %}>Slugging %</option>
+                            <option value="war" {% if stat == 'war' %}selected{% endif %}>WAR</option>
+                        {% else %}
+                            <option value="w" {% if stat == 'w' %}selected{% endif %}>Wins</option>
+                            <option value="sv" {% if stat == 'sv' %}selected{% endif %}>Saves</option>
+                            <option value="so" {% if stat == 'so' %}selected{% endif %}>Strikeouts</option>
+                            <option value="era" {% if stat == 'era' %}selected{% endif %}>ERA</option>
+                            <option value="whip" {% if stat == 'whip' %}selected{% endif %}>WHIP</option>
+                            <option value="k_per_9" {% if stat == 'k_per_9' %}selected{% endif %}>K/9</option>
+                            <option value="war" {% if stat == 'war' %}selected{% endif %}>WAR</option>
+                        {% endif %}
+                    </select>
+                </div>
+
+                <!-- League Filter -->
+                <div>
+                    <label for="league-filter" class="block text-sm font-medium text-gray-700 mb-1">League</label>
+                    <select name="league" id="league-filter"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                        {% for league_opt in league_options %}
+                            <option value="{{ league_opt.league_id or '' }}"
+                                    {% if selected_league == league_opt.league_id %}selected{% endif %}>
+                                {{ league_opt.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Year Filter (shown for single-season and yearly) -->
+                <div {% if leaderboard_type not in ['single-season', 'yearly'] %}style="display: none;"{% endif %}
+                     id="year-filter-container">
+                    <label for="year-filter" class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                    <select name="year" id="year-filter"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">All-Time</option>
+                        {% for year in available_years|reverse %}
+                            <option value="{{ year }}" {% if selected_year == year %}selected{% endif %}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex justify-end">
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Leaderboard Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-800">
+                Top {{ leaders|length }} Leaders
+                {% if selected_league %}
+                    - {{ league_options|selectattr('league_id', 'eq', selected_league)|map(attribute='name')|first }}
+                {% endif %}
+            </h2>
+        </div>
+
+        {% if leaders %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="sticky left-0 z-10 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Rank
+                        </th>
+                        <th scope="col" class="sticky left-12 z-10 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Player
+                        </th>
+                        {% if leaderboard_type in ['career', 'active'] %}
+                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Seasons
+                            </th>
+                        {% elif leaderboard_type == 'single-season' %}
+                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Year
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Team
+                            </th>
+                        {% elif leaderboard_type == 'yearly' %}
+                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                League
+                            </th>
+                        {% endif %}
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {{ stat_metadata[stat].name }}
+                        </th>
+                        {% if category == 'batting' %}
+                            {% if leaderboard_type in ['career', 'active'] %}
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">G</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">PA</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">AB</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">H</th>
+                            {% endif %}
+                        {% else %}
+                            {% if leaderboard_type in ['career', 'active'] %}
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">G</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">GS</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">IP</th>
+                            {% endif %}
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for leader in leaders %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="sticky left-0 z-10 bg-white px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ loop.index }}
+                        </td>
+                        <td class="sticky left-12 z-10 bg-white px-6 py-4 whitespace-nowrap">
+                            <a href="{{ url_for('players.player_detail', player_id=leader.player_id) }}"
+                               class="text-blue-600 hover:text-blue-800 hover:underline font-medium">
+                                {{ leader.first_name }} {{ leader.last_name }}{% if leader.is_active and leaderboard_type != 'active' %}<span class="text-gray-900">*</span>{% endif %}
+                            </a>
+                        </td>
+                        {% if leaderboard_type in ['career', 'active'] %}
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                                {{ leader.seasons }}
+                            </td>
+                        {% elif leaderboard_type == 'single-season' %}
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                                {{ leader.year }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <a href="{{ url_for('teams.team_year', team_id=leader.team_id, year=leader.year) }}"
+                                   class="text-blue-600 hover:text-blue-800 hover:underline">
+                                    {{ leader.team_abbr }}
+                                </a>
+                            </td>
+                        {% elif leaderboard_type == 'yearly' %}
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                                {{ leader.league_abbr }}
+                            </td>
+                        {% endif %}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                            {% if stat in ['avg', 'obp', 'slg'] %}
+                                {{ "%.3f"|format(leader[stat]|float) if leader[stat] else '.000' }}
+                            {% elif stat in ['era', 'whip'] %}
+                                {{ "%.2f"|format(leader[stat]|float) if leader[stat] else '0.00' }}
+                            {% elif stat == 'k_per_9' %}
+                                {{ "%.2f"|format(leader[stat]|float) if leader[stat] else '0.00' }}
+                            {% elif stat == 'war' %}
+                                {{ "%.1f"|format(leader[stat]|float) if leader[stat] else '0.0' }}
+                            {% elif stat == 'ip' %}
+                                {{ "%.1f"|format(leader[stat]|float) if leader[stat] else '0.0' }}
+                            {% else %}
+                                {{ leader[stat] or 0 }}
+                            {% endif %}
+                        </td>
+                        {% if category == 'batting' %}
+                            {% if leaderboard_type in ['career', 'active'] %}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{{ leader.g or 0 }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{{ leader.pa or 0 }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{{ leader.ab or 0 }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{{ leader.h or 0 }}</td>
+                            {% endif %}
+                        {% else %}
+                            {% if leaderboard_type in ['career', 'active'] %}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{{ leader.g or 0 }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{{ leader.gs or 0 }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                                    {{ "%.1f"|format(leader.ip|float) if leader.ip else '0.0' }}
+                                </td>
+                            {% endif %}
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-12 text-center">
+            <p class="text-gray-500 text-lg">No leaders found for the selected filters.</p>
+        </div>
+        {% endif %}
+
+        <!-- Legend for active players -->
+        {% if leaderboard_type != 'active' %}
+        <div class="px-6 py-3 bg-gray-50 border-t border-gray-200">
+            <p class="text-sm text-gray-600 italic">* Denotes active player</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- JavaScript to show/hide year filter based on type -->
+<script>
+    const typeFilter = document.getElementById('type-filter');
+    const yearFilterContainer = document.getElementById('year-filter-container');
+
+    typeFilter.addEventListener('change', function() {
+        if (this.value === 'single-season' || this.value === 'yearly') {
+            yearFilterContainer.style.display = 'block';
+        } else {
+            yearFilterContainer.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

@@ -39,6 +39,16 @@ from .history import TradeHistory
 # Message models
 from .message import Message
 
+# Leaderboard models (materialized views)
+from .leaderboard import (
+    LeaderboardCareerBatting,
+    LeaderboardCareerPitching,
+    LeaderboardSingleSeasonBatting,
+    LeaderboardSingleSeasonPitching,
+    LeaderboardYearlyBatting,
+    LeaderboardYearlyPitching
+)
+
 __all__ = [
     # Base
     'BaseModel',
@@ -91,4 +101,12 @@ __all__ = [
 
     # Messages
     'Message',
+
+    # Leaderboards
+    'LeaderboardCareerBatting',
+    'LeaderboardCareerPitching',
+    'LeaderboardSingleSeasonBatting',
+    'LeaderboardSingleSeasonPitching',
+    'LeaderboardYearlyBatting',
+    'LeaderboardYearlyPitching',
 ]
