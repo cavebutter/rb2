@@ -1,9 +1,17 @@
 {% extends "base.html" %}
+{% from '_macros/breadcrumbs.html' import breadcrumbs %}
 
 {% block title %}{{ coach.full_name }} - Coach - RB2 Baseball{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
+  <!-- Breadcrumb Navigation -->
+  {{ breadcrumbs([
+      ('Home', url_for('main.index')),
+      ('Coaches', url_for('coaches.coach_list')),
+      (coach.full_name, None)
+  ]) }}
+
   <!-- Header Section (matches player page style) -->
   <div class="bg-white rounded-lg shadow-md p-6 mb-6">
     <div class="flex flex-col md:flex-row gap-6">

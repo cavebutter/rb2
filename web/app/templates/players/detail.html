@@ -1,9 +1,18 @@
 {% extends "base.html" %}
+{% from '_macros/breadcrumbs.html' import breadcrumbs %}
 
 {% block title %}{{ player.display_name }} - RB2 Baseball{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
+    <!-- Breadcrumb Navigation -->
+    {{ breadcrumbs([
+        ('Home', url_for('main.index')),
+        ('Players', url_for('players.players_list')),
+        (player.last_name[0], url_for('players.players_by_letter', letter=player.last_name[0])),
+        (player.display_name, None)
+    ]) }}
+
     <!-- Player Header -->
     <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
         <div class="flex items-start gap-6 mb-6">

@@ -1,10 +1,18 @@
 {% extends "base.html" %}
 {% from 'teams/_team_logo.html' import team_logo %}
+{% from '_macros/breadcrumbs.html' import breadcrumbs %}
 
 {% block title %}{{ team.full_name }} - RB2 Baseball{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
+    <!-- Breadcrumb Navigation -->
+    {{ breadcrumbs([
+        ('Home', url_for('main.index')),
+        ('Teams', url_for('teams.teams_list')),
+        (team.full_name, None)
+    ]) }}
+
     <!-- Team Header -->
     <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
         <div class="flex items-start gap-6">

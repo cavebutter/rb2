@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Search Results{% if query %} for "{{ query }}"{% endif %} - RB2 Baseball{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Search Results</h1>
+
+    <!-- Search Query Display -->
+    {% if query %}
+        <div class="mb-6">
+            <p class="text-lg text-gray-700">
+                Showing results for: <span class="font-bold">"{{ query }}"</span>
+            </p>
+        </div>
+    {% endif %}
+
+    <!-- Message (no results, too short query, etc.) -->
+    {% if message %}
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+            <p class="text-gray-700">{{ message }}</p>
+        </div>
+    {% endif %}
+
+    <!-- Results -->
+    {% if results and results.total_results > 0 %}
+        <!-- Players Section -->
+        {% if results.players %}
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">
+                    Players ({{ results.players|length }})
+                </h2>
+                <div class="bg-white rounded-lg shadow divide-y divide-gray-200">
+                    {% for player in results.players %}
+                        <a href="{{ url_for('players.player_detail', player_id=player.player_id) }}"
+                           class="block hover:bg-gray-50 transition-colors p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-blue-600 hover:text-blue-800">
+                                        {{ player.name }}
+                                        {% if player.retired %}
+                                            <span class="text-sm text-red-600 font-normal">(Retired)</span>
+                                        {% endif %}
+                                    </h3>
+                                    <p class="text-sm text-gray-600">
+                                        {{ player.team }} - {{ player.position }}
+                                    </p>
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    Player
+                                </div>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Teams Section -->
+        {% if results.teams %}
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">
+                    Teams ({{ results.teams|length }})
+                </h2>
+                <div class="bg-white rounded-lg shadow divide-y divide-gray-200">
+                    {% for team in results.teams %}
+                        <a href="{{ url_for('teams.team_detail', team_id=team.team_id) }}"
+                           class="block hover:bg-gray-50 transition-colors p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-blue-600 hover:text-blue-800">
+                                        {{ team.name }} ({{ team.abbr }})
+                                    </h3>
+                                    <p class="text-sm text-gray-600">
+                                        {{ team.league }}
+                                    </p>
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    Team
+                                </div>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Total Results Summary -->
+        <div class="mt-6 text-center text-sm text-gray-600">
+            <p>Found {{ results.total_results }} total result(s)</p>
+        </div>
+    {% endif %}
+
+    <!-- Back to Home Link -->
+    <div class="mt-8 text-center">
+        <a href="{{ url_for('main.index') }}" class="text-blue-600 hover:text-blue-800 hover:underline">
+            Back to Home
+        </a>
+    </div>
+</div>
+{% endblock %}

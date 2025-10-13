@@ -4,8 +4,10 @@ from pathlib import Path
 from loguru import logger
 from .base_loader import BaseLoader
 from ..utils.checksum import calculate_file_checksum
+from ..utils.message_filter import MessageFilter
 from sqlalchemy import text
 from typing import Optional, Dict
+import pandas as pd
 
 
 
@@ -189,6 +191,7 @@ class ReferenceLoader(BaseLoader):
             'table': 'trade_history',
             'primary_keys': ['trade_id'],
             'load_order': 20,
+            'load_strategy': 'incremental',  # Never delete historical trades
             'column_mapping': {
                 # Exclude trade_id - it's auto-generated SERIAL
                 'date': 'date',
@@ -246,6 +249,8 @@ class ReferenceLoader(BaseLoader):
             'table': 'messages',
             'primary_keys': ['message_id'],
             'load_order': 21,
+            'load_strategy': 'incremental',  # Never delete historical messages
+            'apply_filters': True,  # Enable message filtering
             'calculated_fields': {
                 # Convert 0 and negative values to NULL (non-trade messages use 0, -1, -5, etc.)
                 'trade_id': 'CASE WHEN trade_id > 0 THEN trade_id ELSE NULL END'
@@ -291,8 +296,8 @@ class ReferenceLoader(BaseLoader):
 
 
     def get_load_strategy(self) -> str:
-        """Reference tables use skip strategy - only load if changed."""
-        return 'skip'
+        """Return load strategy from config, default to 'skip' for reference tables."""
+        return self.config.get('load_strategy', 'skip')
 
 
     def get_primary_keys(self) -> List[str]:
@@ -313,8 +318,11 @@ class ReferenceLoader(BaseLoader):
         return self.get_primary_keys()
 
     def get_update_columns(self) -> List[str]:
-        """Reference tables typically don't update, just insert"""
-        return []
+        """For incremental loads, specify which columns to update on conflict"""
+        # For messages and trades, we want to update all non-key columns
+        if self.table_name in ['messages', 'trade_history']:
+            return ['*']  # Update all columns except primary key
+        return []  # Other reference tables: insert-only
 
     def _handle_skip_strategy(self, csv_path: Path) -> bool:
         """Override to implement checksum comparison"""
@@ -339,6 +347,92 @@ class ReferenceLoader(BaseLoader):
             # Update stored checksum
             self._update_stored_checksum(csv_path.name, current_checksum)
         return success
+
+    def _handle_incremental_load(self, csv_path: Path) -> bool:
+        """Handle incremental load with UPSERT - preserves historical records"""
+        target_table = self.get_target_table()
+        staging_table = f"staging_{target_table}"
+        column_mapping = self.get_column_mapping()
+
+        logger.info(f"Performing incremental load for {target_table} (preserves all historical data)")
+
+        # Read CSV
+        try:
+            df = pd.read_csv(csv_path)
+        except pd.errors.ParserError as e:
+            logger.warning(f"Malformed CSV detected, attempting to skip bad lines: {e}")
+            df = pd.read_csv(csv_path, on_bad_lines='skip', engine='python')
+            logger.info(f"Successfully loaded CSV with {len(df)} rows (skipped bad lines)")
+
+        # Apply message filtering if configured
+        if self.config.get('apply_filters') and self.csv_filename == 'messages.csv':
+            df = self._apply_message_filters(df)
+
+        # Apply CSV preprocessing
+        from ..utils.csv_preprocessor import CSVPreprocessor
+        primary_keys = self.get_primary_keys()
+
+        dedup_subset = None
+        if primary_keys and column_mapping:
+            reverse_mapping = {v: k for k, v in column_mapping.items()}
+            dedup_subset = [reverse_mapping.get(pk) for pk in primary_keys if reverse_mapping.get(pk)]
+            if not dedup_subset or len(dedup_subset) != len(primary_keys):
+                dedup_subset = None
+        elif primary_keys:
+            dedup_subset = primary_keys
+
+        df = CSVPreprocessor.preprocess(df, config={
+            'clean_quoted_strings': True,
+            'deduplicate': True,
+            'dedup_subset': dedup_subset
+        })
+
+        # Filter columns based on column mapping
+        if column_mapping:
+            csv_columns = list(column_mapping.keys())
+            df_to_load = df[csv_columns].copy()
+            df_to_load = df_to_load.rename(columns=column_mapping)
+        else:
+            df_to_load = df
+
+        # Create staging table
+        columns = self._infer_column_types(df_to_load)
+        self.staging_mgr.create_staging_from_csv_structure(target_table, columns)
+
+        # Load data into staging
+        row_count = self.staging_mgr.copy_csv_to_staging(str(csv_path), staging_table, df=df_to_load)
+        self.stats['rows_read'] = row_count
+
+        # Calculate derived fields
+        self._calculate_derived_fields(staging_table)
+
+        # Perform UPSERT from staging to target
+        upserted_count = self._upsert_from_staging(staging_table, target_table)
+        self.stats['rows_inserted'] = upserted_count
+
+        # Cleanup staging table
+        self.staging_mgr.drop_staging_table(staging_table)
+        self._record_file_completion(csv_path, 'success')
+
+        logger.info(f"Incremental load complete: {upserted_count} rows upserted (no historical data removed)")
+        return True
+
+    def _apply_message_filters(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Apply message filtering based on configuration"""
+        try:
+            from config.etl_config import MESSAGE_FILTERS
+
+            message_filter = MessageFilter(MESSAGE_FILTERS)
+            logger.info(message_filter.get_filter_summary())
+
+            filtered_df = message_filter.filter_messages(df)
+            return filtered_df
+        except ImportError:
+            logger.warning("Could not import MESSAGE_FILTERS from config, skipping filters")
+            return df
+        except Exception as e:
+            logger.error(f"Error applying message filters: {e}")
+            return df
 
     def _handle_full_load(self, csv_path: Path) -> bool:
         """Override to handle special post-load operations"""

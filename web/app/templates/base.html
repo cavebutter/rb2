@@ -15,23 +15,87 @@
     <nav class="bg-blue-900 text-white shadow-lg">
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16">
+                <!-- Left: Logo and Desktop Nav -->
                 <div class="flex items-center space-x-8">
                     <a href="{{ url_for('main.index') }}" class="text-xl font-bold">RB2 Baseball</a>
+                    <!-- Desktop Navigation -->
                     <div class="hidden md:flex space-x-4">
                         <a href="{{ url_for('main.index') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Home</a>
                         <a href="{{ url_for('teams.teams_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Teams</a>
                         <a href="{{ url_for('players.players_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Players</a>
+                        <a href="{{ url_for('coaches.coach_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Coaches</a>
                         <a href="{{ url_for('leaderboards.home') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Leaderboards</a>
                     </div>
                 </div>
-                <!-- Search bar placeholder -->
-                <div class="flex items-center">
-                    <input type="text" placeholder="Search players, teams..."
-                           class="px-4 py-2 rounded bg-blue-800 text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+                <!-- Right: Search and Mobile Menu Button -->
+                <div class="flex items-center space-x-4">
+                    <!-- Search bar (desktop only) -->
+                    <div class="hidden md:block relative">
+                        <form action="{{ url_for('search.search_results') }}" method="get" class="relative" id="search-form">
+                            <input type="text"
+                                   name="q"
+                                   id="search-input"
+                                   placeholder="Search players, teams..."
+                                   autocomplete="off"
+                                   class="px-4 py-2 w-64 rounded bg-blue-800 text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <!-- Autocomplete dropdown -->
+                            <div id="search-results"
+                                 class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg max-h-96 overflow-y-auto hidden z-50">
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Mobile menu button -->
+                    <button id="mobile-menu-button" class="md:hidden inline-flex items-center justify-center p-2 rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                        <span class="sr-only">Open main menu</span>
+                        <!-- Hamburger icon -->
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" id="menu-icon">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <!-- Close icon (hidden by default) -->
+                        <svg class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" id="close-icon">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile menu (hidden by default) -->
+            <div id="mobile-menu" class="hidden md:hidden pb-4">
+                <div class="flex flex-col space-y-2">
+                    <a href="{{ url_for('main.index') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Home</a>
+                    <a href="{{ url_for('teams.teams_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Teams</a>
+                    <a href="{{ url_for('players.players_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Players</a>
+                    <a href="{{ url_for('coaches.coach_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Coaches</a>
+                    <a href="{{ url_for('leaderboards.home') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Leaderboards</a>
+                    <!-- Mobile search -->
+                    <div class="pt-2">
+                        <form action="{{ url_for('search.search_results') }}" method="get">
+                            <input type="text"
+                                   name="q"
+                                   placeholder="Search players, teams..."
+                                   class="w-full px-4 py-2 rounded bg-blue-800 text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </nav>
+
+    <!-- Game Date Display -->
+    {% if current_game_date %}
+    <div class="bg-gradient-to-r from-gray-100 to-gray-200 border-b border-gray-300 py-2.5 shadow-sm">
+        <div class="container mx-auto px-4 flex items-center justify-center">
+            <svg class="w-5 h-5 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            <span class="text-sm font-medium text-gray-700">
+                Current Date: <strong class="text-gray-900">{{ current_game_date.strftime('%B %d, %Y') }}</strong>
+            </span>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -59,6 +123,166 @@
             </div>
         </div>
     </footer>
+
+    <!-- Global Search Autocomplete Script -->
+    <script>
+        (function() {
+            const searchInput = document.getElementById('search-input');
+            const searchResults = document.getElementById('search-results');
+            const searchForm = document.getElementById('search-form');
+            let currentFocus = -1;
+
+            if (!searchInput || !searchResults) return;
+
+            // Debounce function to limit API calls
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+
+            // Fetch autocomplete results
+            async function fetchResults(query) {
+                if (query.length < 2) {
+                    searchResults.classList.add('hidden');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/search/autocomplete?q=${encodeURIComponent(query)}`);
+                    const data = await response.json();
+                    displayResults(data.results);
+                } catch (error) {
+                    console.error('Search error:', error);
+                    searchResults.classList.add('hidden');
+                }
+            }
+
+            // Display autocomplete results
+            function displayResults(results) {
+                if (!results || results.length === 0) {
+                    searchResults.classList.add('hidden');
+                    return;
+                }
+
+                let html = '';
+                results.forEach((result, index) => {
+                    const iconClass = result.type === 'player' ? '👤' : '🏟️';
+                    html += `
+                        <a href="${result.url}"
+                           class="block px-4 py-3 hover:bg-gray-100 border-b border-gray-200 last:border-0 search-result-item"
+                           data-index="${index}">
+                            <div class="flex items-start">
+                                <span class="mr-3 text-xl">${iconClass}</span>
+                                <div class="flex-1">
+                                    <div class="font-semibold text-gray-900">${result.name}</div>
+                                    <div class="text-sm text-gray-600">${result.subtitle}</div>
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                });
+
+                searchResults.innerHTML = html;
+                searchResults.classList.remove('hidden');
+                currentFocus = -1;
+            }
+
+            // Handle keyboard navigation
+            function handleKeyDown(e) {
+                const items = searchResults.querySelectorAll('.search-result-item');
+                if (!items.length) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    currentFocus++;
+                    if (currentFocus >= items.length) currentFocus = 0;
+                    setActive(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    currentFocus--;
+                    if (currentFocus < 0) currentFocus = items.length - 1;
+                    setActive(items);
+                } else if (e.key === 'Enter') {
+                    if (currentFocus > -1 && items[currentFocus]) {
+                        e.preventDefault();
+                        items[currentFocus].click();
+                    }
+                } else if (e.key === 'Escape') {
+                    searchResults.classList.add('hidden');
+                    currentFocus = -1;
+                }
+            }
+
+            // Set active item in dropdown
+            function setActive(items) {
+                items.forEach((item, index) => {
+                    if (index === currentFocus) {
+                        item.classList.add('bg-gray-100');
+                        item.scrollIntoView({ block: 'nearest' });
+                    } else {
+                        item.classList.remove('bg-gray-100');
+                    }
+                });
+            }
+
+            // Event listeners
+            const debouncedFetch = debounce(fetchResults, 300);
+            searchInput.addEventListener('input', (e) => debouncedFetch(e.target.value));
+            searchInput.addEventListener('keydown', handleKeyDown);
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!searchForm.contains(e.target)) {
+                    searchResults.classList.add('hidden');
+                }
+            });
+
+            // Re-open dropdown when focusing back on input (if there are results)
+            searchInput.addEventListener('focus', () => {
+                if (searchInput.value.length >= 2 && searchResults.innerHTML) {
+                    searchResults.classList.remove('hidden');
+                }
+            });
+        })();
+    </script>
+
+    <!-- Mobile Menu Toggle Script -->
+    <script>
+        (function() {
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const menuIcon = document.getElementById('menu-icon');
+            const closeIcon = document.getElementById('close-icon');
+
+            if (mobileMenuButton) {
+                mobileMenuButton.addEventListener('click', function() {
+                    // Toggle menu visibility
+                    mobileMenu.classList.toggle('hidden');
+
+                    // Toggle icons
+                    menuIcon.classList.toggle('hidden');
+                    closeIcon.classList.toggle('hidden');
+                });
+
+                // Close mobile menu when clicking a link
+                const mobileMenuLinks = mobileMenu.querySelectorAll('a');
+                mobileMenuLinks.forEach(link => {
+                    link.addEventListener('click', function() {
+                        mobileMenu.classList.add('hidden');
+                        menuIcon.classList.remove('hidden');
+                        closeIcon.classList.add('hidden');
+                    });
+                });
+            }
+        })();
+    </script>
 
     {% block extra_js %}{% endblock %}
 </body>

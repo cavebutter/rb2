@@ -27,11 +27,15 @@ def create_app(config_name='development'):
     app.register_blueprint(teams.bp, url_prefix='/teams')
     app.register_blueprint(leaderboards.bp, url_prefix='/leaderboards')
     app.register_blueprint(newspaper.bp, url_prefix='/newspaper')
-    app.register_blueprint(search.bp, url_prefix='/api/search')
+    app.register_blueprint(search.bp)  # Already has /search prefix in blueprint definition
 
     # Register template filters
     from .utils.formatters import register_filters
     register_filters(app)
+
+    # Register context processors
+    from .context_processors import inject_game_date
+    app.context_processor(inject_game_date)
 
     logger.info(f"Flask app created with config: {config_name}")
 

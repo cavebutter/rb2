@@ -1,135 +1,48 @@
 RB2 OOTP Website - Session Continuity Guide
 
 ═══════════════════════════════════════════════════════════════════════════════
-📋 SESSION 13 SUMMARY (2025-10-12) - PART 3: COMPLETED WORK (Continued)
+📈 CURRENT PROJECT STATUS (Session 14: 2025-10-13)
 ═══════════════════════════════════════════════════════════════════════════════
 
-**Completed User Stories (continued from Part 1):**
-- ✅ US-P016: Enhanced Birthplace Display
-- ✅ US-P018: Separate Stats Tables by League Level
+**Progress: 49% (38/77 user stories complete) | ~71 hours**
 
-**US-P016: Enhanced Birthplace Display [COMPLETE]**
-- Solution: Added `birthplace_display` hybrid property to Player and Coach models
-- Property handles state/province formatting logic internally
-- Returns format: "City, State, Country" for USA/CAN, "City, Country" for others
-- Updated routes to eager-load state relationships using selectinload
-- Templates now simply use `{{ player.birthplace_display }}`
-- FILES MODIFIED:
-  - `/web/app/models/player.py` - Added birthplace_display property (lines 210-236)
-  - `/web/app/models/coach.py` - Added birthplace_display property (lines 228-254)
-  - `/web/app/routes/players.py` - Updated city_of_birth loading (lines 138-151)
-  - `/web/app/routes/coaches.py` - Updated imports and loading (lines 1-66)
-  - `/web/app/templates/players/detail.html` - Simplified display (line 70)
-  - `/web/app/templates/coaches/detail.html` - Simplified display (lines 60-63)
-- TESTED: Player detail (200 OK, 1.7s), Coach detail (200 OK, 0.05s)
+**Completed Epics:**
+- ✅ Epic 1: Player Pages - 100% (18/18 stories)
+- ✅ Epic 2: Team Pages - 100% (5/5 stories)
+- ✅ Epic 6: Search & Navigation - 100% (4/4 stories)
 
-**US-P018: Separate Stats Tables by League Level [COMPLETE]**
-- Implementation: Player detail page now shows up to 6 stat tables
-  - All Levels Batting, Major League Batting, Minor League Batting
-  - All Levels Pitching, Major League Pitching, Minor League Pitching
-- Service layer functions accept optional `league_level_filter` parameter (1=major, 2+=minor, None=all)
-- Route calls each function 3x with different filters
-- Template conditionally displays tables only if stats exist
-- Backward compatible: existing code calling without filter still works
-- FILES MODIFIED:
-  - `/web/app/services/player_service.py` - Already done in Part 2 (lines 45-362)
-  - `/web/app/routes/players.py` - Calls functions 3x each (lines 186-211)
-  - `/web/app/templates/players/detail.html` - 6 stat sections (lines 158-216)
-- TESTED: Player 2 detail page loads successfully (200 OK)
+**In Progress:**
+- 🟡 Epic 3: Leaderboards - 64% (7/11 stories)
+- 🟡 Epic 4: Front Page - 83% (5/6 stories, US-F005 deferred)
+- ⚪ Epic 5: League/Year Pages - 0%
+- 🟡 Epic 7: Infrastructure - ~35%
 
-**Epic 1 Progress:**
-- Player Pages Epic: 100% complete (all 18 stories done including US-P016 and US-P018)
-
-**Overall Project Status:**
-- Total: 43% complete (34/77 stories - added 2 from session 13)
-- Hours completed this session: ~5 hours total (3.5 from Part 1, 1.5 from Part 3)
-- Total hours: ~62.5 hours
+**Recent Completion (Session 14):**
+- ✅ ETL: Incremental loading for trade_history/messages (preserves all historical data)
+- ✅ US-N004: Game Date Display (context processor + banner)
+- ✅ US-N002: Breadcrumb Navigation (reusable macro)
+- ✅ US-N003: Mobile Menu & Navigation (hamburger menu, responsive)
+- ⏸️ US-F005: Magic Number (DEFERRED - field exists, needs verification)
 
 ═══════════════════════════════════════════════════════════════════════════════
-📋 SESSION 13 SUMMARY (2025-10-12) - PART 1: COMPLETED WORK
+🚨 CRITICAL PATTERNS & RULES
 ═══════════════════════════════════════════════════════════════════════════════
 
-**Completed User Stories:**
-- ✅ US-F003: Born This Week Widget
-- ✅ US-F006: League Summary Links
-- 🔧 Performance Optimization: Featured Players caching
-
-**Key Accomplishments:**
-
-1. **Performance Optimization - Featured Players Grid**
-   - Problem: Scanning 18,636 image files on every page load (massive I/O overhead)
-   - Solution: Implemented module-level cache with 1-hour TTL
-   - Function: `_get_player_ids_with_images()` caches player ID list
-   - Results: First load 618ms (cache miss), subsequent loads 257ms (cache hit) - 2.4x faster
-   - Overall home page: ~320ms average with all 3 widgets
-
-2. **US-F003: Born This Week Widget**
-   - Service function: `get_players_born_this_week()` (player_service.py lines 826-953)
-   - Fetches game_date from leagues table (currently 1997-06-01)
-   - Calculates ±7 day range, extracts month/day for comparison
-   - Handles year wraparound (Dec 28 to Jan 4)
-   - Shows player name, birthday, age, team, position
-   - Age calculated relative to game date (not real-world date)
-   - Template: Clean list with hover effects, retired player indicators
-
-3. **US-F006: League Summary Links**
-   - Added centered link group below each league's standings
-   - Three links: "League Leaders" (working), "Team Stats" (placeholder), "Schedule" (placeholder)
-   - League Leaders links to `/leaderboards/batting?league={league_id}`
-   - Clean inline design with pipe separators
-   - Replaced previous "Quick Links" card for simpler UX
-
-**Epic 4 Progress:**
-- Front Page Epic: 83% complete (5/6 stories done)
-- Only US-F005 (Magic Number) remaining (LOW priority)
-
-**Overall Project Status:**
-- Total: 42% complete (32/77 stories)
-- Hours completed this session: ~3.5 hours (2 complete, 1.5 in-progress)
-- Total hours: ~61 hours
-
-═══════════════════════════════════════════════════════════════════════════════
-
-RB2 OOTP Website - Session Continuity Guide
-
-═══════════════════════════════════════════════════════════════════════════════
-🚨 CRITICAL: SQLAlchemy Query Optimization Patterns
-═══════════════════════════════════════════════════════════════════════════════
-
-**The Problem:** Models with `lazy='joined'` cause cascading eager loads (thousands of queries).
-
-**Critical Learning:** `raiseload('*')` ONLY blocks accessing relationships, NOT loading them!
-
-**Solution Patterns (MANDATORY for all new queries):**
-
+**SQLAlchemy Query Optimization (MANDATORY):**
 ```python
-from sqlalchemy.orm import load_only, joinedload, selectinload, raiseload, lazyload
-from sqlalchemy import text
+from sqlalchemy.orm import load_only, selectinload, raiseload, lazyload
 
-# Pattern 1: Minimal data queries
-Player.query.options(
-    load_only(Player.player_id, Player.first_name, Player.last_name),
-    raiseload('*')
-)
+# Minimal data queries
+Player.query.options(load_only(Player.player_id, Player.first_name), raiseload('*'))
 
-# Pattern 2: Team queries with relationships
-Team.query.options(
-    load_only(Team.team_id, Team.name, Team.abbr),
-    selectinload(Team.league).raiseload('*'),
-    raiseload('*')
-)
+# With relationships
+Team.query.options(selectinload(Team.league).raiseload('*'), raiseload('*'))
 
-# Pattern 3: Stats queries (prevent cascade)
-PlayerBattingStats.query.options(
-    lazyload('player'),
-    lazyload('team')
-)
+# Stats queries (prevent cascade)
+PlayerBattingStats.query.options(lazyload('player'), lazyload('team'))
 
-# Pattern 4: Complex queries (bypass ORM with raw SQL)
-results = db.session.execute(text("""
-    SELECT p.player_id, p.first_name, p.last_name
-    FROM players_core p
-"""))
+# Complex: Use raw SQL
+db.session.execute(text("SELECT..."))
 ```
 
 **Models with lazy='joined' (ALWAYS optimize):**
@@ -137,84 +50,69 @@ results = db.session.execute(text("""
 - Team: city, park, league, nation
 - PlayerBattingStats/PlayerPitchingStats: player, team
 
-**Reference Examples:**
-- `/web/app/services/player_service.py` (lines 68-80, 210-222, 448-486) - Stats and trades with lazyload/raiseload
-- `/web/app/services/team_service.py` - Franchise with raiseload
-- `/web/app/routes/teams.py` (lines 51-80) - Raw SQL roster query (eliminated 1,849 queries)
-- `/web/app/routes/players.py` (lines 108-168) - Player detail with load_only + selectinload (96% faster)
-- `/web/app/routes/main.py` (lines 84-106) - Home page standings (99% faster on slowest query)
+**Critical Data Rules:**
+- **ALWAYS filter team_id != 0** (excludes college/HS players from leaderboards)
+- Applied at database (materialized views) AND service layer
+
+**ETL Data Preservation (New):**
+- `trade_history` and `messages` use incremental UPSERT (never delete)
+- Configure filters in `/etl/config/etl_config.py` (MESSAGE_FILTERS)
+- Images preserved via rsync --update flag
+- See `/etl/docs/INCREMENTAL_LOADING.md` for details
 
 ═══════════════════════════════════════════════════════════════════════════════
-📊 Database & Environment
+📊 DATABASE & ENVIRONMENT
 ═══════════════════════════════════════════════════════════════════════════════
 
 **Data State:**
-- 18 seasons loaded (1980-1997), current year: 1997 (June, in-season)
+- 18 seasons (1980-1997), current: June 1997 (in-season)
 - Non-traditional league structure: 4 top-level leagues (not AL/NL)
-- Images: `/etl/data/images/players/` (player_X.png and coach_X.png)
+- Images: `/etl/data/images/players/` (player_X.png, coach_X.png)
+- venv: ~/virtual-envs/rb2
+- App running on: http://localhost:5000
 
 **Known Data Gaps:**
-- Fielding stats: Empty (no ETL) - blocks US-P003
+- Fielding stats empty (no ETL) - blocks US-P003
 - Schools: No reference table - blocks US-P005
-- Current season yearly leaders: Rank columns populated but stat values NULL for 1997
+- Current season yearly leaders: Ranks populated, stat values NULL for 1997
 
-**Critical Data Quality Rules:**
-- **ALWAYS filter team_id != 0**: College/HS players (~11,685 records) must be excluded from leaderboards
-- Filter applied at database (materialized views) AND application (service layer)
-
-═══════════════════════════════════════════════════════════════════════════════
-📈 Current Project Status (Session 12: 2025-10-11)
-═══════════════════════════════════════════════════════════════════════════════
-
-**Progress: 36% (27/76 user stories complete)**
-
-**Completed Epics:**
-- ✅ Epic 1: Player Pages - 100% (includes coaches)
-- ✅ Epic 2: Team Pages - 100% (all stories)
-
-**Active Epic:**
-- 🚧 Epic 3: Leaderboards - 64% (6/11 stories: US-L001 through US-L006 done)
-
-**Next Priorities:**
-- Epic 3: US-L007 through US-L010 (4 stories remaining - US-L007/US-L008 LOW priority)
-- Epic 4: Front Page (US-F001 through US-F006)
-- Epic 6: Search & Navigation (US-N001 - HIGH priority)
-
-**Recent Completion (Session 12):**
-- **Performance Optimization:** Player detail (96% faster, 90% fewer queries), Home page (99% faster)
+**Key Components:**
+- Context processor: `inject_game_date()` provides game date to all templates
+- Breadcrumb macro: `/web/app/templates/_macros/breadcrumbs.html`
+- Search service: `/web/app/services/search_service.py`
+- Leaderboard service: `/web/app/services/leaderboard_service.py`
 
 ═══════════════════════════════════════════════════════════════════════════════
-⚡ Performance Standards
+⚡ PERFORMANCE STANDARDS
 ═══════════════════════════════════════════════════════════════════════════════
 
 **Target Benchmarks:**
-- Detail pages: < 1 second, < 20 queries
+- Detail pages: < 1s, < 20 queries
 - List pages: < 500ms, < 15 queries
-- Leaderboards: < 2 seconds, < 30 queries
+- Leaderboards: < 2s, < 30 queries
 
 **Achieved:**
-- Player detail: 171ms, 12 queries (96% faster - was 4.4s, 124 queries)
-- Home page: <100ms, 17 queries (99% faster - was 10+s, 81 queries)
-- Team home: 120ms, 12 queries (99.6% faster - was 28s, 1,861 queries)
-- Team year: 300-500ms
-- Leaderboards: <200ms (cached materialized views)
+- Player detail: 171ms, 12 queries
+- Home page: <100ms, 17 queries
+- Team home: 120ms, 12 queries
+- Leaderboards: <200ms (materialized views)
 
 ═══════════════════════════════════════════════════════════════════════════════
-🔄 Session Workflow
+🔄 SESSION WORKFLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
 **Starting a Session:**
 1. Read `docs/backlog-epics-3-9.md` for current work
-2. Review this file for patterns and status
-3. Check Summary Statistics for completion %
+2. Review this file for critical patterns
+3. Check current progress percentages
 
 **Ending a Session:**
-1. Update backlog with completed stories (mark DONE, add notes)
-2. Update Summary Statistics (completion %, hours)
-3. Update this file ONLY for: new patterns, database changes, critical discoveries
+1. Update backlog with completed stories (mark DONE, add implementation notes)
+2. Update this file with new patterns or critical discoveries only
+3. Keep sessions focused: 4-8 hour blocks
 
 **Key Files:**
-- `docs/backlog-epics-3-9.md` - Active work (Epics 3-9)
-- `docs/backlog-epics-1-2.md` - Completed work (Epics 1-2)
+- `docs/backlog-epics-3-9.md` - Active work (Epics 3-9, detailed specifications)
+- `docs/backlog-epics-1-2.md` - Completed work (Epics 1-2, reference only)
 - `docs/website-specs.md` - Original requirements
-- `continuity.txt` - This file (patterns & status only)
+- `continuity.txt` - This file (patterns & current status)

@@ -421,6 +421,10 @@ class BaseLoader(ABC):
         result = self.db.execute_sql(cols_sql, {'table_name': target_table})
         target_columns = [row[0] for row in result]
 
+        # Handle '*' wildcard in update_columns (means all non-key columns)
+        if update_columns == ['*']:
+            update_columns = [col for col in target_columns if col not in upsert_keys]
+
         # Build SELECT clause with calculated expressions where needed
         select_clauses = []
         column_mapping = self.get_column_mapping() or {}

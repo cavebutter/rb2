@@ -33,3 +33,25 @@ BATCH_SIZE = 1000
 ENABLE_CHANGE_DETECTION = True
 ARCHIVE_AFTER_DATYS = 3650
 
+# Message Filtering Configuration
+# Messages will be excluded from loading if they match these criteria
+MESSAGE_FILTERS = {
+    # Filter by message_type (list of message_type values to exclude)
+    'exclude_message_types': [
+        # Add message type IDs here that should be filtered out
+        # Example: 100, 101, 102
+    ],
+
+    # Filter by sender_id (list of sender IDs to exclude)
+    'exclude_sender_ids': [
+        # Add sender IDs here (e.g., specific managers/teams you don't want messages from)
+        # Example: 1, 5, 10
+    ],
+
+    # Filter by importance (exclude messages below this threshold)
+    'min_importance': None,  # Set to an integer to filter low-importance messages
+
+    # Filter by deleted flag (default: exclude deleted messages)
+    'exclude_deleted': True,
+}
+

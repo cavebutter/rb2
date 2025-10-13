@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_macros/breadcrumbs.html' import breadcrumbs %}
 
 {% block title %}
     {{ stat_metadata[stat].name }} Leaders -
@@ -8,15 +9,15 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
+    <!-- Breadcrumb Navigation -->
+    {{ breadcrumbs([
+        ('Home', url_for('main.index')),
+        ('Leaderboards', url_for('leaderboards.home')),
+        ('Batting' if category == 'batting' else 'Pitching', None)
+    ]) }}
+
     <!-- Page Header -->
     <div class="mb-6">
-        <div class="flex items-center gap-2 text-sm text-gray-600 mb-2">
-            <a href="{{ url_for('main.index') }}" class="hover:text-blue-600">Home</a>
-            <span>/</span>
-            <a href="{{ url_for('leaderboards.home') }}" class="hover:text-blue-600">Leaderboards</a>
-            <span>/</span>
-            <span class="text-gray-900">{{ 'Batting' if category == 'batting' else 'Pitching' }}</span>
-        </div>
         <h1 class="text-4xl font-bold text-gray-900">
             {{ stat_metadata[stat].name }} Leaders
         </h1>
