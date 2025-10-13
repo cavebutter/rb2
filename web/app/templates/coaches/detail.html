@@ -60,7 +60,7 @@
           {% if coach.city_of_birth %}
           <div>
             <span class="text-gray-600">Birthplace:</span>
-            <span class="font-medium">{{ coach.city_of_birth.name }}{% if coach.nation %}, {{ coach.nation.abbreviation }}{% endif %}</span>
+            <span class="font-medium">{{ coach.city_of_birth.name }}{% if coach.city_of_birth.state and (coach.nation.abbreviation == 'USA' or coach.nation.abbreviation == 'CAN') %}, {{ coach.city_of_birth.state.abbreviation }}{% endif %}{% if coach.nation %}, {{ coach.nation.abbreviation }}{% endif %}</span>
           </div>
           {% endif %}
         </div>

@@ -437,7 +437,7 @@ def get_yearly_batting_leaders(
     if cached is not None:
         return cached
 
-    # Map stat name to rank column
+    # Map stat name to rank column and stat column
     rank_columns = {
         'hr': LeaderboardYearlyBatting.hr_rank,
         'rbi': LeaderboardYearlyBatting.rbi_rank,
@@ -447,17 +447,37 @@ def get_yearly_batting_leaders(
         'war': LeaderboardYearlyBatting.war_rank,
     }
 
+    stat_columns = {
+        'hr': LeaderboardYearlyBatting.hr,
+        'rbi': LeaderboardYearlyBatting.rbi,
+        'sb': LeaderboardYearlyBatting.sb,
+        'h': LeaderboardYearlyBatting.h,
+        'avg': LeaderboardYearlyBatting.avg,
+        'war': LeaderboardYearlyBatting.war,
+    }
+
     rank_column = rank_columns.get(stat, LeaderboardYearlyBatting.hr_rank)
+    stat_column = stat_columns.get(stat, LeaderboardYearlyBatting.hr)
 
     query = LeaderboardYearlyBatting.query.filter(
         LeaderboardYearlyBatting.year == year,
-        rank_column <= limit
+        rank_column <= limit,
+        stat_column.isnot(None)  # Filter out NULL stat values
     )
 
     if league_id is not None:
         query = query.filter_by(league_id=league_id)
+        # For single league, order by rank
+        query = query.order_by(rank_column)
+    else:
+        # For all leagues, order by actual stat value (desc for most stats, asc for ERA/WHIP)
+        # Determine sort direction based on stat
+        if stat in ['era', 'whip']:
+            query = query.order_by(stat_column.asc())
+        else:
+            query = query.order_by(stat_column.desc())
 
-    leaders = query.order_by(rank_column).all()
+    leaders = query.limit(limit).all()
     result = {'leaders': leaders, 'total': len(leaders)}
     _set_cached(cache_key, result)
     return result
@@ -486,7 +506,7 @@ def get_yearly_pitching_leaders(
     if cached is not None:
         return cached
 
-    # Map stat name to rank column
+    # Map stat name to rank column and stat column
     rank_columns = {
         'w': LeaderboardYearlyPitching.w_rank,
         'sv': LeaderboardYearlyPitching.sv_rank,
@@ -496,17 +516,37 @@ def get_yearly_pitching_leaders(
         'war': LeaderboardYearlyPitching.war_rank,
     }
 
+    stat_columns = {
+        'w': LeaderboardYearlyPitching.w,
+        'sv': LeaderboardYearlyPitching.sv,
+        'so': LeaderboardYearlyPitching.so,
+        'era': LeaderboardYearlyPitching.era,
+        'whip': LeaderboardYearlyPitching.whip,
+        'war': LeaderboardYearlyPitching.war,
+    }
+
     rank_column = rank_columns.get(stat, LeaderboardYearlyPitching.w_rank)
+    stat_column = stat_columns.get(stat, LeaderboardYearlyPitching.w)
 
     query = LeaderboardYearlyPitching.query.filter(
         LeaderboardYearlyPitching.year == year,
-        rank_column <= limit
+        rank_column <= limit,
+        stat_column.isnot(None)  # Filter out NULL stat values
     )
 
     if league_id is not None:
         query = query.filter_by(league_id=league_id)
+        # For single league, order by rank
+        query = query.order_by(rank_column)
+    else:
+        # For all leagues, order by actual stat value (desc for most stats, asc for ERA/WHIP)
+        # Determine sort direction based on stat
+        if stat in ['era', 'whip']:
+            query = query.order_by(stat_column.asc())
+        else:
+            query = query.order_by(stat_column.desc())
 
-    leaders = query.order_by(rank_column).all()
+    leaders = query.limit(limit).all()
     result = {'leaders': leaders, 'total': len(leaders)}
     _set_cached(cache_key, result)
     return result

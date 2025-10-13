@@ -1,6 +1,7 @@
 """Main routes (Home page, etc)"""
 from flask import Blueprint, render_template
 from app.models import Team, TeamRecord, League, SubLeague, Division
+from app.services.player_service import get_notable_rookies, get_featured_players, get_players_born_this_week
 from sqlalchemy import and_
 
 bp = Blueprint('main', __name__)
@@ -80,9 +81,27 @@ def index():
                 ).first() if division_id > 0 else None
 
                 # Get teams with their records
+                # OPTIMIZATION: Block cascading eager loads on Team model
+                from sqlalchemy.orm import load_only, raiseload, lazyload, joinedload
                 team_ids = structure[sub_league_id][division_id]
                 teams = (Team.query
                         .join(TeamRecord)
+                        .options(
+                            # Load only fields needed for standings display
+                            load_only(
+                                Team.team_id,
+                                Team.name,
+                                Team.abbr
+                            ),
+                            # Load the record (needed for template)
+                            joinedload(Team.record).raiseload('*'),
+                            # Block all other relationship cascades
+                            lazyload(Team.city),
+                            lazyload(Team.park),
+                            lazyload(Team.nation),
+                            lazyload(Team.league),
+                            raiseload('*')
+                        )
                         .filter(Team.team_id.in_(team_ids))
                         .order_by(TeamRecord.pos.asc())
                         .all())
@@ -103,7 +122,16 @@ def index():
 
         leagues_data.append(league_data)
 
-    return render_template('index.html', leagues_data=leagues_data)
+    # Get featured players, notable rookies, and birthdays for left column
+    featured_players = get_featured_players(limit=18)
+    rookies = get_notable_rookies(limit=10)
+    birthdays = get_players_born_this_week(days_range=7)
+
+    return render_template('index.html',
+                          leagues_data=leagues_data,
+                          featured_players=featured_players,
+                          rookies=rookies,
+                          birthdays=birthdays)
 
 
 @bp.route('/health')

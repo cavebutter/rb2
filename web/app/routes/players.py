@@ -77,11 +77,18 @@ def players_by_letter(letter):
 
     # Get all players whose last name starts with this letter
     # Include their years of service (min/max year from stats)
+    # OPTIMIZATION: Use load_only to prevent cascading eager loads
+    from sqlalchemy.orm import load_only, raiseload
+
     players_query = (
         db.session.query(
             Player,
             func.min(PlayerBattingStats.year).label('first_year'),
             func.max(PlayerBattingStats.year).label('last_year')
+        )
+        .options(
+            load_only(Player.player_id, Player.first_name, Player.last_name),
+            raiseload('*')  # Block all relationship cascades
         )
         .outerjoin(PlayerBattingStats, and_(
             Player.player_id == PlayerBattingStats.player_id,
@@ -102,26 +109,67 @@ def players_by_letter(letter):
 def player_detail(player_id):
     """Player detail page - bio, stats, ratings
 
-    OPTIMIZATION: Use joinedload to explicitly control relationship loading
-    instead of relying on model's default lazy='joined' which can cause
-    cascading eager loads and N+1 query issues.
+    OPTIMIZATION: Use load_only to minimize data fetching and prevent
+    cascading eager loads. Only load columns we actually use in the template.
     """
-    from sqlalchemy.orm import joinedload, raiseload
-    from app.models import PlayerCurrentStatus
+    from sqlalchemy.orm import load_only, selectinload, raiseload, lazyload
+    from app.models import PlayerCurrentStatus, City, State, Nation, Team
+    from app.models import PlayerBattingRatings, PlayerPitchingRatings, PlayerFieldingRatings
 
-    # Query with explicit relationship loading control
-    # Load only what we need: city, nation, current_status (with team)
-    # Let ratings lazy-load only if needed (template checks for them)
-    # Block stats relationships (handled by service layer)
+    # Query with strict column and relationship control
+    # CRITICAL: Override model's lazy='joined' with selectinload + load_only to prevent cascades
     player = (Player.query
               .options(
-                  joinedload(Player.city_of_birth),
-                  joinedload(Player.nation),
-                  joinedload(Player.second_nation),
-                  joinedload(Player.current_status).joinedload(PlayerCurrentStatus.team, innerjoin=False),  # Load status with team
-                  raiseload(Player.batting_stats),  # Block stats - service layer handles these
-                  raiseload(Player.pitching_stats)
-                  # Let ratings lazy-load on access (they're one-to-one, minimal cost)
+                  # Load only core player bio fields
+                  load_only(
+                      Player.player_id,
+                      Player.first_name,
+                      Player.last_name,
+                      Player.nick_name,
+                      Player.date_of_birth,
+                      Player.height,
+                      Player.weight,
+                      Player.bats,
+                      Player.throws,
+                      Player.city_of_birth_id,
+                      Player.nation_id,
+                      Player.second_nation_id
+                  ),
+                  # Load city name only (no cascades)
+                  selectinload(Player.city_of_birth).load_only(
+                      City.city_id,
+                      City.name
+                  ).raiseload('*'),
+                  # Load nation name only (no cascades)
+                  selectinload(Player.nation).load_only(
+                      Nation.nation_id,
+                      Nation.name,
+                      Nation.abbreviation
+                  ).raiseload('*'),
+                  # Load second nation if exists
+                  selectinload(Player.second_nation).load_only(
+                      Nation.nation_id,
+                      Nation.name,
+                      Nation.abbreviation
+                  ).raiseload('*'),
+                  # Load current status with minimal team info
+                  selectinload(Player.current_status).load_only(
+                      PlayerCurrentStatus.player_id,
+                      PlayerCurrentStatus.team_id,
+                      PlayerCurrentStatus.position,
+                      PlayerCurrentStatus.retired
+                  ).selectinload(PlayerCurrentStatus.team).load_only(
+                      Team.team_id,
+                      Team.name,
+                      Team.abbr
+                  ).raiseload('*'),
+                  # Override lazy='joined' on ratings - use lazyload instead
+                  # This prevents them from being loaded in the main query
+                  lazyload(Player.batting_ratings),
+                  lazyload(Player.pitching_ratings),
+                  lazyload(Player.fielding_ratings),
+                  # Block ALL other relationships
+                  raiseload('*')
               )
               .filter_by(player_id=player_id)
               .first_or_404())

@@ -66,6 +66,12 @@
                     {% endfor %}
                 </div>
             </div>
+            <div class="mt-4 text-center">
+                <a href="{{ url_for('leaderboards.yearly', year=current_year) }}"
+                   class="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
+                    View All {{ current_year }} League Leaders →
+                </a>
+            </div>
         </div>
     </section>
     {% endif %}

@@ -6,12 +6,13 @@ This service centralizes player data access and calculations, enabling:
 - Future caching integration
 - Performance optimization through efficient queries
 """
-from datetime import date
-from sqlalchemy import func, and_
+from datetime import date, timedelta
+from sqlalchemy import func, and_, extract, or_, text
 from app.extensions import db
 from app.models import (
     Player, PlayerBattingStats, PlayerPitchingStats,
-    PlayerFieldingStats, Team, League, TradeHistory, Message
+    PlayerFieldingStats, Team, League, TradeHistory, Message,
+    PlayerCurrentStatus
 )
 
 
@@ -41,7 +42,7 @@ def calculate_age_for_season(birth_date, season_year):
     return age
 
 
-def get_player_career_batting_stats(player_id):
+def get_player_career_batting_stats(player_id, league_level_filter=None):
     """Get player's yearly batting statistics with career totals.
 
     Returns yearly stats ordered by year (most recent first) plus calculated
@@ -49,6 +50,7 @@ def get_player_career_batting_stats(player_id):
 
     Args:
         player_id: Player ID (int)
+        league_level_filter: Optional league level filter (1 for majors, >1 for minors, None for all)
 
     Returns:
         dict: {
@@ -64,26 +66,33 @@ def get_player_career_batting_stats(player_id):
     # Query yearly stats with relationship loading disabled (avoid N+1)
     # Only get overall stats (split_id=1)
     # Order by year ascending (earliest to most recent)
-    # OPTIMIZATION: Block automatic eager loading of player/team relationships
-    from sqlalchemy.orm import lazyload
+    # OPTIMIZATION: Block automatic eager loading of ALL relationships
+    from sqlalchemy.orm import lazyload, raiseload
 
-    yearly_stats = (
-        PlayerBattingStats.query
-        .options(
-            lazyload(PlayerBattingStats.player),  # Don't load player (we already have it)
-            lazyload(PlayerBattingStats.team)     # Don't load team (causes cascade)
-        )
-        .filter_by(player_id=player_id, split_id=1)
-        .order_by(PlayerBattingStats.year.asc())
-        .all()
-    )
+    # Build base query
+    query = PlayerBattingStats.query.options(
+        lazyload(PlayerBattingStats.player),  # Don't load player (we already have it)
+        lazyload(PlayerBattingStats.team),    # Don't load team (causes cascade)
+        lazyload(PlayerBattingStats.league),  # Don't load league (causes cascade)
+        raiseload('*')  # Block ALL other relationships
+    ).filter_by(player_id=player_id, split_id=1)
+
+    # Apply league level filter if specified (requires join)
+    if league_level_filter is not None:
+        query = query.join(League, PlayerBattingStats.league_id == League.league_id)
+        if league_level_filter == 1:
+            query = query.filter(League.league_level == 1)
+        else:  # league_level_filter > 1
+            query = query.filter(League.league_level > 1)
+
+    yearly_stats = query.order_by(PlayerBattingStats.year.asc()).all()
 
     # Add age to each stat row
     for stat in yearly_stats:
         stat.age = calculate_age_for_season(player.date_of_birth, stat.year)
 
     # Calculate career totals using SQL aggregation (performance)
-    totals_query = db.session.query(
+    totals_query_base = db.session.query(
         # Counting stats - sum them
         func.sum(PlayerBattingStats.g).label('g'),
         func.sum(PlayerBattingStats.pa).label('pa'),
@@ -114,7 +123,17 @@ def get_player_career_batting_stats(player_id):
     ).filter(
         PlayerBattingStats.player_id == player_id,
         PlayerBattingStats.split_id == 1
-    ).first()
+    )
+
+    # Apply league level filter if specified (requires join)
+    if league_level_filter is not None:
+        totals_query_base = totals_query_base.join(League, PlayerBattingStats.league_id == League.league_id)
+        if league_level_filter == 1:
+            totals_query_base = totals_query_base.filter(League.league_level == 1)
+        else:  # league_level_filter > 1
+            totals_query_base = totals_query_base.filter(League.league_level > 1)
+
+    totals_query = totals_query_base.first()
 
     if not totals_query or totals_query.ab is None or totals_query.ab == 0:
         # No batting stats
@@ -182,7 +201,7 @@ def get_player_career_batting_stats(player_id):
     }
 
 
-def get_player_career_pitching_stats(player_id):
+def get_player_career_pitching_stats(player_id, league_level_filter=None):
     """Get player's yearly pitching statistics with career totals.
 
     Returns yearly stats ordered by year (most recent first) plus calculated
@@ -190,6 +209,7 @@ def get_player_career_pitching_stats(player_id):
 
     Args:
         player_id: Player ID (int)
+        league_level_filter: Optional league level filter (1 for majors, >1 for minors, None for all)
 
     Returns:
         dict: {
@@ -204,26 +224,33 @@ def get_player_career_pitching_stats(player_id):
 
     # Query yearly stats (split_id=1 for overall)
     # Order by year ascending (earliest to most recent)
-    # OPTIMIZATION: Block automatic eager loading of player/team relationships
-    from sqlalchemy.orm import lazyload
+    # OPTIMIZATION: Block automatic eager loading of ALL relationships
+    from sqlalchemy.orm import lazyload, raiseload
 
-    yearly_stats = (
-        PlayerPitchingStats.query
-        .options(
-            lazyload(PlayerPitchingStats.player),  # Don't load player (we already have it)
-            lazyload(PlayerPitchingStats.team)     # Don't load team (causes cascade)
-        )
-        .filter_by(player_id=player_id, split_id=1)
-        .order_by(PlayerPitchingStats.year.asc())
-        .all()
-    )
+    # Build base query
+    query = PlayerPitchingStats.query.options(
+        lazyload(PlayerPitchingStats.player),  # Don't load player (we already have it)
+        lazyload(PlayerPitchingStats.team),    # Don't load team (causes cascade)
+        lazyload(PlayerPitchingStats.league),  # Don't load league (causes cascade)
+        raiseload('*')  # Block ALL other relationships
+    ).filter_by(player_id=player_id, split_id=1)
+
+    # Apply league level filter if specified (requires join)
+    if league_level_filter is not None:
+        query = query.join(League, PlayerPitchingStats.league_id == League.league_id)
+        if league_level_filter == 1:
+            query = query.filter(League.league_level == 1)
+        else:  # league_level_filter > 1
+            query = query.filter(League.league_level > 1)
+
+    yearly_stats = query.order_by(PlayerPitchingStats.year.asc()).all()
 
     # Add age to each stat row
     for stat in yearly_stats:
         stat.age = calculate_age_for_season(player.date_of_birth, stat.year)
 
     # Calculate career totals using SQL aggregation
-    totals_query = db.session.query(
+    totals_query_base = db.session.query(
         # Counting stats
         func.sum(PlayerPitchingStats.g).label('g'),
         func.sum(PlayerPitchingStats.gs).label('gs'),
@@ -250,7 +277,17 @@ def get_player_career_pitching_stats(player_id):
     ).filter(
         PlayerPitchingStats.player_id == player_id,
         PlayerPitchingStats.split_id == 1
-    ).first()
+    )
+
+    # Apply league level filter if specified (requires join)
+    if league_level_filter is not None:
+        totals_query_base = totals_query_base.join(League, PlayerPitchingStats.league_id == League.league_id)
+        if league_level_filter == 1:
+            totals_query_base = totals_query_base.filter(League.league_level == 1)
+        else:  # league_level_filter > 1
+            totals_query_base = totals_query_base.filter(League.league_level > 1)
+
+    totals_query = totals_query_base.first()
 
     if not totals_query or totals_query.outs is None or totals_query.outs == 0:
         # No pitching stats
@@ -439,9 +476,18 @@ def get_player_trade_history(player_id):
     Returns:
         list: List of TradeHistory objects where player was traded
     """
+    # OPTIMIZATION: TradeHistory model has lazy='joined' on team_0 and team_1
+    # which causes cascading loads. Use lazyload to prevent this.
+    from sqlalchemy.orm import lazyload, raiseload
+
     # Query for trades where player appears in any of the 20 player slots
     trades = (
         TradeHistory.query
+        .options(
+            lazyload(TradeHistory.team_0),  # Don't load team (causes cascade)
+            lazyload(TradeHistory.team_1),  # Don't load team (causes cascade)
+            raiseload('*')  # Block all other relationships
+        )
         .filter(
             db.or_(
                 TradeHistory.player_id_0_0 == player_id,
@@ -527,3 +573,413 @@ def get_player_news(player_id, limit=None):
         query = query.limit(limit)
 
     return query.all()
+
+
+def get_notable_rookies(limit=10):
+    """Get top rookies by WAR in current season at highest league level.
+
+    A rookie is defined as a player with 1 or fewer years of experience
+    (experience <= 1) at league_level=1 (top level).
+
+    Returns top rookies ranked by WAR with their current team and position.
+
+    Args:
+        limit: Maximum number of rookies to return (default 10)
+
+    Returns:
+        List of dictionaries containing:
+        - player_id: Player ID
+        - first_name: Player first name
+        - last_name: Player last name
+        - team_id: Team ID
+        - team_name: Team name
+        - team_abbr: Team abbreviation
+        - position: Position ID
+        - war: WAR value
+        - experience: Years of experience
+    """
+    from sqlalchemy.orm import load_only, selectinload, raiseload, lazyload
+
+    # Get the current season year from the first top-level league
+    league = League.query.filter_by(league_level=1).first()
+    if not league:
+        return []
+
+    current_year = league.season_year
+
+    # Query rookies with their current season stats
+    # A rookie has experience <= 1 at league_level=1
+    # We'll combine batting and pitching WAR to get total WAR
+
+    # First get batting WAR for rookies
+    batting_rookies = (
+        db.session.query(
+            Player.player_id,
+            Player.first_name,
+            Player.last_name,
+            PlayerCurrentStatus.team_id,
+            PlayerCurrentStatus.position,
+            PlayerCurrentStatus.experience,
+            PlayerBattingStats.war
+        )
+        .join(PlayerCurrentStatus, Player.player_id == PlayerCurrentStatus.player_id)
+        .join(PlayerBattingStats, and_(
+            Player.player_id == PlayerBattingStats.player_id,
+            PlayerBattingStats.year == current_year,
+            PlayerBattingStats.split_id == 1  # Overall stats
+        ))
+        .join(League, PlayerCurrentStatus.league_id == League.league_id)
+        .filter(
+            League.league_level == 1,  # Top level only
+            PlayerCurrentStatus.experience <= 1,  # Rookies (0-1 years)
+            PlayerCurrentStatus.retired == 0,  # Active players
+            PlayerCurrentStatus.team_id != 0,  # Exclude college/HS
+            PlayerBattingStats.war.isnot(None)  # Must have WAR value
+        )
+        .all()
+    )
+
+    # Get pitching WAR for rookies
+    pitching_rookies = (
+        db.session.query(
+            Player.player_id,
+            Player.first_name,
+            Player.last_name,
+            PlayerCurrentStatus.team_id,
+            PlayerCurrentStatus.position,
+            PlayerCurrentStatus.experience,
+            PlayerPitchingStats.war
+        )
+        .join(PlayerCurrentStatus, Player.player_id == PlayerCurrentStatus.player_id)
+        .join(PlayerPitchingStats, and_(
+            Player.player_id == PlayerPitchingStats.player_id,
+            PlayerPitchingStats.year == current_year,
+            PlayerPitchingStats.split_id == 1  # Overall stats
+        ))
+        .join(League, PlayerCurrentStatus.league_id == League.league_id)
+        .filter(
+            League.league_level == 1,  # Top level only
+            PlayerCurrentStatus.experience <= 1,  # Rookies (0-1 years)
+            PlayerCurrentStatus.retired == 0,  # Active players
+            PlayerCurrentStatus.team_id != 0,  # Exclude college/HS
+            PlayerPitchingStats.war.isnot(None)  # Must have WAR value
+        )
+        .all()
+    )
+
+    # Combine and aggregate WAR by player
+    player_war = {}
+
+    for row in batting_rookies:
+        player_id = row[0]
+        if player_id not in player_war:
+            player_war[player_id] = {
+                'player_id': row[0],
+                'first_name': row[1],
+                'last_name': row[2],
+                'team_id': row[3],
+                'position': row[4],
+                'experience': row[5],
+                'war': float(row[6] or 0)
+            }
+        else:
+            player_war[player_id]['war'] += float(row[6] or 0)
+
+    for row in pitching_rookies:
+        player_id = row[0]
+        if player_id not in player_war:
+            player_war[player_id] = {
+                'player_id': row[0],
+                'first_name': row[1],
+                'last_name': row[2],
+                'team_id': row[3],
+                'position': row[4],
+                'experience': row[5],
+                'war': float(row[6] or 0)
+            }
+        else:
+            player_war[player_id]['war'] += float(row[6] or 0)
+
+    # Sort by WAR descending and take top N
+    rookies = sorted(player_war.values(), key=lambda x: x['war'], reverse=True)[:limit]
+
+    # Position mapping for display
+    position_map = {
+        1: 'P', 2: 'C', 3: '1B', 4: '2B', 5: '3B',
+        6: 'SS', 7: 'LF', 8: 'CF', 9: 'RF', 10: 'DH'
+    }
+
+    # Enrich with team names (optimized query)
+    if rookies:
+        team_ids = [r['team_id'] for r in rookies]
+        teams = (
+            Team.query
+            .options(
+                load_only(Team.team_id, Team.name, Team.abbr),
+                raiseload('*')
+            )
+            .filter(Team.team_id.in_(team_ids))
+            .all()
+        )
+        team_dict = {t.team_id: {'name': t.name, 'abbr': t.abbr} for t in teams}
+
+        for rookie in rookies:
+            team_info = team_dict.get(rookie['team_id'], {'name': 'Unknown', 'abbr': 'UNK'})
+            rookie['team_name'] = team_info['name']
+            rookie['team_abbr'] = team_info['abbr']
+            rookie['position_display'] = position_map.get(rookie['position'], 'Unknown')
+
+    return rookies
+
+
+# Cache for player image IDs (global module-level cache)
+_player_image_ids_cache = None
+_player_image_ids_cache_time = None
+
+
+def _get_player_ids_with_images():
+    """Get list of player IDs that have image files.
+
+    Cached for 1 hour to avoid repeated filesystem scans.
+    The filesystem scan is expensive (18,636 files).
+    """
+    import os
+    import time
+
+    global _player_image_ids_cache, _player_image_ids_cache_time
+
+    # Check if cache is valid (less than 1 hour old)
+    if _player_image_ids_cache is not None and _player_image_ids_cache_time is not None:
+        cache_age = time.time() - _player_image_ids_cache_time
+        if cache_age < 3600:  # 1 hour TTL
+            return _player_image_ids_cache
+
+    # Cache miss or expired - scan filesystem
+    # From web/app/services -> up 3 levels to rb2/ -> etl/data/images/players
+    image_dir = os.path.abspath(os.path.join(
+        os.path.dirname(__file__),
+        '../../../etl/data/images/players'
+    ))
+
+    if not os.path.exists(image_dir):
+        return []
+
+    player_files = [f for f in os.listdir(image_dir) if f.startswith('player_') and f.endswith('.png')]
+
+    # Extract player IDs from filenames (player_12345.png -> 12345)
+    player_ids = []
+    for filename in player_files:
+        try:
+            player_id = int(filename.replace('player_', '').replace('.png', ''))
+            player_ids.append(player_id)
+        except ValueError:
+            continue
+
+    # Update cache
+    _player_image_ids_cache = player_ids
+    _player_image_ids_cache_time = time.time()
+
+    return player_ids
+
+
+def get_featured_players(limit=18):
+    """Get random featured players with images for home page grid.
+
+    Returns random active players who have image files available.
+    Images are stored at /etl/data/images/players/player_{player_id}.png
+
+    Performance: Uses cached list of player IDs with images (1-hour TTL)
+    to avoid scanning 18,636+ files on every page load.
+
+    Args:
+        limit: Number of players to return (default 18 for 3x6 grid)
+
+    Returns:
+        List of dictionaries containing:
+        - player_id: Player ID
+        - first_name: Player first name
+        - last_name: Player last name
+        - team_abbr: Team abbreviation
+        - position_display: Position abbreviation
+    """
+    from sqlalchemy import text
+
+    # Get cached list of player IDs with images
+    player_ids_with_images = _get_player_ids_with_images()
+
+    if not player_ids_with_images:
+        return []
+
+    # Query for random active players who have images
+    # Use raw SQL for better performance with ORDER BY RANDOM()
+    query = text("""
+        SELECT
+            p.player_id,
+            p.first_name,
+            p.last_name,
+            t.abbr as team_abbr,
+            pcs.position
+        FROM players_core p
+        JOIN players_current_status pcs ON p.player_id = pcs.player_id
+        JOIN leagues l ON pcs.league_id = l.league_id
+        LEFT JOIN teams t ON pcs.team_id = t.team_id
+        WHERE p.player_id = ANY(:player_ids)
+            AND pcs.retired = 0
+            AND pcs.team_id != 0
+            AND l.league_level = 1
+        ORDER BY RANDOM()
+        LIMIT :limit
+    """)
+
+    result = db.session.execute(query, {
+        'player_ids': player_ids_with_images,
+        'limit': limit
+    })
+
+    # Position mapping for display
+    position_map = {
+        1: 'P', 2: 'C', 3: '1B', 4: '2B', 5: '3B',
+        6: 'SS', 7: 'LF', 8: 'CF', 9: 'RF', 10: 'DH'
+    }
+
+    featured = []
+    for row in result:
+        featured.append({
+            'player_id': row[0],
+            'first_name': row[1],
+            'last_name': row[2],
+            'team_abbr': row[3] or 'FA',
+            'position_display': position_map.get(row[4], 'Unknown')
+        })
+
+    return featured
+
+
+def get_players_born_this_week(days_range=7):
+    """Get players with birthdays within specified days of current game date.
+
+    Uses the game_date from the top-level league (not real-world date).
+    Handles year wraparound (e.g., Dec 28 to Jan 4).
+
+    Args:
+        days_range: Number of days before/after game date to include (default 7)
+
+    Returns:
+        List of dictionaries containing:
+        - player_id: Player ID
+        - first_name: Player first name
+        - last_name: Player last name
+        - date_of_birth: Full birthdate
+        - age: Current age based on game date
+        - team_abbr: Team abbreviation (or 'FA' for free agents)
+        - position_display: Position abbreviation
+    """
+    # Get current game date from top-level league
+    game_date = db.session.execute(
+        text("SELECT game_date FROM leagues WHERE league_id = 200 LIMIT 1")
+    ).scalar()
+
+    if not game_date:
+        return []
+
+    # Calculate date range (±7 days by default)
+    start_date = game_date - timedelta(days=days_range)
+    end_date = game_date + timedelta(days=days_range)
+
+    # Extract month/day for comparison
+    start_month = start_date.month
+    start_day = start_date.day
+    end_month = end_date.month
+    end_day = end_date.day
+
+    # Build query - need to handle year wraparound
+    # Case 1: Same month or sequential months (no wraparound)
+    # Case 2: Wraparound (e.g., Dec 28 to Jan 4)
+    if start_month <= end_month:
+        # No wraparound - simple range check
+        query = text("""
+            SELECT
+                p.player_id,
+                p.first_name,
+                p.last_name,
+                p.date_of_birth,
+                t.abbr as team_abbr,
+                pcs.position,
+                pcs.retired
+            FROM players_core p
+            JOIN players_current_status pcs ON p.player_id = pcs.player_id
+            LEFT JOIN teams t ON pcs.team_id = t.team_id
+            WHERE p.date_of_birth IS NOT NULL
+                AND (
+                    (EXTRACT(MONTH FROM p.date_of_birth) > :start_month
+                     OR (EXTRACT(MONTH FROM p.date_of_birth) = :start_month
+                         AND EXTRACT(DAY FROM p.date_of_birth) >= :start_day))
+                    AND
+                    (EXTRACT(MONTH FROM p.date_of_birth) < :end_month
+                     OR (EXTRACT(MONTH FROM p.date_of_birth) = :end_month
+                         AND EXTRACT(DAY FROM p.date_of_birth) <= :end_day))
+                )
+            ORDER BY EXTRACT(MONTH FROM p.date_of_birth), EXTRACT(DAY FROM p.date_of_birth)
+            LIMIT 50
+        """)
+    else:
+        # Wraparound - match either end of year or beginning of year
+        query = text("""
+            SELECT
+                p.player_id,
+                p.first_name,
+                p.last_name,
+                p.date_of_birth,
+                t.abbr as team_abbr,
+                pcs.position,
+                pcs.retired
+            FROM players_core p
+            JOIN players_current_status pcs ON p.player_id = pcs.player_id
+            LEFT JOIN teams t ON pcs.team_id = t.team_id
+            WHERE p.date_of_birth IS NOT NULL
+                AND (
+                    (EXTRACT(MONTH FROM p.date_of_birth) > :start_month
+                     OR (EXTRACT(MONTH FROM p.date_of_birth) = :start_month
+                         AND EXTRACT(DAY FROM p.date_of_birth) >= :start_day))
+                    OR
+                    (EXTRACT(MONTH FROM p.date_of_birth) < :end_month
+                     OR (EXTRACT(MONTH FROM p.date_of_birth) = :end_month
+                         AND EXTRACT(DAY FROM p.date_of_birth) <= :end_day))
+                )
+            ORDER BY EXTRACT(MONTH FROM p.date_of_birth), EXTRACT(DAY FROM p.date_of_birth)
+            LIMIT 50
+        """)
+
+    result = db.session.execute(query, {
+        'start_month': start_month,
+        'start_day': start_day,
+        'end_month': end_month,
+        'end_day': end_day
+    })
+
+    # Position mapping for display
+    position_map = {
+        1: 'P', 2: 'C', 3: '1B', 4: '2B', 5: '3B',
+        6: 'SS', 7: 'LF', 8: 'CF', 9: 'RF', 10: 'DH'
+    }
+
+    players = []
+    for row in result:
+        birth_date = row[3]
+        # Calculate age as of game_date
+        age = game_date.year - birth_date.year
+        if (game_date.month, game_date.day) < (birth_date.month, birth_date.day):
+            age -= 1
+
+        players.append({
+            'player_id': row[0],
+            'first_name': row[1],
+            'last_name': row[2],
+            'date_of_birth': birth_date,
+            'age': age,
+            'team_abbr': row[4] or 'FA',
+            'position_display': position_map.get(row[5], 'Unknown'),
+            'retired': row[6]
+        })
+
+    return players

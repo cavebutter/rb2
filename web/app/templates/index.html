@@ -6,7 +6,7 @@
 <div class="max-w-7xl mx-auto">
     <!-- Header -->
     <div class="mb-8">
-        <h1 class="text-4xl font-bold text-gray-900">Baseball Standings</h1>
+        <h1 class="text-4xl font-bold text-gray-900">RB2 Baseball</h1>
         {% if leagues_data and leagues_data[0].league %}
             <p class="text-gray-600 mt-2">
                 {{ leagues_data[0].league.season_year }} Season
@@ -22,76 +22,221 @@
             <p>No standings data available. Make sure the database has been loaded with team and standings data.</p>
         </div>
     {% else %}
-        {% for league_data in leagues_data %}
-            <!-- League Header -->
-            <div class="mb-6">
-                <h2 class="text-3xl font-bold text-gray-800 mb-4">{{ league_data.league.name }}</h2>
+        <!-- Two-Column Layout: Mobile-first (single column), then 2 columns on lg: breakpoint -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+
+            <!-- LEFT COLUMN (40% on desktop) -->
+            <div class="lg:col-span-2 space-y-6">
+
+                <!-- Featured Players Grid -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Featured Players</h2>
+                    {% if featured_players %}
+                        <div class="grid grid-cols-6 gap-2">
+                            {% for player in featured_players %}
+                                <a href="{{ url_for('players.player_detail', player_id=player.player_id) }}"
+                                   class="block relative group">
+                                    <img src="{{ url_for('players.player_image', player_id=player.player_id) }}"
+                                         alt="{{ player.first_name }} {{ player.last_name }}"
+                                         class="w-full h-auto rounded border border-gray-300 object-contain"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <div class="w-full aspect-[2/3] bg-gray-200 rounded border border-gray-300 items-center justify-center text-gray-400 text-xs hidden">
+                                        No Photo
+                                    </div>
+                                    <!-- Hover overlay with player name -->
+                                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-70 transition-all duration-200 rounded flex items-end opacity-0 group-hover:opacity-100">
+                                        <div class="p-2 text-white text-xs w-full">
+                                            <div class="font-semibold truncate">{{ player.first_name }} {{ player.last_name }}</div>
+                                            <div class="text-gray-300 text-[10px]">{{ player.team_abbr }} | {{ player.position_display }}</div>
+                                        </div>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="bg-gray-100 rounded-lg p-8 text-center text-gray-500">
+                            <p class="text-sm">No featured players available</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Notable Rookies -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Notable Rookies</h2>
+                    {% if rookies %}
+                        <div class="space-y-3">
+                            {% for rookie in rookies %}
+                                <div class="flex items-center gap-3 py-2 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 px-2 rounded">
+                                    <!-- Player Image -->
+                                    <div class="flex-shrink-0">
+                                        <img src="{{ url_for('players.player_image', player_id=rookie.player_id) }}"
+                                             alt="{{ rookie.first_name }} {{ rookie.last_name }}"
+                                             class="w-[45px] h-[68px] rounded border border-gray-300 object-cover"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        <div class="w-[45px] h-[68px] bg-gray-200 rounded border border-gray-300 items-center justify-center text-gray-400 text-xs hidden">
+                                            No Photo
+                                        </div>
+                                    </div>
+                                    <!-- Player Info -->
+                                    <div class="flex-1 min-w-0">
+                                        <a href="{{ url_for('players.player_detail', player_id=rookie.player_id) }}"
+                                           class="text-blue-600 hover:text-blue-800 font-medium block truncate">
+                                            {{ rookie.first_name }} {{ rookie.last_name }}
+                                        </a>
+                                        <div class="text-sm text-gray-600">
+                                            {{ rookie.team_abbr }} | {{ rookie.position_display }}
+                                        </div>
+                                    </div>
+                                    <!-- WAR -->
+                                    <div class="text-right flex-shrink-0">
+                                        <div class="text-sm font-semibold text-gray-900">
+                                            {{ "%.1f"|format(rookie.war) }} WAR
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="bg-gray-100 rounded-lg p-8 text-center text-gray-500">
+                            <p class="text-sm">No rookie data available</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Born This Week -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Born This Week</h2>
+                    {% if birthdays %}
+                        <div class="space-y-2">
+                            {% for player in birthdays %}
+                                <div class="flex justify-between items-center py-2 border-b border-gray-200 hover:bg-gray-50">
+                                    <div class="flex-1">
+                                        <a href="{{ url_for('players.player_detail', player_id=player.player_id) }}"
+                                           class="text-blue-600 hover:text-blue-800 font-medium">
+                                            {{ player.first_name }} {{ player.last_name }}
+                                        </a>
+                                        <div class="text-xs text-gray-500 mt-0.5">
+                                            {{ player.team_abbr }} | {{ player.position_display }}
+                                            {% if player.retired == 1 %}
+                                                <span class="text-red-600">(Retired)</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="text-right text-sm text-gray-600">
+                                        <div class="font-medium">{{ player.date_of_birth.strftime('%b %d') }}</div>
+                                        <div class="text-xs text-gray-500">Age {{ player.age }}</div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="bg-gray-100 rounded-lg p-8 text-center text-gray-500">
+                            <p class="text-sm">No birthdays this week</p>
+                        </div>
+                    {% endif %}
+                </div>
+
             </div>
-            <!-- Standings by League -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-                {% for sub_league in league_data.standings %}
-                <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-                    <!-- Sub-League Header (AL/NL) -->
-                    <div class="bg-blue-700 text-white px-6 py-4">
-                        <h2 class="text-2xl font-bold">{{ sub_league.name }}</h2>
-                    </div>
 
-                    <!-- Divisions -->
-                    {% for division in sub_league.divisions %}
-                        <div class="border-b border-gray-200 last:border-b-0">
-                            <!-- Division Header -->
-                            <div class="bg-gray-100 px-6 py-3 border-b border-gray-300">
-                                <h3 class="text-lg font-semibold text-gray-800">{{ division.name }}</h3>
+            <!-- RIGHT COLUMN (60% on desktop) -->
+            <div class="lg:col-span-3">
+
+                <!-- Standings Section -->
+                <div class="space-y-8">
+                    {% for league_data in leagues_data %}
+                        <!-- League Header -->
+                        <div class="mb-6">
+                            <h2 class="text-3xl font-bold text-gray-800 mb-4">{{ league_data.league.name }} Standings</h2>
+                        </div>
+
+                        <!-- Standings by Sub-League/Division -->
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+                            {% for sub_league in league_data.standings %}
+                            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                                <!-- Sub-League Header (AL/NL) -->
+                                <div class="bg-blue-700 text-white px-6 py-4">
+                                    <h3 class="text-xl font-bold">{{ sub_league.name }}</h3>
+                                </div>
+
+                                <!-- Divisions -->
+                                {% for division in sub_league.divisions %}
+                                    <div class="border-b border-gray-200 last:border-b-0">
+                                        <!-- Division Header -->
+                                        <div class="bg-gray-100 px-6 py-3 border-b border-gray-300">
+                                            <h4 class="text-lg font-semibold text-gray-800">{{ division.name }}</h4>
+                                        </div>
+
+                                        <!-- Standings Table -->
+                                        <div class="overflow-x-auto">
+                                            <table class="min-w-full">
+                                                <thead class="bg-gray-50 border-b border-gray-200">
+                                                    <tr>
+                                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
+                                                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">W</th>
+                                                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">L</th>
+                                                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PCT</th>
+                                                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">GB</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="bg-white divide-y divide-gray-200">
+                                                    {% for team in division.teams %}
+                                                        <tr class="hover:bg-gray-50">
+                                                            <td class="px-4 py-3 whitespace-nowrap text-sm">
+                                                                <a href="{{ url_for('teams.team_detail', team_id=team.team_id) }}"
+                                                                   class="text-blue-600 hover:text-blue-800 font-medium">
+                                                                    {{ team.abbr }}
+                                                                </a>
+                                                            </td>
+                                                            <td class="px-2 py-3 text-center text-sm">
+                                                                {{ team.record.w if team.record else '-' }}
+                                                            </td>
+                                                            <td class="px-2 py-3 text-center text-sm">
+                                                                {{ team.record.l if team.record else '-' }}
+                                                            </td>
+                                                            <td class="px-2 py-3 text-center text-sm">
+                                                                {% if team.record and team.record.pct %}
+                                                                    {{ "%.3f"|format(team.record.pct) }}
+                                                                {% else %}
+                                                                    .000
+                                                                {% endif %}
+                                                            </td>
+                                                            <td class="px-2 py-3 text-center text-sm text-gray-600">
+                                                                {{ team.record.games_back_display if team.record else '-' }}
+                                                            </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                {% endfor %}
                             </div>
+                            {% endfor %}
+                        </div>
 
-                            <!-- Standings Table -->
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full">
-                                    <thead class="bg-gray-50 border-b border-gray-200">
-                                        <tr>
-                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
-                                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">W</th>
-                                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">L</th>
-                                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PCT</th>
-                                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">GB</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="bg-white divide-y divide-gray-200">
-                                        {% for team in division.teams %}
-                                            <tr class="hover:bg-gray-50">
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <a href="{{ url_for('teams.team_detail', team_id=team.team_id) }}"
-                                                       class="text-blue-600 hover:text-blue-800 font-medium">
-                                                        {{ team.name }}{% if team.nickname %} {{ team.nickname }}{% endif %}
-                                                    </a>
-                                                </td>
-                                                <td class="px-3 py-4 text-center text-sm">
-                                                    {{ team.record.w if team.record else '-' }}
-                                                </td>
-                                                <td class="px-3 py-4 text-center text-sm">
-                                                    {{ team.record.l if team.record else '-' }}
-                                                </td>
-                                                <td class="px-3 py-4 text-center text-sm">
-                                                    {% if team.record and team.record.pct %}
-                                                        {{ "%.3f"|format(team.record.pct) }}
-                                                    {% else %}
-                                                        .000
-                                                    {% endif %}
-                                                </td>
-                                                <td class="px-3 py-4 text-center text-sm text-gray-600">
-                                                    {{ team.record.games_back_display if team.record else '-' }}
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+                        <!-- League Summary Links -->
+                        <div class="text-center mb-8">
+                            <div class="inline-flex gap-4 text-sm">
+                                <a href="{{ url_for('leaderboards.batting', league=league_data.league.league_id) }}"
+                                   class="text-blue-600 hover:text-blue-800 hover:underline font-medium">
+                                    League Leaders
+                                </a>
+                                <span class="text-gray-400">|</span>
+                                <a href="#" class="text-blue-600 hover:text-blue-800 hover:underline font-medium">
+                                    Team Stats
+                                </a>
+                                <span class="text-gray-400">|</span>
+                                <a href="#" class="text-blue-600 hover:text-blue-800 hover:underline font-medium">
+                                    Schedule
+                                </a>
                             </div>
                         </div>
                     {% endfor %}
                 </div>
-                {% endfor %}
+
             </div>
-        {% endfor %}
+
+        </div>
     {% endif %}
 </div>
 {% endblock %}
