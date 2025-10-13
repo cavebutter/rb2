@@ -24,7 +24,65 @@
                         <a href="{{ url_for('teams.teams_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Teams</a>
                         <a href="{{ url_for('players.players_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Players</a>
                         <a href="{{ url_for('coaches.coach_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Coaches</a>
-                        <a href="{{ url_for('leaderboards.home') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Leaderboards</a>
+                        <!-- Leaderboards Mega Dropdown -->
+                        <div class="relative" id="leaderboards-dropdown">
+                            <button id="leaderboards-button" class="hover:bg-blue-800 px-3 py-2 rounded inline-flex items-center">
+                                Leaderboards
+                                <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <!-- Mega Dropdown Menu -->
+                            <div id="leaderboards-menu" class="hidden absolute left-0 mt-2 w-screen max-w-4xl bg-white rounded-lg shadow-xl z-50 border border-gray-200">
+                                <div class="grid grid-cols-3 gap-6 p-6">
+                                    <!-- Column 1: Batting Leaders -->
+                                    <div>
+                                        <h3 class="text-sm font-bold text-blue-900 uppercase mb-3 border-b pb-2">Batting Leaders</h3>
+                                        <div class="space-y-1.5">
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='hr') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">Home Runs</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='avg') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">Batting Average</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='rbi') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">RBI</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='sb') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">Stolen Bases</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='h') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">Hits</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='obp') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">On-Base Percentage</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='slg') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">Slugging Percentage</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='war') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">WAR</a>
+                                        </div>
+                                    </div>
+
+                                    <!-- Column 2: Pitching Leaders -->
+                                    <div>
+                                        <h3 class="text-sm font-bold text-green-900 uppercase mb-3 border-b pb-2">Pitching Leaders</h3>
+                                        <div class="space-y-1.5">
+                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='w') }}" class="block text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 px-2 py-1.5 rounded">Wins</a>
+                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='sv') }}" class="block text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 px-2 py-1.5 rounded">Saves</a>
+                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='so') }}" class="block text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 px-2 py-1.5 rounded">Strikeouts</a>
+                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='era') }}" class="block text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 px-2 py-1.5 rounded">ERA</a>
+                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='whip') }}" class="block text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 px-2 py-1.5 rounded">WHIP</a>
+                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='k_per_9') }}" class="block text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 px-2 py-1.5 rounded">Strikeouts per 9</a>
+                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='war') }}" class="block text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 px-2 py-1.5 rounded">WAR</a>
+                                        </div>
+                                    </div>
+
+                                    <!-- Column 3: Quick Links & Types -->
+                                    <div>
+                                        <h3 class="text-sm font-bold text-gray-900 uppercase mb-3 border-b pb-2">Quick Links</h3>
+                                        <div class="space-y-1.5 mb-4">
+                                            <a href="{{ url_for('leaderboards.home') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-2 py-1.5 rounded font-medium">Leaderboards Home</a>
+                                            <a href="{{ url_for('leaderboards.yearly') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-2 py-1.5 rounded font-medium">Current Year Leaders</a>
+                                        </div>
+
+                                        <h3 class="text-sm font-bold text-gray-900 uppercase mb-3 border-b pb-2 mt-4">Leaderboard Types</h3>
+                                        <div class="space-y-1.5">
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='hr') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-2 py-1.5 rounded">Career Leaders</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='active', stat='hr') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-2 py-1.5 rounded">Active Player Leaders</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='single-season', stat='hr') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-2 py-1.5 rounded">Single-Season Records</a>
+                                            <a href="{{ url_for('leaderboards.yearly') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-2 py-1.5 rounded">Yearly League Leaders</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -68,7 +126,24 @@
                     <a href="{{ url_for('teams.teams_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Teams</a>
                     <a href="{{ url_for('players.players_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Players</a>
                     <a href="{{ url_for('coaches.coach_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Coaches</a>
-                    <a href="{{ url_for('leaderboards.home') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Leaderboards</a>
+
+                    <!-- Mobile Leaderboards Accordion -->
+                    <div>
+                        <button id="mobile-leaderboards-toggle" class="w-full text-left hover:bg-blue-800 px-3 py-2 rounded flex items-center justify-between">
+                            <span>Leaderboards</span>
+                            <svg class="h-4 w-4 transform transition-transform" id="mobile-lb-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div id="mobile-leaderboards-menu" class="hidden pl-4 mt-2 space-y-1">
+                            <a href="{{ url_for('leaderboards.home') }}" class="block text-sm hover:bg-blue-800 px-3 py-1.5 rounded">Home</a>
+                            <a href="{{ url_for('leaderboards.yearly') }}" class="block text-sm hover:bg-blue-800 px-3 py-1.5 rounded">Current Year</a>
+                            <a href="{{ url_for('leaderboards.batting', type='career', stat='hr') }}" class="block text-sm hover:bg-blue-800 px-3 py-1.5 rounded">Career</a>
+                            <a href="{{ url_for('leaderboards.batting', type='active', stat='hr') }}" class="block text-sm hover:bg-blue-800 px-3 py-1.5 rounded">Active</a>
+                            <a href="{{ url_for('leaderboards.batting', type='single-season', stat='hr') }}" class="block text-sm hover:bg-blue-800 px-3 py-1.5 rounded">Single-Season</a>
+                        </div>
+                    </div>
+
                     <!-- Mobile search -->
                     <div class="pt-2">
                         <form action="{{ url_for('search.search_results') }}" method="get">
@@ -279,6 +354,66 @@
                         menuIcon.classList.remove('hidden');
                         closeIcon.classList.add('hidden');
                     });
+                });
+            }
+        })();
+    </script>
+
+    <script>
+        // Desktop Leaderboards Mega Dropdown
+        (function() {
+            const dropdown = document.getElementById('leaderboards-dropdown');
+            const button = document.getElementById('leaderboards-button');
+            const menu = document.getElementById('leaderboards-menu');
+            let closeTimeout;
+
+            if (dropdown && button && menu) {
+                // Show on hover (desktop)
+                dropdown.addEventListener('mouseenter', function() {
+                    clearTimeout(closeTimeout);
+                    menu.classList.remove('hidden');
+                });
+
+                // Hide on mouse leave (with small delay)
+                dropdown.addEventListener('mouseleave', function() {
+                    closeTimeout = setTimeout(() => {
+                        menu.classList.add('hidden');
+                    }, 200);
+                });
+
+                // Also toggle on click (for touch devices)
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    menu.classList.toggle('hidden');
+                });
+
+                // Close when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!dropdown.contains(e.target)) {
+                        menu.classList.add('hidden');
+                    }
+                });
+
+                // Close when clicking a link inside
+                const menuLinks = menu.querySelectorAll('a');
+                menuLinks.forEach(link => {
+                    link.addEventListener('click', function() {
+                        menu.classList.add('hidden');
+                    });
+                });
+            }
+        })();
+
+        // Mobile Leaderboards Accordion
+        (function() {
+            const toggle = document.getElementById('mobile-leaderboards-toggle');
+            const submenu = document.getElementById('mobile-leaderboards-menu');
+            const chevron = document.getElementById('mobile-lb-chevron');
+
+            if (toggle && submenu && chevron) {
+                toggle.addEventListener('click', function() {
+                    submenu.classList.toggle('hidden');
+                    chevron.classList.toggle('rotate-180');
                 });
             }
         })();

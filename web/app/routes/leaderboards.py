@@ -289,3 +289,63 @@ def yearly():
         batting_leaders=batting_leaders,
         pitching_leaders=pitching_leaders
     )
+
+
+@bp.route('/year-by-year')
+def year_by_year():
+    """Year-by-year top tens leaderboard with expandable #2-10."""
+    # Get query parameters
+    stat = request.args.get('stat', 'hr')
+    category = request.args.get('category', 'batting')
+    league_id = request.args.get('league', type=int)
+
+    # Get stat metadata
+    stat_metadata = leaderboard_service.get_stat_metadata()
+    current_stat_meta = stat_metadata.get(stat, {})
+
+    # Validate stat belongs to category
+    if current_stat_meta.get('category') not in [category, 'both']:
+        # Default to first stat of category
+        stat = 'hr' if category == 'batting' else 'w'
+        current_stat_meta = stat_metadata.get(stat, {})
+
+    # Get year-by-year leaders
+    year_by_year_data = leaderboard_service.get_year_by_year_leaders(
+        stat=stat,
+        category=category,
+        league_id=league_id,
+        limit=10
+    )
+
+    # Sort years descending for display
+    sorted_years = sorted(year_by_year_data.keys(), reverse=True)
+
+    # Get league options for filter
+    league_options = leaderboard_service.get_league_options()
+    selected_league_name = "All Leagues"
+    if league_id:
+        for league in league_options:
+            if league['league_id'] == league_id:
+                selected_league_name = league['name']
+                break
+
+    # Get available stats for dropdown (filter by category)
+    available_stats = {
+        k: v for k, v in stat_metadata.items()
+        if v.get('category') in [category, 'both']
+    }
+
+    return render_template(
+        'leaderboards/year_by_year.html',
+        stat=stat,
+        category=category,
+        stat_name=current_stat_meta.get('name', stat.upper()),
+        stat_format=current_stat_meta.get('format', 'integer'),
+        year_by_year_data=year_by_year_data,
+        sorted_years=sorted_years,
+        league_id=league_id,
+        selected_league_name=selected_league_name,
+        league_options=league_options,
+        available_stats=available_stats,
+        stat_metadata=stat_metadata
+    )

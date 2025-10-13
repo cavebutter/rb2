@@ -703,3 +703,77 @@ def get_stat_metadata() -> Dict[str, Dict[str, Any]]:
             'min_ip': 0
         },
     }
+
+
+def get_year_by_year_leaders(stat: str, category: str, league_id: Optional[int] = None, limit: int = 10) -> Dict[str, Any]:
+    """Get top N leaders for each year for a specific stat.
+
+    Args:
+        stat: Stat abbreviation (hr, avg, w, era, etc.)
+        category: 'batting' or 'pitching'
+        league_id: Optional league filter (None = all leagues)
+        limit: Number of leaders per year (default 10)
+
+    Returns:
+        Dict with years as keys, each containing list of top N leaders
+        {
+            1980: [{'player_name': 'John Doe', 'value': 50, 'team_abbr': 'NYY', ...}, ...],
+            1981: [...],
+            ...
+        }
+    """
+    cache_key = _get_cache_key('year_by_year', stat=stat, category=category, league_id=league_id, limit=limit)
+    cached = _get_cached(cache_key)
+    if cached is not None:
+        return cached
+
+    # Get stat metadata
+    stat_meta = get_stat_metadata().get(stat, {})
+    sort_order = desc if stat_meta.get('sort') == 'desc' else asc
+
+    # Choose the right model and column
+    if category == 'batting':
+        model = LeaderboardSingleSeasonBatting
+    else:
+        model = LeaderboardSingleSeasonPitching
+
+    # Get the stat column
+    stat_column = getattr(model, stat, None)
+    if stat_column is None:
+        return {}
+
+    # Base query
+    query = model.query.filter(model.team_id != 0)
+
+    # Apply league filter if specified
+    if league_id:
+        query = query.filter(model.league_id == league_id)
+
+    # Get all available years
+    years_query = db.session.query(model.year).distinct().order_by(model.year.desc())
+    if league_id:
+        years_query = years_query.filter(model.league_id == league_id)
+
+    available_years = [row[0] for row in years_query.all()]
+
+    # For each year, get top N leaders
+    results = {}
+    for year in available_years:
+        year_query = query.filter(model.year == year).filter(stat_column.isnot(None))
+        year_leaders = year_query.order_by(sort_order(stat_column)).limit(limit).all()
+
+        results[year] = [
+            {
+                'player_id': leader.player_id,
+                'player_name': f"{leader.first_name} {leader.last_name}",
+                'team_id': leader.team_id,
+                'team_abbr': leader.team_abbr,
+                'year': leader.year,
+                'value': getattr(leader, stat),
+                'is_active': leader.is_active
+            }
+            for leader in year_leaders
+        ]
+
+    _set_cached(cache_key, results)
+    return results

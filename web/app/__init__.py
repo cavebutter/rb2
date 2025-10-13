@@ -20,7 +20,7 @@ def create_app(config_name='development'):
     cache.init_app(app)
 
     # Register blueprints
-    from .routes import main, players, coaches, teams, leaderboards, newspaper, search
+    from .routes import main, players, coaches, teams, leaderboards, newspaper, search, leagues
     app.register_blueprint(main.bp)
     app.register_blueprint(players.bp, url_prefix='/players')
     app.register_blueprint(coaches.coaches_bp, url_prefix='/coaches')
@@ -28,6 +28,7 @@ def create_app(config_name='development'):
     app.register_blueprint(leaderboards.bp, url_prefix='/leaderboards')
     app.register_blueprint(newspaper.bp, url_prefix='/newspaper')
     app.register_blueprint(search.bp)  # Already has /search prefix in blueprint definition
+    app.register_blueprint(leagues.bp, url_prefix='/leagues')
 
     # Register template filters
     from .utils.formatters import register_filters

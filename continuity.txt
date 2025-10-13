@@ -1,28 +1,27 @@
 RB2 OOTP Website - Session Continuity Guide
 
 ═══════════════════════════════════════════════════════════════════════════════
-📈 CURRENT PROJECT STATUS (Session 14: 2025-10-13)
+📈 CURRENT PROJECT STATUS (Session 16: 2025-10-13)
 ═══════════════════════════════════════════════════════════════════════════════
 
-**Progress: 49% (38/77 user stories complete) | ~71 hours**
+**Progress: 55% (42/77 user stories complete) | ~81 hours**
 
 **Completed Epics:**
 - ✅ Epic 1: Player Pages - 100% (18/18 stories)
 - ✅ Epic 2: Team Pages - 100% (5/5 stories)
+- ✅ Epic 3: Leaderboards - 82% (9/11 stories, US-L008 deferred)
+- ✅ Epic 5: League/Year Pages - 100% (2/2 stories)
 - ✅ Epic 6: Search & Navigation - 100% (4/4 stories)
 
 **In Progress:**
-- 🟡 Epic 3: Leaderboards - 64% (7/11 stories)
 - 🟡 Epic 4: Front Page - 83% (5/6 stories, US-F005 deferred)
-- ⚪ Epic 5: League/Year Pages - 0%
 - 🟡 Epic 7: Infrastructure - ~35%
 
-**Recent Completion (Session 14):**
-- ✅ ETL: Incremental loading for trade_history/messages (preserves all historical data)
-- ✅ US-N004: Game Date Display (context processor + banner)
-- ✅ US-N002: Breadcrumb Navigation (reusable macro)
-- ✅ US-N003: Mobile Menu & Navigation (hamburger menu, responsive)
-- ⏸️ US-F005: Magic Number (DEFERRED - field exists, needs verification)
+**Recent Completion (Session 16):**
+- ✅ **EPIC 5 COMPLETE** - League and year pages fully functional!
+- ✅ US-LY001: League Home Pages (standings, leaders, team stats)
+- ✅ US-LY002: Year Summary Pages (historical standings, leaders, year navigation)
+- 🎉 **Major Milestone:** All league and historical year pages complete!
 
 ═══════════════════════════════════════════════════════════════════════════════
 🚨 CRITICAL PATTERNS & RULES
@@ -102,7 +101,7 @@ db.session.execute(text("SELECT..."))
 ═══════════════════════════════════════════════════════════════════════════════
 
 **Starting a Session:**
-1. Read `docs/backlog-epics-3-9.md` for current work
+1. Read `docs/backlog-active.md` for current work
 2. Review this file for critical patterns
 3. Check current progress percentages
 
@@ -112,7 +111,7 @@ db.session.execute(text("SELECT..."))
 3. Keep sessions focused: 4-8 hour blocks
 
 **Key Files:**
-- `docs/backlog-epics-3-9.md` - Active work (Epics 3-9, detailed specifications)
-- `docs/backlog-epics-1-2.md` - Completed work (Epics 1-2, reference only)
+- `docs/backlog-active.md` - Active work (incomplete epics only)
+- `docs/backlog-completed.md` - Completed epics (Epics 1-3, 5-6, reference only)
 - `docs/website-specs.md` - Original requirements
 - `continuity.txt` - This file (patterns & current status)

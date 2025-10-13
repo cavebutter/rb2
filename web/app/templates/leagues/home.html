@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}{{ league.name }} - RB2 Baseball{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb Navigation -->
+    {% from "_macros/breadcrumbs.html" import breadcrumbs %}
+    {{ breadcrumbs([
+        ('Home', url_for('main.index')),
+        (league.name, None)
+    ]) }}
+
+    <!-- League Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold text-gray-900">{{ league.name }}</h1>
+        <p class="text-gray-600 mt-2">
+            {{ league.season_year }} Season
+            {% if league.game_date %}
+                | Current Date: {{ league.game_date.strftime('%B %d, %Y') }}
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Standings Section -->
+    <div class="mb-12">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Current Standings</h2>
+
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {% for sub_league in standings_data.standings %}
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                <!-- Sub-League Header -->
+                <div class="bg-blue-700 text-white px-6 py-4">
+                    <h3 class="text-xl font-bold">{{ sub_league.name }}</h3>
+                </div>
+
+                <!-- Divisions -->
+                {% for division in sub_league.divisions %}
+                    <div class="border-b border-gray-200 last:border-b-0">
+                        <!-- Division Header -->
+                        <div class="bg-gray-100 px-6 py-3 border-b border-gray-300">
+                            <h4 class="text-lg font-semibold text-gray-800">{{ division.name }}</h4>
+                        </div>
+
+                        <!-- Standings Table -->
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full">
+                                <thead class="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
+                                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">W</th>
+                                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">L</th>
+                                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">PCT</th>
+                                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">GB</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    {% for team in division.teams %}
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-4 py-3 whitespace-nowrap text-sm">
+                                                <a href="{{ url_for('teams.team_detail', team_id=team.team_id) }}"
+                                                   class="text-blue-600 hover:text-blue-800 font-medium">
+                                                    {{ team.abbr }}
+                                                </a>
+                                            </td>
+                                            <td class="px-2 py-3 text-center text-sm">
+                                                {{ team.record.w if team.record else '-' }}
+                                            </td>
+                                            <td class="px-2 py-3 text-center text-sm">
+                                                {{ team.record.l if team.record else '-' }}
+                                            </td>
+                                            <td class="px-2 py-3 text-center text-sm">
+                                                {% if team.record and team.record.pct %}
+                                                    {{ "%.3f"|format(team.record.pct) }}
+                                                {% else %}
+                                                    .000
+                                                {% endif %}
+                                            </td>
+                                            <td class="px-2 py-3 text-center text-sm text-gray-600">
+                                                {{ team.record.games_back_display if team.record else '-' }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Leaders Section (Two Columns) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <!-- Batting Leaders -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-900">Top Batting Leaders</h2>
+                <a href="{{ url_for('leaderboards.batting', league=league.league_id) }}"
+                   class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    View All →
+                </a>
+            </div>
+
+            {% for stat in batting_stats %}
+                <div class="mb-6 last:mb-0">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">{{ stat_metadata[stat].name }}</h3>
+                    <div class="space-y-2">
+                        {% for leader in batting_leaders[stat][:5] %}
+                            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                                <div class="flex-1">
+                                    <a href="{{ url_for('players.player_detail', player_id=leader.player_id) }}"
+                                       class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                        {{ leader.first_name }} {{ leader.last_name }}
+                                    </a>
+                                    <span class="text-xs text-gray-500 ml-2">{{ leader.league_abbr }}</span>
+                                </div>
+                                <div class="text-sm font-semibold text-gray-900">
+                                    {% set value = leader[stat] %}
+                                    {% if stat_metadata[stat].format == 'avg' %}
+                                        {{ "%.3f"|format(value) if value else '-' }}
+                                    {% elif stat_metadata[stat].format in ['era', 'whip'] %}
+                                        {{ "%.2f"|format(value) if value else '-' }}
+                                    {% else %}
+                                        {{ value|int if value else '-' }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pitching Leaders -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-900">Top Pitching Leaders</h2>
+                <a href="{{ url_for('leaderboards.pitching', league=league.league_id) }}"
+                   class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    View All →
+                </a>
+            </div>
+
+            {% for stat in pitching_stats %}
+                <div class="mb-6 last:mb-0">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">{{ stat_metadata[stat].name }}</h3>
+                    <div class="space-y-2">
+                        {% for leader in pitching_leaders[stat][:5] %}
+                            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                                <div class="flex-1">
+                                    <a href="{{ url_for('players.player_detail', player_id=leader.player_id) }}"
+                                       class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                        {{ leader.first_name }} {{ leader.last_name }}
+                                    </a>
+                                    <span class="text-xs text-gray-500 ml-2">{{ leader.league_abbr }}</span>
+                                </div>
+                                <div class="text-sm font-semibold text-gray-900">
+                                    {% set value = leader[stat] %}
+                                    {% if stat_metadata[stat].format == 'avg' %}
+                                        {{ "%.3f"|format(value) if value else '-' }}
+                                    {% elif stat_metadata[stat].format in ['era', 'whip'] %}
+                                        {{ "%.2f"|format(value) if value else '-' }}
+                                    {% else %}
+                                        {{ value|int if value else '-' }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Team Stats Section -->
+    <div class="mb-12">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Team Statistics</h2>
+
+        <!-- Batting Stats Table -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+            <div class="bg-blue-700 text-white px-6 py-4">
+                <h3 class="text-xl font-bold">Team Batting</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50">Team</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">AVG</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">OBP</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">SLG</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">HR</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">RBI</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">SB</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">R</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for stats in team_batting_stats %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 whitespace-nowrap text-sm sticky left-0 bg-white">
+                                    <a href="{{ url_for('teams.team_detail', team_id=stats.team_id) }}"
+                                       class="text-blue-600 hover:text-blue-800 font-medium">
+                                        {{ stats.team.abbr }}
+                                    </a>
+                                </td>
+                                <td class="px-2 py-3 text-center text-sm">{{ "%.3f"|format(stats.avg) if stats.avg else '-' }}</td>
+                                <td class="px-2 py-3 text-center text-sm">{{ "%.3f"|format(stats.obp) if stats.obp else '-' }}</td>
+                                <td class="px-2 py-3 text-center text-sm">{{ "%.3f"|format(stats.slg) if stats.slg else '-' }}</td>
+                                <td class="px-2 py-3 text-center text-sm">{{ stats.hr }}</td>
+                                <td class="px-2 py-3 text-center text-sm">{{ stats.rbi }}</td>
+                                <td class="px-2 py-3 text-center text-sm">{{ stats.sb }}</td>
+                                <td class="px-2 py-3 text-center text-sm">{{ stats.r }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pitching Stats Table -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="bg-blue-700 text-white px-6 py-4">
+                <h3 class="text-xl font-bold">Team Pitching</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50">Team</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ERA</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">WHIP</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">W</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">L</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">SV</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">SO</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">IP</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for stats in team_pitching_stats %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 whitespace-nowrap text-sm sticky left-0 bg-white">
+                                    <a href="{{ url_for('teams.team_detail', team_id=stats.team_id) }}"
+                                       class="text-blue-600 hover:text-blue-800 font-medium">
+                                        {{ stats.team.abbr }}
+                                    </a>
+                                </td>
+                                <td class="px-2 py-3 text-center text-sm">{{ "%.2f"|format(stats.era) if stats.era else '-' }}</td>
+                                <td class="px-2 py-3 text-center text-sm">{{ "%.2f"|format(stats.whip) if stats.whip else '-' }}</td>
+                                <td class="px-2 py-3 text-center text-sm">{{ stats.w }}</td>
+                                <td class="px-2 py-3 text-center text-sm">{{ stats.l }}</td>
+                                <td class="px-2 py-3 text-center text-sm">{{ stats.s }}</td>
+                                <td class="px-2 py-3 text-center text-sm">{{ stats.k }}</td>
+                                <td class="px-2 py-3 text-center text-sm">
+                                    {% if stats.ip %}
+                                        {{ (stats.ip // 3)|int }}.{{ stats.ip % 3 }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
