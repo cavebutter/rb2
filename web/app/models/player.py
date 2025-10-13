@@ -207,6 +207,34 @@ class Player(BaseModel, TimestampMixin, CacheableMixin):
 
         return f"{feet}' {inches}\""
 
+    @hybrid_property
+    def birthplace_display(self):
+        """Format birthplace with city, state/province (for US/Canada), and country.
+
+        Returns formatted string like:
+        - "Toronto, ON, CAN" (Canadian with state)
+        - "New York, NY, USA" (US with state)
+        - "Tokyo, JPN" (other countries without state)
+        - "Unknown" if no location data
+        """
+        parts = []
+
+        # Add city name
+        if self.city_of_birth:
+            parts.append(self.city_of_birth.name)
+
+            # Add state/province for US and Canada
+            if self.city_of_birth.state:
+                state_nation_abbr = self.city_of_birth.state.nation.abbreviation if self.city_of_birth.state.nation else None
+                if state_nation_abbr in ('USA', 'CAN'):
+                    parts.append(self.city_of_birth.state.abbreviation)
+
+        # Add nation
+        if self.nation:
+            parts.append(self.nation.abbreviation)
+
+        return ', '.join(parts) if parts else 'Unknown'
+
     # ===== HELPER METHODS =====
 
     def get_career_stats(self, stat_type='batting'):

@@ -67,10 +67,7 @@
             </div>
             <div>
                 <p class="text-sm text-gray-500">Born</p>
-                <p class="font-semibold">
-                    {% if player.city_of_birth %}{{ player.city_of_birth.name }}, {% endif %}
-                    {% if player.nation %}{{ player.nation.abbreviation }}{% endif %}
-                </p>
+                <p class="font-semibold">{{ player.birthplace_display }}</p>
             </div>
         </div>
 
@@ -158,20 +155,62 @@
         </div>
     {% endif %}
 
-    <!-- Career Batting Stats -->
-    {% if batting_data and batting_data.yearly_stats %}
+    <!-- Career Batting Stats (All Levels) -->
+    {% if batting_data_all and batting_data_all.yearly_stats %}
         <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-            {% set yearly_stats = batting_data.yearly_stats %}
-            {% set career_totals = batting_data.career_totals %}
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Career Batting Stats - All Levels</h2>
+            {% set yearly_stats = batting_data_all.yearly_stats %}
+            {% set career_totals = batting_data_all.career_totals %}
             {% include 'players/_batting_stats_table.html' with context %}
         </div>
     {% endif %}
 
-    <!-- Career Pitching Stats -->
-    {% if pitching_data and pitching_data.yearly_stats %}
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            {% set yearly_stats = pitching_data.yearly_stats %}
-            {% set career_totals = pitching_data.career_totals %}
+    <!-- Major League Batting Stats -->
+    {% if batting_data_major and batting_data_major.yearly_stats %}
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Major League Batting Stats</h2>
+            {% set yearly_stats = batting_data_major.yearly_stats %}
+            {% set career_totals = batting_data_major.career_totals %}
+            {% include 'players/_batting_stats_table.html' with context %}
+        </div>
+    {% endif %}
+
+    <!-- Minor League Batting Stats -->
+    {% if batting_data_minor and batting_data_minor.yearly_stats %}
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Minor League Batting Stats</h2>
+            {% set yearly_stats = batting_data_minor.yearly_stats %}
+            {% set career_totals = batting_data_minor.career_totals %}
+            {% include 'players/_batting_stats_table.html' with context %}
+        </div>
+    {% endif %}
+
+    <!-- Career Pitching Stats (All Levels) -->
+    {% if pitching_data_all and pitching_data_all.yearly_stats %}
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Career Pitching Stats - All Levels</h2>
+            {% set yearly_stats = pitching_data_all.yearly_stats %}
+            {% set career_totals = pitching_data_all.career_totals %}
+            {% include 'players/_pitching_stats_table.html' with context %}
+        </div>
+    {% endif %}
+
+    <!-- Major League Pitching Stats -->
+    {% if pitching_data_major and pitching_data_major.yearly_stats %}
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Major League Pitching Stats</h2>
+            {% set yearly_stats = pitching_data_major.yearly_stats %}
+            {% set career_totals = pitching_data_major.career_totals %}
+            {% include 'players/_pitching_stats_table.html' with context %}
+        </div>
+    {% endif %}
+
+    <!-- Minor League Pitching Stats -->
+    {% if pitching_data_minor and pitching_data_minor.yearly_stats %}
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Minor League Pitching Stats</h2>
+            {% set yearly_stats = pitching_data_minor.yearly_stats %}
+            {% set career_totals = pitching_data_minor.career_totals %}
             {% include 'players/_pitching_stats_table.html' with context %}
         </div>
     {% endif %}

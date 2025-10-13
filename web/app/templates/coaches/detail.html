@@ -57,12 +57,10 @@
           <div><span class="text-gray-600">Weight:</span> <span class="font-medium">{{ coach.weight_display }}</span></div>
           {% endif %}
 
-          {% if coach.city_of_birth %}
           <div>
             <span class="text-gray-600">Birthplace:</span>
-            <span class="font-medium">{{ coach.city_of_birth.name }}{% if coach.city_of_birth.state and (coach.nation.abbreviation == 'USA' or coach.nation.abbreviation == 'CAN') %}, {{ coach.city_of_birth.state.abbreviation }}{% endif %}{% if coach.nation %}, {{ coach.nation.abbreviation }}{% endif %}</span>
+            <span class="font-medium">{{ coach.birthplace_display }}</span>
           </div>
-          {% endif %}
         </div>
       </div>
 

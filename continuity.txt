@@ -1,43 +1,49 @@
 RB2 OOTP Website - Session Continuity Guide
 
 ═══════════════════════════════════════════════════════════════════════════════
-📋 SESSION 13 SUMMARY (2025-10-12) - PART 2: IN-PROGRESS WORK
+📋 SESSION 13 SUMMARY (2025-10-12) - PART 3: COMPLETED WORK (Continued)
 ═══════════════════════════════════════════════════════════════════════════════
 
-**⚠️ INCOMPLETE - DO NOT MERGE TO MAIN:**
+**Completed User Stories (continued from Part 1):**
+- ✅ US-P016: Enhanced Birthplace Display
+- ✅ US-P018: Separate Stats Tables by League Level
 
-**US-P016: Enhanced Birthplace Display [95% COMPLETE]**
-- STATUS: Service layer complete, template issue blocking completion
-- PROBLEM: Template trying to access `city_of_birth.state.abbreviation` but raiseload('*') blocks it
-- ERROR: Causes 500 error when template tries to lazy-load state relationship
+**US-P016: Enhanced Birthplace Display [COMPLETE]**
+- Solution: Added `birthplace_display` hybrid property to Player and Coach models
+- Property handles state/province formatting logic internally
+- Returns format: "City, State, Country" for USA/CAN, "City, Country" for others
+- Updated routes to eager-load state relationships using selectinload
+- Templates now simply use `{{ player.birthplace_display }}`
 - FILES MODIFIED:
-  - ✅ `/web/app/templates/coaches/detail.html` (line 63) - birthplace logic added BUT REVERTED
-  - ✅ `/web/app/templates/players/detail.html` (line 72) - birthplace logic added BUT REVERTED
-  - ❌ `/web/app/routes/players.py` (line 116) - State import added but not used
-  - ❌ City/State loading optimization needed
+  - `/web/app/models/player.py` - Added birthplace_display property (lines 210-236)
+  - `/web/app/models/coach.py` - Added birthplace_display property (lines 228-254)
+  - `/web/app/routes/players.py` - Updated city_of_birth loading (lines 138-151)
+  - `/web/app/routes/coaches.py` - Updated imports and loading (lines 1-66)
+  - `/web/app/templates/players/detail.html` - Simplified display (line 70)
+  - `/web/app/templates/coaches/detail.html` - Simplified display (lines 60-63)
+- TESTED: Player detail (200 OK, 1.7s), Coach detail (200 OK, 0.05s)
 
-**SOLUTIONS TO TRY (in order):**
-1. **Simplest:** Add birthplace_display property to Player model that handles state formatting
-2. **Alternative:** Pass formatted birthplace string from route (eager load state/nation in route)
-3. **Alternative:** Remove raiseload('*') from city_of_birth and allow state to lazy load
-4. **Alternative:** Use raw SQL in service to fetch formatted birthplace string
-
-**US-P018: Separate Stats Tables by League Level [95% COMPLETE]**
-- STATUS: Service layer complete and tested, template changes reverted for safety
+**US-P018: Separate Stats Tables by League Level [COMPLETE]**
+- Implementation: Player detail page now shows up to 6 stat tables
+  - All Levels Batting, Major League Batting, Minor League Batting
+  - All Levels Pitching, Major League Pitching, Minor League Pitching
+- Service layer functions accept optional `league_level_filter` parameter (1=major, 2+=minor, None=all)
+- Route calls each function 3x with different filters
+- Template conditionally displays tables only if stats exist
+- Backward compatible: existing code calling without filter still works
 - FILES MODIFIED:
-  - ✅ `/web/app/services/player_service.py`:
-    - `get_player_career_batting_stats()` - Added `league_level_filter` parameter (lines 45-203)
-    - `get_player_career_pitching_stats()` - Added `league_level_filter` parameter (lines 206-362)
-    - Conditional League JOIN only when filter specified (avoids breaking existing code)
-  - ❌ `/web/app/routes/players.py` - Route changes REVERTED (was calling functions 4x with filters)
-  - ❌ `/web/app/templates/players/detail.html` - Template changes REVERTED (was showing 4 tables)
+  - `/web/app/services/player_service.py` - Already done in Part 2 (lines 45-362)
+  - `/web/app/routes/players.py` - Calls functions 3x each (lines 186-211)
+  - `/web/app/templates/players/detail.html` - 6 stat sections (lines 158-216)
+- TESTED: Player 2 detail page loads successfully (200 OK)
 
-**TO COMPLETE US-P018:**
-1. Un-revert route changes (lines 179-185, 193-199 in players.py)
-2. Un-revert template changes (lines 163-201 in detail.html)
-3. Test with player who has both major/minor stats (player_id=2, Lenny Rickards)
+**Epic 1 Progress:**
+- Player Pages Epic: 100% complete (all 18 stories done including US-P016 and US-P018)
 
-**CURRENT STATE:** Code is functional but incomplete features are disabled to prevent errors.
+**Overall Project Status:**
+- Total: 43% complete (34/77 stories - added 2 from session 13)
+- Hours completed this session: ~5 hours total (3.5 from Part 1, 1.5 from Part 3)
+- Total hours: ~62.5 hours
 
 ═══════════════════════════════════════════════════════════════════════════════
 📋 SESSION 13 SUMMARY (2025-10-12) - PART 1: COMPLETED WORK

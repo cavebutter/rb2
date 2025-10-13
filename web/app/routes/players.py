@@ -135,10 +135,19 @@ def player_detail(player_id):
                       Player.nation_id,
                       Player.second_nation_id
                   ),
-                  # Load city name only (no cascades)
+                  # Load city with state and nation for birthplace_display
                   selectinload(Player.city_of_birth).load_only(
                       City.city_id,
-                      City.name
+                      City.name,
+                      City.state_id,
+                      City.nation_id
+                  ).selectinload(City.state).load_only(
+                      State.state_id,
+                      State.nation_id,
+                      State.abbreviation
+                  ).selectinload(State.nation).load_only(
+                      Nation.nation_id,
+                      Nation.abbreviation
                   ).raiseload('*'),
                   # Load nation name only (no cascades)
                   selectinload(Player.nation).load_only(
@@ -174,11 +183,15 @@ def player_detail(player_id):
               .filter_by(player_id=player_id)
               .first_or_404())
 
-    # Get batting stats with career totals from service layer
-    batting_data = player_service.get_player_career_batting_stats(player_id)
+    # Get batting stats with career totals from service layer (split by league level)
+    batting_data_all = player_service.get_player_career_batting_stats(player_id)
+    batting_data_major = player_service.get_player_career_batting_stats(player_id, league_level_filter=1)
+    batting_data_minor = player_service.get_player_career_batting_stats(player_id, league_level_filter=2)
 
-    # Get pitching stats with career totals from service layer
-    pitching_data = player_service.get_player_career_pitching_stats(player_id)
+    # Get pitching stats with career totals from service layer (split by league level)
+    pitching_data_all = player_service.get_player_career_pitching_stats(player_id)
+    pitching_data_major = player_service.get_player_career_pitching_stats(player_id, league_level_filter=1)
+    pitching_data_minor = player_service.get_player_career_pitching_stats(player_id, league_level_filter=2)
 
     # Get trade history
     trade_history = player_service.get_player_trade_history(player_id)
@@ -188,8 +201,12 @@ def player_detail(player_id):
 
     return render_template('players/detail.html',
                           player=player,
-                          batting_data=batting_data,
-                          pitching_data=pitching_data,
+                          batting_data_all=batting_data_all,
+                          batting_data_major=batting_data_major,
+                          batting_data_minor=batting_data_minor,
+                          pitching_data_all=pitching_data_all,
+                          pitching_data_major=pitching_data_major,
+                          pitching_data_minor=pitching_data_minor,
                           trade_history=trade_history,
                           player_news=player_news)
 

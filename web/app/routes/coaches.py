@@ -1,8 +1,8 @@
 """Routes for coach pages"""
 from flask import Blueprint, render_template, abort, send_file
-from app.models import Coach, Player, Team
+from app.models import Coach, Player, Team, City, State, Nation
 from sqlalchemy import func
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload, load_only, raiseload
 import os
 
 coaches_bp = Blueprint('coaches', __name__, url_prefix='/coaches')
@@ -43,10 +43,26 @@ def coach_list():
 def coach_detail(coach_id):
     """Display detailed information for a specific coach"""
 
-    # Get coach or 404, eager load relationships
+    # Get coach or 404, eager load relationships with state for birthplace_display
     coach = Coach.query.options(
-        joinedload(Coach.nation),
-        joinedload(Coach.city_of_birth)
+        selectinload(Coach.nation).load_only(
+            Nation.nation_id,
+            Nation.name,
+            Nation.abbreviation
+        ).raiseload('*'),
+        selectinload(Coach.city_of_birth).load_only(
+            City.city_id,
+            City.name,
+            City.state_id,
+            City.nation_id
+        ).selectinload(City.state).load_only(
+            State.state_id,
+            State.nation_id,
+            State.abbreviation
+        ).selectinload(State.nation).load_only(
+            Nation.nation_id,
+            Nation.abbreviation
+        ).raiseload('*')
     ).get_or_404(coach_id)
 
     # Get former player data if applicable
