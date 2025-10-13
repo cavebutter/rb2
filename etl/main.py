@@ -93,6 +93,35 @@ def init_database(metadata_only):
             click.echo("✗ Failed to create all tables")
 
 
+@cli.command('refresh-views')
+def refresh_materialized_views():
+    """Refresh all materialized views (run after loading stats)"""
+    from pathlib import Path
+    from sqlalchemy import text
+
+    logger.info('Refreshing materialized views...')
+
+    sql_path = Path(__file__).parent / "sql" / "maintenance" / "refresh_materialized_views.sql"
+
+    if not sql_path.exists():
+        logger.error(f"SQL file not found: {sql_path}")
+        click.echo("✗ Refresh script not found")
+        return
+
+    try:
+        with open(sql_path, 'r') as f:
+            sql_content = f.read()
+
+        db.execute_sql(text(sql_content))
+
+        logger.success("All materialized views refreshed successfully!")
+        click.echo("✓ Materialized views refreshed")
+
+    except Exception as e:
+        logger.error(f"Error refreshing views: {e}")
+        click.echo(f"✗ Failed to refresh views: {e}")
+
+
 @cli.command('load-reference')
 @click.option('--file', '-f', help="Specific CSV file to load")
 @click.option('--force', is_flag=True, help="Force reload even if unchanged")
@@ -221,6 +250,20 @@ def load_stats(force_all_constants):
   except Exception as e:
       logger.error(f"Error loading staff: {e}")
       click.echo(f"Error loading staff: {e}")
+
+  # Phase 3 - Refresh materialized views for web performance
+  logger.info('Refreshing materialized views...')
+  try:
+      sql_path = Path(__file__).parent / "sql" / "maintenance" / "refresh_materialized_views.sql"
+      with open(sql_path, 'r') as f:
+          sql_content = f.read()
+      db.execute_sql(text(sql_content))
+      logger.success("Materialized views refreshed successfully!")
+      click.echo("✓ Materialized views refreshed")
+  except Exception as e:
+      logger.error(f"Error refreshing views: {e}")
+      click.echo(f"⚠ Warning: Failed to refresh materialized views - leaderboards may be stale")
+
   logger.info('All stats, coaches, and rosters loaded!')
 
 # def _is_initial_load() -> bool:

@@ -43,6 +43,10 @@ class PlayersLoader(BaseLoader):
         """Handle  multi-table incremental load"""
         logger.info(f"Loading players CSV into normalized tables: {csv_path}")
 
+        # Pre-load operations: Create stub records for missing references
+        self._create_missing_leagues(csv_path)
+        self._create_missing_teams(csv_path)
+
         try:
             # Read and prepare data
             df = pd.read_csv(csv_path)
@@ -381,3 +385,153 @@ class PlayersLoader(BaseLoader):
         except Exception as e:
             logger.warning(f"Could not detect season from leagues, using default 2024: {e}")
             return 2024
+
+    def _create_missing_leagues(self, csv_path: Path):
+        """Create stub league records for any league_ids in players.csv that don't exist in leagues table"""
+        logger.info("Checking for missing leagues referenced in players.csv")
+
+        try:
+            # Read players.csv to get all league_ids
+            df = pd.read_csv(csv_path)
+
+            # Collect all league_id columns
+            league_id_columns = ['league_id', 'last_league_id', 'loan_league_id']
+            all_league_ids = set()
+
+            for col in league_id_columns:
+                if col in df.columns:
+                    league_ids = set(df[col].dropna().unique())
+                    all_league_ids.update(league_ids)
+
+            # Convert to integers (keep ALL values including negatives - OOTP uses negative league_ids for special states)
+            all_league_ids = {int(lid) for lid in all_league_ids}
+
+            if not all_league_ids:
+                logger.info("No league_ids found in players.csv")
+                return
+
+            logger.info(f"Found {len(all_league_ids)} unique league_ids in players.csv")
+
+            # Get existing league_ids from database
+            existing_leagues_sql = text("SELECT league_id FROM leagues")
+            result = self.db.execute_sql(existing_leagues_sql)
+            existing_league_ids = {row[0] for row in result}
+
+            # Find missing league_ids
+            missing_league_ids = all_league_ids - existing_league_ids
+
+            if not missing_league_ids:
+                logger.info("All league_ids already exist in leagues table")
+                return
+
+            logger.warning(f"Found {len(missing_league_ids)} missing league_ids: {sorted(missing_league_ids)}")
+            logger.info("Creating stub league records for missing leagues")
+
+            # Create stub records for missing leagues
+            for league_id in sorted(missing_league_ids):
+                # Determine the league name based on league_id
+                if league_id == 0:
+                    name = "No League"
+                    abbr = "NONE"
+                else:
+                    name = f"SPECIAL_{league_id}"
+                    abbr = f"SP{league_id}"
+
+                insert_sql = text("""
+                    INSERT INTO leagues (
+                        league_id, name, abbr, nation_id, language_id, logo_file_name,
+                        parent_league_id, league_state, season_year, league_level,
+                        game_date, current_date_year
+                    )
+                    VALUES (
+                        :league_id, :name, :abbr, 0, NULL, NULL,
+                        NULL, 0, 0, 0,
+                        NULL, 0
+                    )
+                    ON CONFLICT (league_id) DO NOTHING
+                """)
+
+                self.db.execute_sql(insert_sql, {'league_id': int(league_id), 'name': name, 'abbr': abbr})
+                logger.info(f"Created stub league record for league_id={league_id} ('{name}')")
+
+            logger.success(f"Successfully created {len(missing_league_ids)} stub league records")
+
+        except Exception as e:
+            logger.error(f"Error creating missing leagues: {e}")
+            # Don't raise - allow load to continue and fail with FK violation if needed
+
+    def _create_missing_teams(self, csv_path: Path):
+        """Create stub team records for any team_ids in players.csv that don't exist in teams table"""
+        logger.info("Checking for missing teams referenced in players.csv")
+
+        try:
+            # Read players.csv to get all team_ids
+            df = pd.read_csv(csv_path)
+
+            # Collect all team_id columns
+            team_id_columns = ['team_id', 'last_team_id', 'organization_id', 'last_organization_id']
+            all_team_ids = set()
+
+            for col in team_id_columns:
+                if col in df.columns:
+                    team_ids = set(df[col].dropna().unique())
+                    all_team_ids.update(team_ids)
+
+            # Convert to integers (keep ALL values including negatives - OOTP may use negative team_ids)
+            all_team_ids = {int(tid) for tid in all_team_ids}
+
+            if not all_team_ids:
+                logger.info("No team_ids found in players.csv")
+                return
+
+            logger.info(f"Found {len(all_team_ids)} unique team_ids in players.csv")
+
+            # Get existing team_ids from database
+            existing_teams_sql = text("SELECT team_id FROM teams")
+            result = self.db.execute_sql(existing_teams_sql)
+            existing_team_ids = {row[0] for row in result}
+
+            # Find missing team_ids
+            missing_team_ids = all_team_ids - existing_team_ids
+
+            if not missing_team_ids:
+                logger.info("All team_ids already exist in teams table")
+                return
+
+            logger.warning(f"Found {len(missing_team_ids)} missing team_ids: {sorted(missing_team_ids)}")
+            logger.info("Creating stub team records for missing teams")
+
+            # Create stub records for missing teams
+            for team_id in sorted(missing_team_ids):
+                # Determine the team name based on team_id
+                if team_id == 0:
+                    name = "Free Agents"
+                    abbr = "FA"
+                else:
+                    name = f"SPECIAL_{team_id}"
+                    abbr = f"SP{team_id}"
+
+                insert_sql = text("""
+                    INSERT INTO teams (
+                        team_id, name, abbr, nickname, logo_file_name, city_id,
+                        park_id, league_id, sub_league_id, division_id, nation_id,
+                        parent_team_id, level, prevent_any_moves, human_team, human_id,
+                        gender, allstar_team
+                    )
+                    VALUES (
+                        :team_id, :name, :abbr, NULL, NULL, NULL,
+                        NULL, NULL, NULL, NULL, 0,
+                        NULL, 0, 0, 0, NULL,
+                        0, 0
+                    )
+                    ON CONFLICT (team_id) DO NOTHING
+                """)
+
+                self.db.execute_sql(insert_sql, {'team_id': int(team_id), 'name': name, 'abbr': abbr})
+                logger.info(f"Created stub team record for team_id={team_id} ('{name}')")
+
+            logger.success(f"Successfully created {len(missing_team_ids)} stub team records")
+
+        except Exception as e:
+            logger.error(f"Error creating missing teams: {e}")
+            # Don't raise - allow load to continue and fail with FK violation if needed
