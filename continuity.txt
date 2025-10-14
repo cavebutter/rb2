@@ -33,10 +33,10 @@ Added automatic stub nation creation to ETL (similar to existing stub logic for 
 - Stub creation prevents FK violations while maintaining data integrity
 
 ═══════════════════════════════════════════════════════════════════════════════
-📈 PREVIOUS STATUS (Session 16: 2025-10-13)
+📈 PREVIOUS STATUS (Session 17: 2025-10-13)
 ═══════════════════════════════════════════════════════════════════════════════
 
-**Progress: 55% (42/77 user stories complete) | ~81 hours**
+**Progress: 55% (42/77 user stories complete) | ~85 hours**
 
 **Completed Epics:**
 - ✅ Epic 1: Player Pages - 100% (18/18 stories)
@@ -49,11 +49,45 @@ Added automatic stub nation creation to ETL (similar to existing stub logic for 
 - 🟡 Epic 4: Front Page - 83% (5/6 stories, US-F005 deferred)
 - 🟡 Epic 7: Infrastructure - ~35%
 
-**Recent Completion (Session 16):**
-- ✅ **EPIC 5 COMPLETE** - League and year pages fully functional!
-- ✅ US-LY001: League Home Pages (standings, leaders, team stats)
-- ✅ US-LY002: Year Summary Pages (historical standings, leaders, year navigation)
-- 🎉 **Major Milestone:** All league and historical year pages complete!
+**Recent Completion (Session 17):**
+- ✅ **ETL Enhancement** - Database refresh with new test data completed
+- ✅ **Materialized Views Fix** - Added automatic refresh after stats load
+  - Created `refresh_materialized_views.sql` maintenance script
+  - Added `python main.py refresh-views` CLI command
+  - Integrated automatic refresh into `load-stats` command (Phase 3)
+  - Updated README.md with refresh documentation
+- ✅ **Stub Record Creation** - Enhanced ETL to handle missing FK references
+  - Auto-creates stub leagues for missing league_ids (including negatives)
+  - Auto-creates stub teams for missing team_ids (e.g., team_id=0 "Free Agents")
+  - Handles OOTP's negative league_id convention (-200, -206)
+
+**🚨 CRITICAL: NEXT SESSION PRIORITY (Session 18)**
+**PERFORMANCE CRISIS - All page loads are unacceptably slow after database refresh**
+
+The database refresh has caused performance regressions across ALL pages:
+- Home page: Previously <100ms, now SLOW
+- Player pages: Previously 171ms, now SLOW
+- Team pages: Previously 120ms, now SLOW
+- All other pages affected
+
+**Root Cause:** Materialized views were fixed, but the previous Session 4 optimizations need to be re-verified:
+1. **SQLAlchemy query optimizations** - Use load_only(), raiseload('*'), selectinload()
+2. **Raw SQL queries** - Team rosters and complex queries bypassing ORM
+3. **Database indexes** - Verify all indexes exist (especially partial indexes on stats tables)
+4. **Service layer optimization** - Ensure all service functions use raiseload('*')
+
+**Action Plan for Session 18:**
+1. **Benchmark current performance** - Time each major page type
+2. **Check database indexes** - Run query from backlog-completed.md showing expected indexes
+3. **Review and re-apply Session 4 optimizations** - See US-T003 in backlog-completed.md lines 1117-1180
+4. **Verify materialized views populated** - SELECT count(*) from each leaderboard view
+5. **Profile slow queries** - Use Flask-DebugToolbar or PostgreSQL slow query log
+
+**Key Files to Review:**
+- `/web/app/services/team_service.py` - Should have raiseload('*') throughout
+- `/web/app/routes/teams.py` - Should use raw SQL for roster query
+- `/web/app/services/player_service.py` - Should use load_only() and raiseload('*')
+- `/docs/backlog-completed.md` lines 1117-1180 - Complete Session 4 optimization details
 
 ═══════════════════════════════════════════════════════════════════════════════
 🚨 CRITICAL PATTERNS & RULES
@@ -85,11 +119,20 @@ db.session.execute(text("SELECT..."))
 - **ALWAYS filter team_id != 0** (excludes college/HS players from leaderboards)
 - Applied at database (materialized views) AND service layer
 
-**ETL Data Preservation (New):**
+**ETL Data Preservation:**
 - `trade_history` and `messages` use incremental UPSERT (never delete)
 - Configure filters in `/etl/config/etl_config.py` (MESSAGE_FILTERS)
 - Images preserved via rsync --update flag
 - See `/etl/docs/INCREMENTAL_LOADING.md` for details
+
+**Materialized Views (Session 17 Fix):**
+- **CRITICAL:** Views must be refreshed after loading stats data
+- Automatic refresh integrated into `python main.py load-stats` (Phase 3)
+- Manual refresh: `python main.py refresh-views`
+- Views: leaderboard_career_batting, leaderboard_career_pitching,
+  leaderboard_single_season_batting, leaderboard_single_season_pitching,
+  leaderboard_yearly_batting, leaderboard_yearly_pitching
+- Without refresh: leaderboards will be empty/stale (major performance issue)
 
 ═══════════════════════════════════════════════════════════════════════════════
 📊 DATABASE & ENVIRONMENT
