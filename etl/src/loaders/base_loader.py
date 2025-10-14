@@ -431,17 +431,22 @@ class BaseLoader(ABC):
         update_columns = self.get_update_columns()
         calculated_fields = self.get_calculated_fields()
 
-        # Get columns from both staging and target tables
-        cols_sql = text("""
-            SELECT column_name
+        # Get columns from both staging and target tables with types
+        cols_with_types_sql = text("""
+            SELECT column_name, data_type
             FROM information_schema.columns
             WHERE table_name = :table_name
             ORDER BY ordinal_position
         """)
 
-        # Get target columns
-        result = self.db.execute_sql(cols_sql, {'table_name': target_table})
-        target_columns = [row[0] for row in result]
+        # Get target columns and types
+        result = self.db.execute_sql(cols_with_types_sql, {'table_name': target_table})
+        target_column_types = {row[0]: row[1] for row in result}
+        target_columns = list(target_column_types.keys())
+
+        # Get staging columns and types
+        result = self.db.execute_sql(cols_with_types_sql, {'table_name': staging_table})
+        staging_column_types = {row[0]: row[1] for row in result}
 
         # Handle '*' wildcard in update_columns (means all non-key columns)
         if update_columns == ['*']:
@@ -449,26 +454,50 @@ class BaseLoader(ABC):
 
         # Build SELECT clause with calculated expressions where needed
         select_clauses = []
+        insert_columns = []  # Only columns that exist in staging or are calculated
         column_mapping = self.get_column_mapping() or {}
         reverse_mapping = {v: k for k, v in column_mapping.items()}
+
         for col in target_columns:
+            # Determine the staging column name
+            staging_col = reverse_mapping.get(col, col)
+
+            # Check if column exists in staging or is calculated
             if col in calculated_fields:
                 # Use the calculated expression
                 select_clauses.append(f"({calculated_fields[col]}) AS {col}")
-            else:
-                # Use direct column reference
-                staging_col = reverse_mapping.get(col, col)
-                select_clauses.append(f"s.{staging_col} AS {col}")
+                insert_columns.append(col)
+            elif staging_col in staging_column_types:
+                # Column exists in staging - add with type casting if needed
+                staging_type = staging_column_types[staging_col]
+                target_type = target_column_types[col]
+
+                # Apply type casting when staging is TEXT and target needs conversion
+                if staging_type == 'text' and target_type != 'text':
+                    if target_type in ('date', 'timestamp without time zone', 'timestamp with time zone'):
+                        cast_expr = f"NULLIF(s.{staging_col}, '')::DATE" if target_type == 'date' else f"NULLIF(s.{staging_col}, '')::TIMESTAMP"
+                        select_clauses.append(f"{cast_expr} AS {col}")
+                    elif target_type == 'numeric':
+                        select_clauses.append(f"NULLIF(s.{staging_col}, '')::NUMERIC AS {col}")
+                    elif target_type in ('integer', 'bigint', 'smallint'):
+                        select_clauses.append(f"NULLIF(s.{staging_col}, '')::INTEGER AS {col}")
+                    else:
+                        select_clauses.append(f"s.{staging_col} AS {col}")
+                else:
+                    # No casting needed
+                    select_clauses.append(f"s.{staging_col} AS {col}")
+                insert_columns.append(col)
+            # else: Skip columns that don't exist in staging (e.g., auto-generated SERIAL columns)
 
         # Build INSERT statement
-        insert_cols = ', '.join(target_columns)
+        insert_cols = ', '.join(insert_columns)
         select_cols = ', '.join(select_clauses)
         conflict_keys = ', '.join(upsert_keys)
 
-        # Build UPDATE SET clause for conflicts
+        # Build UPDATE SET clause for conflicts (only for columns in staging)
         update_set_clauses = []
         for col in update_columns:
-            if col in target_columns and col not in upsert_keys:
+            if col in insert_columns and col not in upsert_keys:
                 update_set_clauses.append(f"{col} = EXCLUDED.{col}")
 
         if update_set_clauses:

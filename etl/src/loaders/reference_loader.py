@@ -149,11 +149,27 @@ class ReferenceLoader(BaseLoader):
             'primary_keys': ['team_id'],
             'load_order': 12,
         },
-        # League History Tables
+        # League History Tables (moved league_history to load-stats due to player FKs)
         'league_history.csv': {
             'table': 'league_history',
             'primary_keys': ['league_id', 'sub_league_id', 'year'],
-            'load_order': 13,
+            'load_order': 102,  # Moved to load-stats: has player FKs (best_hitter_id, best_pitcher_id, etc.)
+            'calculated_fields': {
+                'best_hitter_id': 'NULLIF(best_hitter_id, 0)',
+                'best_pitcher_id': 'NULLIF(best_pitcher_id, 0)',
+                'best_rookie_id': 'NULLIF(best_rookie_id, 0)',
+                'best_manager_id': 'NULLIF(best_manager_id, 0)',
+                'best_fielder_id0': 'NULLIF(best_fielder_id0, 0)',
+                'best_fielder_id1': 'NULLIF(best_fielder_id1, 0)',
+                'best_fielder_id2': 'NULLIF(best_fielder_id2, 0)',
+                'best_fielder_id3': 'NULLIF(best_fielder_id3, 0)',
+                'best_fielder_id4': 'NULLIF(best_fielder_id4, 0)',
+                'best_fielder_id5': 'NULLIF(best_fielder_id5, 0)',
+                'best_fielder_id6': 'NULLIF(best_fielder_id6, 0)',
+                'best_fielder_id7': 'NULLIF(best_fielder_id7, 0)',
+                'best_fielder_id8': 'NULLIF(best_fielder_id8, 0)',
+                'best_fielder_id9': 'NULLIF(best_fielder_id9, 0)'
+            }
         },
         'league_history_batting_stats.csv': {
             'table': 'league_history_batting_stats',
@@ -165,11 +181,17 @@ class ReferenceLoader(BaseLoader):
             'primary_keys': ['year', 'team_id', 'game_id', 'level_id', 'split_id'],
             'load_order': 15,
         },
-        # Team history tables
+        # Team history tables (moved team_history to load-stats due to player FKs)
         'team_history.csv': {
             'table': 'team_history',
             'primary_keys': ['team_id', 'year'],
-            'load_order': 16,
+            'load_order': 103,  # Moved to load-stats: has player FKs (best_hitter_id, best_pitcher_id, manager_id)
+            'calculated_fields': {
+                'best_hitter_id': 'NULLIF(best_hitter_id, 0)',
+                'best_pitcher_id': 'NULLIF(best_pitcher_id, 0)',
+                'best_rookie_id': 'NULLIF(best_rookie_id, 0)',
+                'manager_id': 'NULLIF(manager_id, 0)'
+            }
         },
         'team_history_batting_stats.csv': {
             'table': 'team_history_batting_stats',

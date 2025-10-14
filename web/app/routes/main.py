@@ -73,12 +73,12 @@ def index():
             }
 
             for division_id in sorted(structure[sub_league_id].keys()):
-                # Get division name if it exists
+                # Get division name (division_id can be 0, so check if it's in the structure)
                 division = Division.query.filter_by(
                     league_id=league.league_id,
                     sub_league_id=sub_league_id,
                     division_id=division_id
-                ).first() if division_id > 0 else None
+                ).first()
 
                 # Get teams with their records
                 # OPTIMIZATION: Block cascading eager loads on Team model

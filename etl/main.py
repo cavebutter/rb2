@@ -222,10 +222,29 @@ def load_stats(force_all_constants):
 
   logger.info("Stats loading complete!")
 
+  # Load history tables with player FKs (must be loaded after players)
+  logger.info('Loading league history...')
+  try:
+      from src.loaders.reference_loader import ReferenceLoader
+      league_history_loader = ReferenceLoader('league_history.csv', batch_id)
+      league_history_loader.load_csv(Path("data/incoming/csv/league_history.csv"))
+      click.echo("✓ League history loaded successfully")
+  except Exception as e:
+      logger.error(f"Error loading league history: {e}")
+      click.echo(f"Error loading league history: {e}")
+
+  logger.info('Loading team history...')
+  try:
+      team_history_loader = ReferenceLoader('team_history.csv', batch_id)
+      team_history_loader.load_csv(Path("data/incoming/csv/team_history.csv"))
+      click.echo("✓ Team history loaded successfully")
+  except Exception as e:
+      logger.error(f"Error loading team history: {e}")
+      click.echo(f"Error loading team history: {e}")
+
   # Load coaches and rosters after players are loaded
   logger.info('Loading coaches...')
   try:
-      from src.loaders.reference_loader import ReferenceLoader
       coaches_loader = ReferenceLoader('coaches.csv', batch_id)
       coaches_loader.load_csv(Path("data/incoming/csv/coaches.csv"))
       click.echo("✓ Coaches loaded successfully")

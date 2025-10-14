@@ -578,8 +578,8 @@ def get_player_news(player_id, limit=None):
 def get_notable_rookies(limit=10):
     """Get top rookies by WAR in current season at highest league level.
 
-    A rookie is defined as a player with 1 or fewer years of experience
-    (experience <= 1) at league_level=1 (top level).
+    A rookie is defined as a player in their first season at league_level=1,
+    regardless of minor league experience.
 
     Returns top rookies ranked by WAR with their current team and position.
 
@@ -598,7 +598,7 @@ def get_notable_rookies(limit=10):
         - war: WAR value
         - experience: Years of experience
     """
-    from sqlalchemy.orm import load_only, selectinload, raiseload, lazyload
+    from sqlalchemy.orm import load_only, raiseload
 
     # Get the current season year from the first top-level league
     league = League.query.filter_by(league_level=1).first()
@@ -607,107 +607,76 @@ def get_notable_rookies(limit=10):
 
     current_year = league.season_year
 
-    # Query rookies with their current season stats
-    # A rookie has experience <= 1 at league_level=1
-    # We'll combine batting and pitching WAR to get total WAR
-
-    # First get batting WAR for rookies
-    batting_rookies = (
-        db.session.query(
-            Player.player_id,
-            Player.first_name,
-            Player.last_name,
-            PlayerCurrentStatus.team_id,
-            PlayerCurrentStatus.position,
-            PlayerCurrentStatus.experience,
-            PlayerBattingStats.war
+    # Use raw SQL for better performance with CTEs
+    # Identify rookies as players whose current season is their first at league_level=1
+    query = text("""
+        WITH current_season AS (
+            SELECT season_year FROM leagues WHERE league_level = 1 LIMIT 1
+        ),
+        major_league_years AS (
+            SELECT
+                player_id,
+                COUNT(DISTINCT year) as seasons_in_majors
+            FROM (
+                SELECT pbs.player_id, pbs.year
+                FROM players_career_batting_stats pbs
+                JOIN leagues l ON pbs.league_id = l.league_id
+                WHERE l.league_level = 1 AND pbs.split_id = 1
+                UNION
+                SELECT pps.player_id, pps.year
+                FROM players_career_pitching_stats pps
+                JOIN leagues l ON pps.league_id = l.league_id
+                WHERE l.league_level = 1 AND pps.split_id = 1
+            ) combined
+            GROUP BY player_id
         )
-        .join(PlayerCurrentStatus, Player.player_id == PlayerCurrentStatus.player_id)
-        .join(PlayerBattingStats, and_(
-            Player.player_id == PlayerBattingStats.player_id,
-            PlayerBattingStats.year == current_year,
-            PlayerBattingStats.split_id == 1  # Overall stats
-        ))
-        .join(League, PlayerCurrentStatus.league_id == League.league_id)
-        .filter(
-            League.league_level == 1,  # Top level only
-            PlayerCurrentStatus.experience <= 1,  # Rookies (0-1 years)
-            PlayerCurrentStatus.retired == 0,  # Active players
-            PlayerCurrentStatus.team_id != 0,  # Exclude college/HS
-            PlayerBattingStats.war.isnot(None)  # Must have WAR value
-        )
-        .all()
-    )
+        SELECT
+            p.player_id,
+            p.first_name,
+            p.last_name,
+            pcs.team_id,
+            pcs.position,
+            pcs.experience,
+            COALESCE(pbs.war, 0) + COALESCE(pps.war, 0) as total_war
+        FROM players_current_status pcs
+        JOIN players_core p ON pcs.player_id = p.player_id
+        JOIN leagues l ON pcs.league_id = l.league_id
+        CROSS JOIN current_season cs
+        LEFT JOIN major_league_years mly ON p.player_id = mly.player_id
+        LEFT JOIN players_career_batting_stats pbs ON p.player_id = pbs.player_id
+            AND pbs.year = cs.season_year
+            AND pbs.split_id = 1
+        LEFT JOIN players_career_pitching_stats pps ON p.player_id = pps.player_id
+            AND pps.year = cs.season_year
+            AND pps.split_id = 1
+        WHERE l.league_level = 1
+            AND pcs.retired = 0
+            AND pcs.team_id != 0
+            AND mly.seasons_in_majors = 1
+            AND (pbs.war IS NOT NULL OR pps.war IS NOT NULL)
+        ORDER BY total_war DESC
+        LIMIT :limit
+    """)
 
-    # Get pitching WAR for rookies
-    pitching_rookies = (
-        db.session.query(
-            Player.player_id,
-            Player.first_name,
-            Player.last_name,
-            PlayerCurrentStatus.team_id,
-            PlayerCurrentStatus.position,
-            PlayerCurrentStatus.experience,
-            PlayerPitchingStats.war
-        )
-        .join(PlayerCurrentStatus, Player.player_id == PlayerCurrentStatus.player_id)
-        .join(PlayerPitchingStats, and_(
-            Player.player_id == PlayerPitchingStats.player_id,
-            PlayerPitchingStats.year == current_year,
-            PlayerPitchingStats.split_id == 1  # Overall stats
-        ))
-        .join(League, PlayerCurrentStatus.league_id == League.league_id)
-        .filter(
-            League.league_level == 1,  # Top level only
-            PlayerCurrentStatus.experience <= 1,  # Rookies (0-1 years)
-            PlayerCurrentStatus.retired == 0,  # Active players
-            PlayerCurrentStatus.team_id != 0,  # Exclude college/HS
-            PlayerPitchingStats.war.isnot(None)  # Must have WAR value
-        )
-        .all()
-    )
-
-    # Combine and aggregate WAR by player
-    player_war = {}
-
-    for row in batting_rookies:
-        player_id = row[0]
-        if player_id not in player_war:
-            player_war[player_id] = {
-                'player_id': row[0],
-                'first_name': row[1],
-                'last_name': row[2],
-                'team_id': row[3],
-                'position': row[4],
-                'experience': row[5],
-                'war': float(row[6] or 0)
-            }
-        else:
-            player_war[player_id]['war'] += float(row[6] or 0)
-
-    for row in pitching_rookies:
-        player_id = row[0]
-        if player_id not in player_war:
-            player_war[player_id] = {
-                'player_id': row[0],
-                'first_name': row[1],
-                'last_name': row[2],
-                'team_id': row[3],
-                'position': row[4],
-                'experience': row[5],
-                'war': float(row[6] or 0)
-            }
-        else:
-            player_war[player_id]['war'] += float(row[6] or 0)
-
-    # Sort by WAR descending and take top N
-    rookies = sorted(player_war.values(), key=lambda x: x['war'], reverse=True)[:limit]
+    result = db.session.execute(query, {'limit': limit})
 
     # Position mapping for display
     position_map = {
         1: 'P', 2: 'C', 3: '1B', 4: '2B', 5: '3B',
         6: 'SS', 7: 'LF', 8: 'CF', 9: 'RF', 10: 'DH'
     }
+
+    rookies = []
+    for row in result:
+        rookies.append({
+            'player_id': row[0],
+            'first_name': row[1],
+            'last_name': row[2],
+            'team_id': row[3],
+            'position': row[4],
+            'experience': row[5],
+            'war': float(row[6] or 0)
+        })
 
     # Enrich with team names (optimized query)
     if rookies:
