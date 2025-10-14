@@ -209,7 +209,7 @@ CREATE TABLE IF NOT EXISTS coaches (
     FOREIGN KEY (team_id) REFERENCES teams(team_id),
     FOREIGN KEY (city_of_birth_id) REFERENCES cities(city_id),
     FOREIGN KEY (nation_id) REFERENCES nations(nation_id),
-    FOREIGN KEY (former_player_id) REFERENCES players(player_id)
+    FOREIGN KEY (former_player_id) REFERENCES players_core(player_id)
 );
 
 -- Player images (for both players and coaches)
@@ -278,7 +278,7 @@ CREATE TABLE IF NOT EXISTS players_roster_status (
     has_received_arbitration INTEGER,
     was_traded INTEGER,
     trade_status INTEGER,
-    FOREIGN KEY (player_id) REFERENCES players(player_id),
+    FOREIGN KEY (player_id) REFERENCES players_core(player_id),
     FOREIGN KEY (team_id) REFERENCES teams(team_id),
     FOREIGN KEY (league_id) REFERENCES leagues(league_id)
 );
@@ -322,7 +322,7 @@ CREATE TABLE IF NOT EXISTS players_contract (
     allstar_bonus INTEGER,
     next_last_year_option_buyout INTEGER,
     last_year_option_buyout INTEGER,
-    FOREIGN KEY (player_id) REFERENCES players(player_id),
+    FOREIGN KEY (player_id) REFERENCES players_core(player_id),
     FOREIGN KEY (team_id) REFERENCES teams(team_id),
     FOREIGN KEY (league_id) REFERENCES leagues(league_id)
 );

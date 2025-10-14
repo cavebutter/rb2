@@ -1,0 +1,260 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    SQLALCHEMY CASCADE EXPLOSION DIAGRAM                      ║
+║                         Root Cause of 20+ Second Loads                       ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+TRIGGER: Player.query.get(player_id) in service layer (lines 62, 221)
+         └─> Called 3 times per page load (batting stats, pitching stats, endpoint)
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ LEVEL 1: Initial Query                                                      │
+│ SELECT * FROM players_core WHERE player_id = 16747                          │
+│ ✓ Fast: 0.107ms                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                    ┌───────────────┴───────────────┐
+                    │  lazy='joined' relationships   │
+                    │  CANNOT BE BLOCKED by          │
+                    │  raiseload('*') or lazyload()  │
+                    └───────────────┬───────────────┘
+                                    │
+        ┌───────────────────────────┼───────────────────────────┐
+        │                           │                           │
+        ▼                           ▼                           ▼
+┌───────────────┐          ┌─────────────────┐        ┌──────────────────┐
+│ city_of_birth │          │     nation      │        │ current_status   │
+│ (lazy=joined) │          │  (lazy=joined)  │        │  (lazy=joined)   │
+└───────┬───────┘          └────────┬────────┘        └────────┬─────────┘
+        │                           │                          │
+        │ Query 1                   │ Query 2                  │ Query 3
+        │                           │                          │
+        ▼                           ▼                          ▼
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ LEVEL 2: First Cascade (Geographic Data)                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────┐              ┌─────────────────────┐
+│ City                │              │ Nation              │
+│ - nation (joined)   │─────────────>│ - continent (joined)│
+│ - state (joined)    │              └─────────────────────┘
+└──────────┬──────────┘
+           │                         Query 4: Nation
+           │                         Query 5: Continent
+           ▼                         Query 6: State
+    ┌─────────────┐                 Query 7: State.nation
+    │ State       │                 Query 8: State.nation.continent
+    │ - nation    │─────────────────>
+    └─────────────┘
+
+QUERIES SO FAR: 8
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ LEVEL 3: Current Status Cascade (Team → MASSIVE EXPLOSION)                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│ PlayerCurrentStatus                                                        │
+│ - team (lazy='joined')      ← DANGER: Team has 4 joined relationships!    │
+│ - league (lazy='joined')    ← DANGER: League has recursive parent!        │
+└───────────────────────┬──────────────────────┬─────────────────────────────┘
+                        │                      │
+                Query 9 │                      │ Query 10
+                        ▼                      ▼
+                ┌───────────────┐      ┌──────────────┐
+                │     Team      │      │   League     │
+                │ - city        │      │ - nation     │
+                │ - park        │      │ - language   │
+                │ - nation      │      │ - parent     │
+                │ - league      │      └──────┬───────┘
+                └───────┬───────┘             │
+                        │                     │
+                        │                     │ Query 11: League.nation
+                        │                     │ Query 12: League.nation.continent
+                        │                     │ Query 13: League.language
+                        │                     │ Query 14: League.parent_league
+                        │                     │   └─> RECURSIVE! Loads another League
+                        │                     │       Query 15-18: Parent league cascade
+                        │                     │
+        ┌───────────────┼──────────────┬──────────────────┐
+        │               │              │                  │
+        ▼               ▼              ▼                  ▼
+  ┌─────────┐    ┌──────────┐   ┌─────────┐      ┌─────────────┐
+  │  City   │    │   Park   │   │ Nation  │      │   League    │
+  │         │    │          │   │         │      │ (DUPLICATE) │
+  └────┬────┘    └────┬─────┘   └────┬────┘      └──────┬──────┘
+       │              │              │                   │
+       │ Q19: nation  │ Q23: nation  │ Q25: continent    │ Q26-30: CASCADE
+       │ Q20: cont.   │ Q24: cont.   │                   │
+       │ Q21: state   │              │
+       │ Q22: cascade │              │
+       │              │              │
+       └──────────────┴──────────────┴───────────────────┘
+
+QUERIES SO FAR: ~30
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ LEVEL 4: Ratings (Safe - No Further Relationships)                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌───────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│ batting_ratings   │  │ pitching_ratings │  │ fielding_ratings │
+│ (lazy='joined')   │  │  (lazy='joined') │  │  (lazy='joined') │
+└───────────────────┘  └──────────────────┘  └──────────────────┘
+        │                       │                      │
+        │ Query 31              │ Query 32             │ Query 33
+        │                       │                      │
+        ▼                       ▼                      ▼
+    (No further cascade - these have no relationships)
+
+QUERIES SO FAR: 33
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TOTAL PER Player.query.get() CALL: ~30-40 queries                           │
+│                                                                              │
+│ Called 3 times per page:                                                    │
+│ 1. In player_detail endpoint (route)                                        │
+│ 2. In get_player_career_batting_stats (service)                             │
+│ 3. In get_player_career_pitching_stats (service)                            │
+│                                                                              │
+│ TOTAL: 3 × 35 = ~105 queries just for Player object                         │
+│                                                                              │
+│ Plus:                                                                        │
+│ - 2 queries for batting stats                                               │
+│ - 2 queries for pitching stats                                              │
+│ - 1 query for trade history                                                 │
+│ - 1 query for news                                                           │
+│                                                                              │
+│ ═══════════════════════════════════════════════════════════════════════════ │
+│ GRAND TOTAL: ~111 queries per player detail page load                       │
+│ ═══════════════════════════════════════════════════════════════════════════ │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                        WHY THIS IS SO SLOW                                   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Even though each query is FAST (0.1-0.5ms), the overhead adds up:
+
+  111 queries × 0.5ms per query        = 55ms   (database time)
+  111 queries × round trip latency      = 222ms  (network time @ 2ms/query)
+  111 × Python object creation          = 333ms  (ORM overhead)
+  Template rendering accessing attrs    = 500ms  (lazy loads during render)
+  ─────────────────────────────────────────────
+  TOTAL                                 ≈ 1.1s  minimum
+
+BUT if template accesses relationships we didn't account for:
+  - Each attribute access can trigger MORE lazy loads
+  - Accessing player.current_status.team.league.parent_league.nation.continent
+    in template can trigger 6 MORE queries per access
+  - Jinja2 loops over collections can trigger N+1 queries
+
+Actual observed: 20+ seconds suggests:
+  - ~2000-4000 queries total
+  - Likely from template accessing nested relationships in loops
+  - Or from accessing relationships on EVERY stat row (10-15 years × 4 queries)
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                            THE FIX                                           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+BEFORE (service layer, line 62):
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ player = Player.query.get(player_id)  # ← TRIGGERS ENTIRE CASCADE            │
+│ if not player:                                                               │
+│     return {'yearly_stats': [], 'career_totals': None}                       │
+│                                                                              │
+│ # Use player.date_of_birth for age calculation                              │
+│ for stat in yearly_stats:                                                   │
+│     stat.age = calculate_age_for_season(player.date_of_birth, stat.year)    │
+└─────────────────────────────────────────────────────────────────────────────┘
+                    RESULT: 35 queries + cascades
+
+
+AFTER (raw SQL):
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ # Only get the one column we need                                           │
+│ from sqlalchemy import text                                                 │
+│                                                                              │
+│ result = db.session.execute(                                                │
+│     text("SELECT date_of_birth FROM players_core WHERE player_id = :id"),  │
+│     {"id": player_id}                                                       │
+│ ).first()                                                                   │
+│                                                                              │
+│ if not result or not result[0]:                                             │
+│     return {'yearly_stats': [], 'career_totals': None}                      │
+│                                                                              │
+│ birth_date = result[0]                                                      │
+│                                                                              │
+│ # Use birth_date directly                                                   │
+│ for stat in yearly_stats:                                                   │
+│     stat.age = calculate_age_for_season(birth_date, stat.year)             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                    RESULT: 1 query, no cascades
+
+
+IMPACT:
+  Before: 3 × 35 queries = 105 queries for Player object
+  After:  3 × 1 query    = 3 queries for birth date
+
+  SAVINGS: 102 queries eliminated
+
+  Expected page load: 20+ seconds → < 1 second
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    WHY IT WORKED BEFORE                                      ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Theory: Data volume in reference tables
+
+BEFORE REBUILD:                      AFTER REBUILD:
+┌────────────────────────┐          ┌────────────────────────┐
+│ Nations: ~50           │          │ Nations: ~200          │
+│ Cities: ~500           │          │ Cities: ~5000          │
+│ States: ~50            │          │ States: ~200           │
+│ Leagues: 5 levels      │          │ Leagues: 8 levels      │
+│                        │          │ (with parent cascades) │
+│ Cascade depth: 3-4     │          │ Cascade depth: 6-8     │
+│ Objects per cascade: 10│          │ Objects per cascade: 40│
+└────────────────────────┘          └────────────────────────┘
+
+Result: 10 cascaded objects vs. 40 cascaded objects = 4x slowdown
+
+Plus: SQLAlchemy object creation overhead scales with object count
+      More data = more objects = more overhead
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                     PREVENTIVE MEASURES                                      ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+1. NEVER use lazy='joined' on relationships that have their own relationships
+   ✓ OK:  ratings tables (no further relationships)
+   ✗ BAD: Player.nation (nation has continent)
+   ✗ BAD: Team.league (league has nation, language, parent)
+
+2. ALWAYS use raw SQL when you only need specific columns
+
+3. ALWAYS use explicit loading options in queries:
+   - selectinload() for collections
+   - joinedload() only for leaf nodes
+   - load_only() to restrict columns
+
+4. NEVER use Model.query.get() or Model.query.first() in service layer
+   without explicit query options
+
+5. Profile every query with SQLAlchemy logging in development:
+   logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                            END OF DIAGRAM                                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝

@@ -435,15 +435,123 @@ class ReferenceLoader(BaseLoader):
             return df
 
     def _handle_full_load(self, csv_path: Path) -> bool:
-        """Override to handle special post-load operations"""
+        """Override to handle special pre/post-load operations"""
+
+        # Pre-load operations
+        if self.csv_filename == 'teams.csv':
+            # Create stub leagues for any missing league_ids before loading teams
+            self._create_missing_leagues(csv_path)
+        elif self.csv_filename == 'sub_leagues.csv':
+            # Validate sub_leagues data quality
+            if not self._validate_sub_leagues(csv_path):
+                logger.error("sub_leagues.csv validation failed - skipping load")
+                return False
+
         # Call parent's full load method
         success = super()._handle_full_load(csv_path)
 
+        # Post-load operations
         if success and self.csv_filename == 'nations.csv':
             # Add nation_id=0 record for parks table foreign key
             self._add_placeholder_nation()
 
         return success
+
+    def _validate_sub_leagues(self, csv_path: Path) -> bool:
+        """Validate that sub_leagues.csv has required data in name and abbr columns"""
+        logger.info("Validating sub_leagues.csv data quality")
+
+        try:
+            import pandas as pd
+
+            df = pd.read_csv(csv_path)
+
+            # Check for NULL/empty names
+            null_names = df[df['name'].isna() | (df['name'] == '')]
+            if not null_names.empty:
+                logger.error(f"❌ Found {len(null_names)} rows with NULL or empty 'name' in sub_leagues.csv")
+                logger.error(f"   Problematic league_ids: {null_names['league_id'].tolist()}")
+                logger.error(f"   Problematic sub_league_ids: {null_names['sub_league_id'].tolist()}")
+                logger.warning("   → Please update the game CSV export to include names for all sub-leagues")
+                logger.warning("   → Alternatively, manually edit sub_leagues.csv to add names")
+                return False
+
+            # Check for NULL/empty abbrs
+            null_abbrs = df[df['abbr'].isna() | (df['abbr'] == '')]
+            if not null_abbrs.empty:
+                logger.error(f"❌ Found {len(null_abbrs)} rows with NULL or empty 'abbr' in sub_leagues.csv")
+                logger.error(f"   Problematic league_ids: {null_abbrs['league_id'].tolist()}")
+                logger.error(f"   Problematic sub_league_ids: {null_abbrs['sub_league_id'].tolist()}")
+                logger.warning("   → Please update the game CSV export to include abbreviations for all sub-leagues")
+                logger.warning("   → Alternatively, manually edit sub_leagues.csv to add abbreviations")
+                return False
+
+            logger.success("sub_leagues.csv validation passed - all required fields present")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error validating sub_leagues.csv: {e}")
+            return False
+
+    def _create_missing_leagues(self, csv_path: Path):
+        """Create stub league records for any league_ids in teams.csv that don't exist in leagues table"""
+        logger.info("Checking for missing leagues referenced in teams.csv")
+
+        try:
+            import pandas as pd
+
+            # Read teams.csv to get all league_ids
+            df = pd.read_csv(csv_path)
+            if 'league_id' not in df.columns:
+                logger.warning("No league_id column in teams.csv")
+                return
+
+            # Get unique league_ids from teams (excluding 0 and NULL)
+            team_league_ids = set(df['league_id'].dropna().unique())
+            team_league_ids.discard(0)
+
+            if not team_league_ids:
+                logger.info("No league_ids found in teams.csv")
+                return
+
+            # Get existing league_ids from database
+            existing_leagues_sql = text("SELECT league_id FROM leagues")
+            result = self.db.execute_sql(existing_leagues_sql)
+            existing_league_ids = {row[0] for row in result}
+
+            # Find missing league_ids
+            missing_league_ids = team_league_ids - existing_league_ids
+
+            if not missing_league_ids:
+                logger.info("All league_ids in teams.csv already exist in leagues table")
+                return
+
+            logger.warning(f"Found {len(missing_league_ids)} missing league_ids: {sorted(missing_league_ids)}")
+            logger.info("Creating stub league records for missing leagues")
+
+            # Create stub records for missing leagues
+            for league_id in sorted(missing_league_ids):
+                insert_sql = text("""
+                    INSERT INTO leagues (
+                        league_id, name, abbr, nation_id, language_id, logo_file_name,
+                        parent_league_id, league_state, season_year, league_level,
+                        game_date, current_date_year
+                    )
+                    VALUES (
+                        :league_id, 'SPECIAL', 'SPEC', 0, NULL, NULL,
+                        NULL, 0, 0, 0,
+                        NULL, 0
+                    )
+                    ON CONFLICT (league_id) DO NOTHING
+                """)
+                self.db.execute_sql(insert_sql, {'league_id': int(league_id)})
+                logger.info(f"Created stub league record for league_id={league_id}")
+
+            logger.success(f"Successfully created {len(missing_league_ids)} stub league records")
+
+        except Exception as e:
+            logger.error(f"Error creating missing leagues: {e}")
+            # Don't raise - let the load continue and fail with FK error if needed
 
     def _add_placeholder_nation(self):
         """Add nation_id=0 placeholder record"""

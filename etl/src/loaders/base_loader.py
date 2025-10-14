@@ -85,10 +85,32 @@ class BaseLoader(ABC):
                 raise ValueError(f"Unknown load strategy: {strategy}")
         except Exception as e:
             import traceback
-            logger.error(f"Error loading {csv_path}: {e}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
+            from psycopg2.errors import ForeignKeyViolation, NotNullViolation
+
+            error_msg = str(e)
+            error_type = type(e).__name__
+
+            # Provide more helpful error messages for common data quality issues
+            if isinstance(e.__cause__, ForeignKeyViolation):
+                logger.error(f"❌ FOREIGN KEY VIOLATION in {csv_path.name}")
+                logger.error(f"   {error_msg}")
+                logger.warning("   → This usually means the CSV references IDs that don't exist in parent tables")
+                logger.warning("   → Check that parent tables (leagues, teams, players, etc.) loaded successfully first")
+                logger.warning("   → Consider fixing the source data or adding preprocessing to create stub records")
+            elif isinstance(e.__cause__, NotNullViolation):
+                logger.error(f"❌ NOT NULL VIOLATION in {csv_path.name}")
+                logger.error(f"   {error_msg}")
+                logger.warning("   → The CSV has NULL/empty values in required columns")
+                logger.warning("   → Fix the source data or add default values in preprocessing")
+            else:
+                logger.error(f"Error loading {csv_path}: {e}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+
             self.stats['errors'].append(str(e))
             self._record_file_completion(csv_path, 'failed', str(e))
+
+            # Log but continue - don't stop the entire ETL process
+            logger.info(f"Continuing to next file despite error in {csv_path.name}")
             return False
 
 

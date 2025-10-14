@@ -10,14 +10,14 @@ LOG_DIR = BASE_DIR / "logs"
 # Database Configuration
 DB_CONFIG = {
     "dev" : {
-        "host": 192.168.10.94",
+        "host": "192.168.10.94",
         "port": 5432,
         "database": "ootp_dev",
         "user": "ootp_etl",
         "password": os.environ.get("OOTP_ETL_PASSWORD", "")
     },
     "stage": {
-        "host": 192.168.10.94",
+        "host": "192.168.10.94",
         "port": 5432,
         "database": "ootp_stage",
         "user": "ootp_etl",
