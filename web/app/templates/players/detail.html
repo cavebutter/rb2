@@ -32,22 +32,31 @@
             <!-- Player Info -->
             <div class="flex-grow">
                 <h1 class="text-4xl font-bold text-gray-900 mb-2">{{ player.full_name }}</h1>
-                <p class="text-xl text-gray-600">
-                    {% if player.current_status %}
-                        {% if player.current_status.retired %}
-                            <span class="font-semibold text-red-600">Retired</span> |
+                <div class="flex items-center gap-3">
+                    <p class="text-xl text-gray-600">
+                        {% if player.current_status %}
+                            {% if player.current_status.retired %}
+                                <span class="font-semibold text-red-600">Retired</span> |
+                            {% endif %}
+                            {{ player.current_status.position_display }} |
+                            {% if player.current_status.team %}
+                                <a href="{{ url_for('teams.team_detail', team_id=player.current_status.team.team_id) }}"
+                                   class="text-blue-600 hover:text-blue-800">
+                                    {{ player.current_status.team.name }}{% if player.current_status.team.nickname %} {{ player.current_status.team.nickname }}{% endif %}
+                                </a>
+                            {% else %}
+                                Free Agent
+                            {% endif %}
                         {% endif %}
-                        {{ player.current_status.position_display }} |
-                        {% if player.current_status.team %}
-                            <a href="{{ url_for('teams.team_detail', team_id=player.current_status.team.team_id) }}"
-                               class="text-blue-600 hover:text-blue-800">
-                                {{ player.current_status.team.name }}{% if player.current_status.team.nickname %} {{ player.current_status.team.nickname }}{% endif %}
-                            </a>
-                        {% else %}
-                            Free Agent
-                        {% endif %}
+                    </p>
+                    <!-- Team Logo (only for non-free agents) -->
+                    {% if player.current_status and player.current_status.team and player.current_status.team.logo_file_name %}
+                        <img src="{{ url_for('teams.team_logo', team_id=player.current_status.team.team_id) }}"
+                             alt="{{ player.current_status.team.name }}"
+                             class="h-8 w-8 object-contain"
+                             onerror="this.style.display='none';">
                     {% endif %}
-                </p>
+                </div>
             </div>
 
             <!-- Player ID Badge -->

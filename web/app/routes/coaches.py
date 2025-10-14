@@ -12,8 +12,14 @@ coaches_bp = Blueprint('coaches', __name__, url_prefix='/coaches')
 def coach_list():
     """Display list of all coaches grouped by occupation"""
 
-    # Query all coaches on teams, ordered by occupation and team
-    coaches = Coach.query.filter(Coach.team_id > 0).order_by(
+    # Query all coaches on teams with eager loading to prevent N+1
+    # Template accesses coach.team.name for each coach
+    coaches = Coach.query.filter(Coach.team_id > 0).options(
+        selectinload(Coach.team).load_only(
+            Team.team_id,
+            Team.name
+        )
+    ).order_by(
         Coach.occupation,
         Coach.team_id,
         Coach.last_name

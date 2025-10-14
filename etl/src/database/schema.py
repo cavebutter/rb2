@@ -9,11 +9,13 @@ class SchemaManager:
 
     def __init__(self):
         self.sql_dir = Path(__file__).parent.parent.parent / "sql" / "tables"
+        self.indexes_dir = Path(__file__).parent.parent.parent / "sql" / "indexes"
 
 
-    def execute_sql_file(self, filename):
-        """Execute a SQL file"""
-        sql_path = self.sql_dir / filename
+    def execute_sql_file(self, filename, directory=None):
+        """Execute a SQL file from specified directory or default tables directory"""
+        sql_dir = directory if directory else self.sql_dir
+        sql_path = sql_dir / filename
 
         if not sql_path.exists():
             logger.error(f"SQL file not found: {sql_path}")
@@ -101,4 +103,30 @@ class SchemaManager:
             if not self.execute_sql_file(sql_file.name):
                 logger.error(f"Failed to execute {sql_file.name}, stopping.")
                 return False
+
+        # After creating tables, create indexes
+        logger.info("Creating performance indexes...")
+        if not self.create_indexes():
+            logger.warning("Some indexes failed to create, but continuing...")
+
         return True
+
+    def create_indexes(self):
+        """Create all indexes from the indexes directory"""
+        if not self.indexes_dir.exists():
+            logger.warning(f"Indexes directory not found: {self.indexes_dir}")
+            return True  # Not a critical error
+
+        index_files = sorted(self.indexes_dir.glob('*.sql'))
+        if not index_files:
+            logger.info("No index files found in indexes directory")
+            return True
+
+        success = True
+        for index_file in index_files:
+            logger.info(f"Creating indexes from {index_file.name}")
+            if not self.execute_sql_file(index_file.name, directory=self.indexes_dir):
+                logger.error(f"Failed to execute {index_file.name}")
+                success = False
+
+        return success

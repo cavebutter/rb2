@@ -1,7 +1,8 @@
 """League and year routes."""
-from flask import Blueprint, render_template, abort
+from flask import Blueprint, render_template, abort, send_file
 from app.models import League
 from app.services import league_service, leaderboard_service
+import os
 
 bp = Blueprint('leagues', __name__)
 
@@ -146,3 +147,31 @@ def year_summary(year):
         next_year=next_year,
         available_years=available_years
     )
+
+
+@bp.route('/logo/<int:league_id>')
+def league_logo(league_id):
+    """Serve league logo from ETL data directory.
+
+    Returns the league logo PNG file or 404 if not found.
+    The filename is retrieved from the leagues table logo_file_name column.
+    """
+    # Get league to fetch logo filename
+    league = League.query.get_or_404(league_id)
+
+    if not league.logo_file_name:
+        abort(404)
+
+    # Path to league logos
+    # From web/app/routes -> up 3 levels to rb2/ -> etl/data/images/league_logos
+    logo_dir = os.path.abspath(os.path.join(
+        os.path.dirname(__file__),
+        '../../../etl/data/images/league_logos'
+    ))
+
+    logo_path = os.path.join(logo_dir, league.logo_file_name)
+
+    if os.path.exists(logo_path):
+        return send_file(logo_path, mimetype='image/png')
+    else:
+        abort(404)

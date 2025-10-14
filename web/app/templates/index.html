@@ -145,8 +145,14 @@
                 <div class="space-y-8">
                     {% for league_data in leagues_data %}
                         <!-- League Header -->
-                        <div class="mb-6">
-                            <h2 class="text-3xl font-bold text-gray-800 mb-4">{{ league_data.league.name }} Standings</h2>
+                        <div class="mb-6 flex items-center gap-4">
+                            {% if league_data.league.logo_file_name %}
+                                <img src="{{ url_for('leagues.league_logo', league_id=league_data.league.league_id) }}"
+                                     alt="{{ league_data.league.name }}"
+                                     class="h-16 w-16 object-contain"
+                                     onerror="this.style.display='none';">
+                            {% endif %}
+                            <h2 class="text-3xl font-bold text-gray-800">{{ league_data.league.name }} Standings</h2>
                         </div>
 
                         <!-- Standings by Sub-League/Division -->
@@ -182,10 +188,18 @@
                                                     {% for team in division.teams %}
                                                         <tr class="hover:bg-gray-50">
                                                             <td class="px-4 py-3 whitespace-nowrap text-sm">
-                                                                <a href="{{ url_for('teams.team_detail', team_id=team.team_id) }}"
-                                                                   class="text-blue-600 hover:text-blue-800 font-medium">
-                                                                    {{ team.abbr }}
-                                                                </a>
+                                                                <div class="flex items-center gap-2">
+                                                                    {% if team.logo_file_name %}
+                                                                        <img src="{{ url_for('teams.team_logo', team_id=team.team_id) }}"
+                                                                             alt="{{ team.abbr }}"
+                                                                             class="h-6 w-6 object-contain"
+                                                                             onerror="this.style.display='none';">
+                                                                    {% endif %}
+                                                                    <a href="{{ url_for('teams.team_detail', team_id=team.team_id) }}"
+                                                                       class="text-blue-600 hover:text-blue-800 font-medium">
+                                                                        {{ team.abbr }}
+                                                                    </a>
+                                                                </div>
                                                             </td>
                                                             <td class="px-2 py-3 text-center text-sm">
                                                                 {{ team.record.w if team.record else '-' }}

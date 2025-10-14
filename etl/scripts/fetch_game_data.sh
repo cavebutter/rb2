@@ -29,13 +29,19 @@ fi
 # Use paths from .env
 REMOTE_DATA_PATH="${OOTP_REMOTE_DATA_PATH}"
 REMOTE_PICTURES_PATH="${OOTP_REMOTE_PICTURES_PATH}"
+REMOTE_LEAGUE_LOGOS_PATH="${OOTP_REMOTE_LEAGUE_LOGOS_PATH}"
+REMOTE_TEAM_LOGOS_PATH="${OOTP_REMOTE_TEAM_LOGOS_PATH}"
 LOCAL_DATA="${OOTP_GAME_DATA_PATH}/csv"
 LOCAL_PICTURES="${OOTP_IMAGES_PATH}"
+LOCAL_LEAGUE_LOGOS="${OOTP_LEAGUE_LOGOS_PATH}"
+LOCAL_TEAM_LOGOS="${OOTP_TEAM_LOGOS_PATH}"
 
 # Create local directories if they don't exist
 echo "Creating local directories..."
 mkdir -p "${LOCAL_DATA}"
 mkdir -p "${LOCAL_PICTURES}"
+mkdir -p "${LOCAL_LEAGUE_LOGOS}"
+mkdir -p "${LOCAL_TEAM_LOGOS}"
 
 # Function to check if rsync succeeded
 check_rsync_result() {
@@ -79,7 +85,33 @@ rsync -avz --update --progress --stats \
 
 check_rsync_result $? "Player pictures sync"
 
+# Sync league logos (incremental, preserve newer local files)
+echo ""
+echo "Syncing league logos..."
+echo "Source: ${GAME_MACHINE}:\"${REMOTE_LEAGUE_LOGOS_PATH}/\""
+echo "Target: ${LOCAL_LEAGUE_LOGOS}/"
+
+rsync -avz --update --progress --stats \
+    "${GAME_MACHINE}:${REMOTE_LEAGUE_LOGOS_PATH}/" \
+    "${LOCAL_LEAGUE_LOGOS}/"
+
+check_rsync_result $? "League logos sync"
+
+# Sync team logos (incremental, preserve newer local files)
+echo ""
+echo "Syncing team logos..."
+echo "Source: ${GAME_MACHINE}:\"${REMOTE_TEAM_LOGOS_PATH}/\""
+echo "Target: ${LOCAL_TEAM_LOGOS}/"
+
+rsync -avz --update --progress --stats \
+    "${GAME_MACHINE}:${REMOTE_TEAM_LOGOS_PATH}/" \
+    "${LOCAL_TEAM_LOGOS}/"
+
+check_rsync_result $? "Team logos sync"
+
 echo ""
 echo "🎉 Transfer complete!"
 echo "CSV files: ${LOCAL_DATA}/"
 echo "Pictures: ${LOCAL_PICTURES}/"
+echo "League logos: ${LOCAL_LEAGUE_LOGOS}/"
+echo "Team logos: ${LOCAL_TEAM_LOGOS}/"

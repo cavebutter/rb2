@@ -16,10 +16,10 @@
     {% set dimensions = 'w-32 h-32 text-4xl' %}
   {% endif %}
 
-  {# TODO: When team logo images are available, add image serving route and uncomment below
+  {# Display logo image if available, otherwise fall back to stylized abbreviation #}
   {% if team.logo_file_name %}
     <img
-      src="{{ url_for('teams.team_logo_image', team_id=team.team_id) }}"
+      src="{{ url_for('teams.team_logo', team_id=team.team_id) }}"
       alt="{{ team.full_name }} logo"
       class="{{ dimensions }} object-contain rounded"
       onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';"
@@ -28,21 +28,19 @@
       {{ team.abbr if team.abbr else team.name[:3]|upper }}
     </div>
   {% else %}
-  {% endif %}
-  #}
-
-  {# Placeholder: Stylized abbreviation (always shown for now) #}
-  {% if link_to_team %}
-  <a href="{{ url_for('teams.team_detail', team_id=team.team_id) }}"
-     class="hover:opacity-80 transition-opacity"
-     title="View {{ team.name }} team page">
+  {# Fallback: Stylized abbreviation when no logo available #}
+    {% if link_to_team %}
+    <a href="{{ url_for('teams.team_detail', team_id=team.team_id) }}"
+       class="hover:opacity-80 transition-opacity"
+       title="View {{ team.name }} team page">
+      <div class="{{ dimensions }} bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold shadow-lg">
+        {{ team.abbr if team.abbr else team.name[:3]|upper }}
+      </div>
+    </a>
+    {% else %}
     <div class="{{ dimensions }} bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold shadow-lg">
       {{ team.abbr if team.abbr else team.name[:3]|upper }}
     </div>
-  </a>
-  {% else %}
-  <div class="{{ dimensions }} bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold shadow-lg">
-    {{ team.abbr if team.abbr else team.name[:3]|upper }}
-  </div>
+    {% endif %}
   {% endif %}
 {% endmacro %}

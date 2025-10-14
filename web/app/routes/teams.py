@@ -1,7 +1,8 @@
 """Team routes"""
-from flask import Blueprint, render_template, abort
+from flask import Blueprint, render_template, abort, send_file
 from app.models import Team, TeamRecord, Player, PlayerCurrentStatus, League, Park
 from app.extensions import db
+import os
 from app.services.team_service import (
     get_team_year_data,
     get_available_years_for_team,
@@ -158,3 +159,31 @@ def team_year(team_id, year):
                           top_players=top_players,
                           prev_year=prev_year,
                           next_year=next_year)
+
+
+@bp.route('/logo/<int:team_id>')
+def team_logo(team_id):
+    """Serve team logo from ETL data directory.
+
+    Returns the team logo PNG file or 404 if not found.
+    The filename is retrieved from the teams table logo_file_name column.
+    """
+    # Get team to fetch logo filename
+    team = Team.query.get_or_404(team_id)
+
+    if not team.logo_file_name:
+        abort(404)
+
+    # Path to team logos
+    # From web/app/routes -> up 3 levels to rb2/ -> etl/data/images/team_logos
+    logo_dir = os.path.abspath(os.path.join(
+        os.path.dirname(__file__),
+        '../../../etl/data/images/team_logos'
+    ))
+
+    logo_path = os.path.join(logo_dir, team.logo_file_name)
+
+    if os.path.exists(logo_path):
+        return send_file(logo_path, mimetype='image/png')
+    else:
+        abort(404)

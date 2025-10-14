@@ -38,10 +38,18 @@
             {{ coach.occupation_display }}
           </span>
           {% if current_team %}
-          <a href="{{ url_for('teams.team_detail', team_id=current_team.team_id) }}"
-             class="text-blue-600 hover:text-blue-800 font-medium">
-            {{ current_team.name }}
-          </a>
+          <div class="flex items-center gap-2">
+            <a href="{{ url_for('teams.team_detail', team_id=current_team.team_id) }}"
+               class="text-blue-600 hover:text-blue-800 font-medium">
+              {{ current_team.name }}
+            </a>
+            {% if current_team.logo_file_name %}
+            <img src="{{ url_for('teams.team_logo', team_id=current_team.team_id) }}"
+                 alt="{{ current_team.name }}"
+                 class="h-6 w-6 object-contain"
+                 onerror="this.style.display='none';">
+            {% endif %}
+          </div>
           {% else %}
           <span class="text-gray-500">Free Agent</span>
           {% endif %}
