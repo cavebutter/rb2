@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Leagues - RB2 Baseball{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb Navigation -->
+    {% from "_macros/breadcrumbs.html" import breadcrumbs %}
+    {{ breadcrumbs([
+        ('Home', url_for('main.index')),
+        ('Leagues', None)
+    ]) }}
+
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold text-gray-900">Leagues</h1>
+        <p class="text-gray-600 mt-2">Browse all top-level leagues</p>
+    </div>
+
+    <!-- Leagues List -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for league in leagues %}
+        <a href="{{ url_for('leagues.league_home', league_id=league.league_id) }}"
+           class="block bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
+            <div class="p-6">
+                <!-- League Logo (if available) -->
+                {% if league.logo_file_name %}
+                <div class="flex justify-center mb-4">
+                    <img src="{{ url_for('leagues.league_logo', league_id=league.league_id) }}"
+                         alt="{{ league.name }} logo"
+                         class="w-24 h-24 object-contain"
+                         onerror="this.style.display='none';">
+                </div>
+                {% endif %}
+
+                <!-- League Info -->
+                <div class="text-center">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">{{ league.name }}</h2>
+                    <p class="text-gray-600 text-sm mb-1">
+                        <span class="font-medium">Abbreviation:</span> {{ league.abbr }}
+                    </p>
+                    <p class="text-gray-600 text-sm">
+                        <span class="font-medium">Current Season:</span> {{ league.season_year }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Action Footer -->
+            <div class="bg-blue-50 px-6 py-3 border-t border-blue-100">
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-blue-700 font-medium">View League →</span>
+                    <span class="text-gray-500">{{ league.season_year }} Season</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Empty State -->
+    {% if not leagues %}
+    <div class="text-center py-12">
+        <p class="text-gray-500 text-lg">No leagues found.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

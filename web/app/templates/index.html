@@ -231,13 +231,14 @@
                         <!-- League Summary Links -->
                         <div class="mb-8">
                             <div class="flex gap-4 text-sm">
+                                <a href="{{ url_for('leagues.league_home', league_id=league_data.league.league_id) }}"
+                                   class="text-blue-600 hover:text-blue-800 hover:underline font-medium">
+                                    League Home
+                                </a>
+                                <span class="text-gray-400">|</span>
                                 <a href="{{ url_for('leaderboards.batting', league=league_data.league.league_id) }}"
                                    class="text-blue-600 hover:text-blue-800 hover:underline font-medium">
                                     League Leaders
-                                </a>
-                                <span class="text-gray-400">|</span>
-                                <a href="#" class="text-blue-600 hover:text-blue-800 hover:underline font-medium">
-                                    Team Stats
                                 </a>
                                 <span class="text-gray-400">|</span>
                                 <a href="#" class="text-blue-600 hover:text-blue-800 hover:underline font-medium">

@@ -12,14 +12,30 @@
     ]) }}
 
     <!-- League Header -->
-    <div class="mb-8">
-        <h1 class="text-4xl font-bold text-gray-900">{{ league.name }}</h1>
-        <p class="text-gray-600 mt-2">
-            {{ league.season_year }} Season
-            {% if league.game_date %}
-                | Current Date: {{ league.game_date.strftime('%B %d, %Y') }}
-            {% endif %}
-        </p>
+    <div class="mb-8 flex items-start gap-6">
+        <!-- League Logo -->
+        {% if league.logo_file_name %}
+        <div class="flex-shrink-0">
+            <img src="{{ url_for('leagues.league_logo', league_id=league.league_id) }}"
+                 alt="{{ league.name }} logo"
+                 class="w-24 h-24 object-contain"
+                 onerror="this.style.display='none';">
+        </div>
+        {% endif %}
+
+        <!-- League Info -->
+        <div>
+            <h1 class="text-4xl font-bold text-gray-900">{{ league.name }}</h1>
+            <p class="text-gray-600 mt-2">
+                <a href="{{ url_for('leagues.year_summary', year=league.season_year) }}"
+                   class="text-blue-600 hover:text-blue-800 hover:underline font-medium">
+                    {{ league.season_year }} Season
+                </a>
+                {% if league.game_date %}
+                    | Current Date: {{ league.game_date.strftime('%B %d, %Y') }}
+                {% endif %}
+            </p>
+        </div>
     </div>
 
     <!-- Standings Section -->

@@ -73,7 +73,7 @@
                     </td>
                     <td class="px-3 py-2 text-sm whitespace-nowrap">
                         {% if stat.league %}
-                        <a href="#" class="text-blue-600 hover:text-blue-800">
+                        <a href="{{ url_for('leagues.league_home', league_id=stat.league.league_id) }}" class="text-blue-600 hover:text-blue-800">
                             {{ stat.league.abbr }}
                         </a>
                         {% else %}
@@ -220,7 +220,7 @@
                     </td>
                     <td class="px-3 py-2 text-sm whitespace-nowrap">
                         {% if stat.league %}
-                        <a href="#" class="text-blue-600 hover:text-blue-800">
+                        <a href="{{ url_for('leagues.league_home', league_id=stat.league.league_id) }}" class="text-blue-600 hover:text-blue-800">
                             {{ stat.league.abbr }}
                         </a>
                         {% else %}

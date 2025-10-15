@@ -21,6 +21,7 @@
                     <!-- Desktop Navigation -->
                     <div class="hidden md:flex space-x-4">
                         <a href="{{ url_for('main.index') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Home</a>
+                        <a href="{{ url_for('leagues.leagues_index') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Leagues</a>
                         <a href="{{ url_for('teams.teams_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Teams</a>
                         <a href="{{ url_for('players.players_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Players</a>
                         <a href="{{ url_for('coaches.coach_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Coaches</a>
@@ -123,6 +124,7 @@
             <div id="mobile-menu" class="hidden md:hidden pb-4">
                 <div class="flex flex-col space-y-2">
                     <a href="{{ url_for('main.index') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Home</a>
+                    <a href="{{ url_for('leagues.leagues_index') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Leagues</a>
                     <a href="{{ url_for('teams.teams_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Teams</a>
                     <a href="{{ url_for('players.players_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Players</a>
                     <a href="{{ url_for('coaches.coach_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Coaches</a>

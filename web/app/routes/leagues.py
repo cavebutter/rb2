@@ -7,6 +7,18 @@ import os
 bp = Blueprint('leagues', __name__)
 
 
+@bp.route('/')
+def leagues_index():
+    """Leagues index page - list all top-level leagues.
+
+    URL: /leagues/
+    """
+    # Get all top-level leagues (league_level = 1)
+    leagues = League.query.filter_by(league_level=1).order_by(League.name).all()
+
+    return render_template('leagues/index.html', leagues=leagues)
+
+
 @bp.route('/<int:league_id>')
 def league_home(league_id):
     """League home page showing current standings, leaders, and team stats.
@@ -22,25 +34,25 @@ def league_home(league_id):
     # Get team aggregate stats
     team_stats = league_service.get_league_team_stats(league_id)
 
-    # Get top 10 batting leaders for this league
+    # Get top 10 batting leaders for this league (use league's current season year)
     batting_leaders = {}
     batting_stats = ['hr', 'avg', 'rbi', 'sb', 'h']
     for stat in batting_stats:
         leaders = leaderboard_service.get_yearly_batting_leaders(
             stat=stat,
-            year=1997,  # Current year
+            year=league.season_year,
             league_id=league_id,
             limit=10
         )
         batting_leaders[stat] = leaders['leaders']
 
-    # Get top 10 pitching leaders for this league
+    # Get top 10 pitching leaders for this league (use league's current season year)
     pitching_leaders = {}
     pitching_stats = ['w', 'sv', 'so', 'era', 'whip']
     for stat in pitching_stats:
         leaders = leaderboard_service.get_yearly_pitching_leaders(
             stat=stat,
-            year=1997,  # Current year
+            year=league.season_year,
             league_id=league_id,
             limit=10
         )

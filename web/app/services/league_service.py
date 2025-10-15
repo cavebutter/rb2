@@ -65,27 +65,28 @@ def get_league_standings(league_id: int) -> Dict[str, Any]:
     standings_data = []
 
     for sub_league_id in sorted(structure.keys()):
-        # Get sub-league name if it exists
+        # Get sub-league name - sub_leagues can start at 0
         sub_league = SubLeague.query.filter_by(
             league_id=league_id,
             sub_league_id=sub_league_id
-        ).first() if sub_league_id > 0 else None
+        ).first()
 
-        # Get league name for fallback
-        league = League.query.get(league_id)
+        # Get league name for fallback (when sub_league_id=0, use league name)
+        if not sub_league:
+            league = League.query.get(league_id)
 
         sub_league_data = {
-            'name': sub_league.name if sub_league else (league.name if league else 'Standings'),
+            'name': sub_league.name if sub_league else (league.name if league else 'League'),
             'divisions': []
         }
 
         for division_id in sorted(structure[sub_league_id].keys()):
-            # Get division name if it exists
+            # Get division name - divisions can start at 0
             division = Division.query.filter_by(
                 league_id=league_id,
                 sub_league_id=sub_league_id,
                 division_id=division_id
-            ).first() if division_id > 0 else None
+            ).first()
 
             # Get teams with their records
             # OPTIMIZATION: Block cascading eager loads on Team model
@@ -114,7 +115,7 @@ def get_league_standings(league_id: int) -> Dict[str, Any]:
                     .all())
 
             division_data = {
-                'name': division.name if division else 'Standings',
+                'name': division.name if division else f'Division {division_id}',
                 'teams': teams
             }
 
@@ -190,9 +191,11 @@ def get_year_standings(year: int) -> Dict[str, Any]:
     if not top_leagues:
         return {'leagues_data': []}
 
-    # For current year (1997), use current standings
+    # For current year, use current standings
     # For historical years, use team_history_record
-    is_current_year = (year == 1997)  # TODO: Make this dynamic based on game state
+    # Determine current year from leagues (use max season_year from top-level leagues)
+    current_year_query = db.session.query(db.func.max(League.season_year)).filter_by(league_level=1).scalar()
+    is_current_year = (year == current_year_query)
 
     leagues_data = []
 
