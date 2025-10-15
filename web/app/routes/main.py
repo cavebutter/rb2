@@ -2,14 +2,21 @@
 from flask import Blueprint, render_template
 from app.models import Team, TeamRecord, League, SubLeague, Division
 from app.services.player_service import get_notable_rookies, get_featured_players, get_players_born_this_week
+from app.extensions import cache
 from sqlalchemy import and_
 
 bp = Blueprint('main', __name__)
 
 
 @bp.route('/')
+@cache.cached(timeout=300, key_prefix='home_standings')
 def index():
     """Home page - Show current standings for all top-level leagues
+
+    CACHING: Entire page cached for 5 minutes (300s)
+    - Standings data changes infrequently (after games/sims)
+    - Featured players/rookies/birthdays acceptable to be 5min stale
+    - Cache key: 'rb2_dev:home_standings'
 
     Handles flexible league structures:
     - Leagues with sub-leagues and divisions (MLB: AL/NL with divisions)

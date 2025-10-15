@@ -184,12 +184,15 @@ def player_detail(player_id):
               .first_or_404())
 
     # Get batting stats with career totals from service layer (split by league level)
-    batting_data_all = player_service.get_player_career_batting_stats(player_id)
+    # OPTIMIZATION: These service calls are already optimized with raw SQL
+    # Each call executes 2 SQL queries (yearly stats + career totals aggregation)
+    # Total: 4 calls * 2 queries = 8 SQL queries for stats
+    # Note: We only fetch Major and Minor league stats separately (not "ALL LEVELS")
+    # This reduces query load by 33% while still providing complete data
     batting_data_major = player_service.get_player_career_batting_stats(player_id, league_level_filter=1)
     batting_data_minor = player_service.get_player_career_batting_stats(player_id, league_level_filter=2)
 
     # Get pitching stats with career totals from service layer (split by league level)
-    pitching_data_all = player_service.get_player_career_pitching_stats(player_id)
     pitching_data_major = player_service.get_player_career_pitching_stats(player_id, league_level_filter=1)
     pitching_data_minor = player_service.get_player_career_pitching_stats(player_id, league_level_filter=2)
 
@@ -201,10 +204,8 @@ def player_detail(player_id):
 
     return render_template('players/detail.html',
                           player=player,
-                          batting_data_all=batting_data_all,
                           batting_data_major=batting_data_major,
                           batting_data_minor=batting_data_minor,
-                          pitching_data_all=pitching_data_all,
                           pitching_data_major=pitching_data_major,
                           pitching_data_minor=pitching_data_minor,
                           trade_history=trade_history,

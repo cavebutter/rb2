@@ -39,20 +39,44 @@ class Config:
 
 
 class DevelopmentConfig(Config):
-    """Development specific configuration"""
+    """Development specific configuration - Local Redis on dev machine"""
     DEBUG = True
     SQLALCHEMY_ECHO = True # Log all SQL queries
-    CACHE_TYPE = 'SimpleCache'
     TEMPLATES_AUTO_RELOAD = True
+
+    # Redis caching (local instance on dev machine)
+    CACHE_TYPE = 'RedisCache'
+    CACHE_REDIS_URL = os.environ.get('REDIS_URL') or 'redis://localhost:6379/0'
+    CACHE_DEFAULT_TIMEOUT = 300  # 5 minutes default
+    CACHE_KEY_PREFIX = 'rb2_dev:'
+
+
+class StagingConfig(Config):
+    """Staging environment - Centralized Redis on DB server"""
+    DEBUG = False
+    SQLALCHEMY_ECHO = False
+
+    # Redis caching (centralized on DB server, separate DB namespace)
+    CACHE_TYPE = 'RedisCache'
+    CACHE_REDIS_URL = os.environ.get('REDIS_URL') or 'redis://192.168.10.94:6379/1'
+    CACHE_DEFAULT_TIMEOUT = 300  # 5 minutes default
+    CACHE_KEY_PREFIX = 'rb2_staging:'
+
+    # Security Headers
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
 
 
 class ProductionConfig(Config):
-    """Production specific configuration"""
+    """Production specific configuration - Centralized Redis on DB server"""
     DEBUG = False
 
-    # Use redis for caching in prod
+    # Redis caching (centralized on DB server, separate DB namespace)
     CACHE_TYPE = 'RedisCache'
-    CACHE_REDIS_URL = os.environ.get('REDIS_URL') or 'redis://localhost:6379/0'
+    CACHE_REDIS_URL = os.environ.get('REDIS_URL') or 'redis://192.168.10.94:6379/2'
+    CACHE_DEFAULT_TIMEOUT = 600  # 10 minutes default for production
+    CACHE_KEY_PREFIX = 'rb2_prod:'
 
     # Security Headers
     SESSION_COOKIE_SECURE = True
@@ -70,6 +94,7 @@ class TestingConfig(Config):
 
 config = {
     'development': DevelopmentConfig,
+    'staging': StagingConfig,
     'production': ProductionConfig,
     'testing': TestingConfig,
     'default': DevelopmentConfig

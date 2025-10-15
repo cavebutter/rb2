@@ -19,7 +19,7 @@
           SELECT
               p.year,
               p.league_id,
-              p.sub_league_id,
+              COALESCE(p.sub_league_id, 0) AS sub_league_id,
               SUM(p.r) AS total_runs,
               SUM(p.outs) AS total_outs,
               SUM(p.outs + p.ha + p.bb + p.iw + p.sh + p.sf) AS total_pa,
@@ -36,7 +36,7 @@
           WHERE p.split_id = 1
             AND p.league_id <> 0
             AND p.year = target_year
-          GROUP BY p.year, p.league_id, p.sub_league_id;
+          GROUP BY p.year, p.league_id, COALESCE(p.sub_league_id, 0);
       ELSE
           -- Process all years (initial load/rebuild)
           TRUNCATE TABLE league_runs_per_out;
@@ -49,7 +49,7 @@
           SELECT
               p.year,
               p.league_id,
-              p.sub_league_id,
+              COALESCE(p.sub_league_id, 0) AS sub_league_id,
               SUM(p.r) AS total_runs,
               SUM(p.outs) AS total_outs,
               SUM(p.outs + p.ha + p.bb + p.iw + p.sh + p.sf) AS total_pa,
@@ -65,7 +65,7 @@
           FROM players_career_pitching_stats p
           WHERE p.split_id = 1
             AND p.league_id <> 0
-          GROUP BY p.year, p.league_id, p.sub_league_id;
+          GROUP BY p.year, p.league_id, COALESCE(p.sub_league_id, 0);
       END IF;
   END;
   $$ LANGUAGE plpgsql;
@@ -101,7 +101,7 @@
               SELECT
                   b.year,
                   b.league_id,
-                  b.sub_league_id,
+                  COALESCE(b.sub_league_id, 0) AS sub_league_id,
                   SUM(b.ab) AS ab,
                   SUM(b.bb) AS bb,
                   SUM(b.ibb) AS ibb,
@@ -117,7 +117,7 @@
               FROM players_career_batting_stats b
               WHERE b.split_id = 1
                 AND b.year = target_year
-              GROUP BY b.year, b.league_id, b.sub_league_id
+              GROUP BY b.year, b.league_id, COALESCE(b.sub_league_id, 0)
           ),
           -- Step 3: Calculate run_minus, run_plus, and wOBA
           intermediate_values AS (
@@ -209,7 +209,7 @@
               SELECT
                   b.year,
                   b.league_id,
-                  b.sub_league_id,
+                  COALESCE(b.sub_league_id, 0) AS sub_league_id,
                   SUM(b.ab) AS ab,
                   SUM(b.bb) AS bb,
                   SUM(b.ibb) AS ibb,
@@ -224,7 +224,7 @@
                   SUM(b.sf) AS sf
               FROM players_career_batting_stats b
               WHERE b.split_id = 1
-              GROUP BY b.year, b.league_id, b.sub_league_id
+              GROUP BY b.year, b.league_id, COALESCE(b.sub_league_id, 0)
           ),
           -- Step 3: Calculate run_minus, run_plus, and wOBA
           intermediate_values AS (
@@ -373,7 +373,7 @@
           SELECT
               b.year,
               b.league_id,
-              b.sub_league_id,
+              COALESCE(b.sub_league_id, 0) AS sub_league_id,
               SUM(b.pa) AS total_pa,
               SUM(b.r) AS total_runs,
               CASE
@@ -386,7 +386,7 @@
             AND pcs.position <> 1  -- Exclude pitchers
             AND b.league_id <> 0   -- FILTER: Exclude league_id=0 (free agents/invalid records)
             AND b.year = target_year
-          GROUP BY b.year, b.league_id, b.sub_league_id;
+          GROUP BY b.year, b.league_id, COALESCE(b.sub_league_id, 0);
       ELSE
           -- Process all years (initial load/rebuild)
           TRUNCATE TABLE sub_league_batting_environment;
@@ -398,7 +398,7 @@
           SELECT
               b.year,
               b.league_id,
-              b.sub_league_id,
+              COALESCE(b.sub_league_id, 0) AS sub_league_id,
               SUM(b.pa) AS total_pa,
               SUM(b.r) AS total_runs,
               CASE
@@ -410,7 +410,7 @@
           WHERE b.split_id = 1
             AND pcs.position <> 1  -- Exclude pitchers
             AND b.league_id <> 0   -- FILTER: Exclude league_id=0 (free agents/invalid records)
-          GROUP BY b.year, b.league_id, b.sub_league_id;
+          GROUP BY b.year, b.league_id, COALESCE(b.sub_league_id, 0);
       END IF;
   END;
   $$ LANGUAGE plpgsql;
@@ -437,7 +437,7 @@
           SELECT
               p.year,
               p.league_id,
-              p.sub_league_id,
+              COALESCE(p.sub_league_id, 0) AS sub_league_id,
               -- Total innings pitched (converted from outs)
               ROUND(SUM(p.outs) / 3.0, 1) as total_ip,
               SUM(p.er) as total_er,
@@ -468,7 +468,7 @@
           WHERE p.split_id = 1  -- Overall stats only
             AND p.league_id <> 0  -- FILTER: Exclude free agents/invalid records
             AND p.year = target_year
-          GROUP BY p.year, p.league_id, p.sub_league_id, fc.fip_constant;
+          GROUP BY p.year, p.league_id, COALESCE(p.sub_league_id, 0), fc.fip_constant;
 
       ELSE
           -- Full refresh: All years
@@ -483,7 +483,7 @@
           SELECT
               p.year,
               p.league_id,
-              p.sub_league_id,
+              COALESCE(p.sub_league_id, 0) AS sub_league_id,
               -- Total innings pitched (converted from outs)
               ROUND(SUM(p.outs) / 3.0, 1) as total_ip,
               SUM(p.er) as total_er,
@@ -513,7 +513,7 @@
           INNER JOIN fip_constants fc ON p.year = fc.year AND p.league_id = fc.league_id
           WHERE p.split_id = 1  -- Overall stats only
             AND p.league_id <> 0  -- FILTER: Exclude free agents/invalid records
-          GROUP BY p.year, p.league_id, p.sub_league_id, fc.fip_constant;
+          GROUP BY p.year, p.league_id, COALESCE(p.sub_league_id, 0), fc.fip_constant;
 
       END IF;
 

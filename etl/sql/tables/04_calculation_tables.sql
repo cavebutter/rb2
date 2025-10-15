@@ -3,25 +3,26 @@
 -- Must be populated AFTER base statistics are loaded
 
 -- League runs per out/PA (replaces LeagueRunsPerOut from original script)
+-- NOTE: sub_league_id can be 0 for historical data without sub-league structure
 CREATE TABLE IF NOT EXISTS league_runs_per_out (
-    year INTEGER,
-    league_id INTEGER,
-    sub_league_id INTEGER,
+    year INTEGER NOT NULL,
+    league_id INTEGER NOT NULL,
+    sub_league_id INTEGER NOT NULL DEFAULT 0,
     total_runs INTEGER,
     total_outs INTEGER,
     total_pa INTEGER,
     runs_per_out DECIMAL(8,6),
     runs_per_pa DECIMAL(8,6),
-    PRIMARY KEY (year, league_id, sub_league_id),
-    FOREIGN KEY (league_id, sub_league_id) 
-        REFERENCES sub_leagues(league_id, sub_league_id)
+    PRIMARY KEY (year, league_id, sub_league_id)
+    -- Foreign key removed to allow sub_league_id=0 for historical data
 );
 
 -- Run values for offensive events (replaces tblRunValues, tblRunValues1A, tblRunValues2)
+-- NOTE: sub_league_id can be 0 for historical data without sub-league structure
 CREATE TABLE IF NOT EXISTS run_values (
-    year INTEGER,
-    league_id INTEGER,
-    sub_league_id INTEGER,
+    year INTEGER NOT NULL,
+    league_id INTEGER NOT NULL,
+    sub_league_id INTEGER NOT NULL DEFAULT 0,
     runs_per_out DECIMAL(8,6),
     -- Base run values
     run_bb DECIMAL(6,4),
@@ -46,9 +47,8 @@ CREATE TABLE IF NOT EXISTS run_values (
     woba_hr DECIMAL(6,4),
     woba_sb DECIMAL(6,4),
     woba_cs DECIMAL(6,4),
-    PRIMARY KEY (year, league_id, sub_league_id),
-    FOREIGN KEY (league_id, sub_league_id) 
-        REFERENCES sub_leagues(league_id, sub_league_id)
+    PRIMARY KEY (year, league_id, sub_league_id)
+    -- Foreign key removed to allow sub_league_id=0 for historical data
 );
 ALTER TABLE run_values
     ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1,
@@ -82,23 +82,24 @@ ALTER TABLE fip_constants
 
 
 -- Sub-league batting environment (replaces sub_league_history_batting)
+-- NOTE: sub_league_id can be 0 for historical data without sub-league structure
 CREATE TABLE IF NOT EXISTS sub_league_batting_environment (
-    year INTEGER,
-    league_id INTEGER,
-    sub_league_id INTEGER,
+    year INTEGER NOT NULL,
+    league_id INTEGER NOT NULL,
+    sub_league_id INTEGER NOT NULL DEFAULT 0,
     total_pa INTEGER,
     total_runs INTEGER,
     runs_per_pa DECIMAL(8,6),
-    PRIMARY KEY (year, league_id, sub_league_id),
-    FOREIGN KEY (league_id, sub_league_id) 
-        REFERENCES sub_leagues(league_id, sub_league_id)
+    PRIMARY KEY (year, league_id, sub_league_id)
+    -- Foreign key removed to allow sub_league_id=0 for historical data
 );
 
 -- Sub-league pitching environment (replaces sub_league_history_pitching)
+-- NOTE: sub_league_id can be 0 for historical data without sub-league structure
 CREATE TABLE IF NOT EXISTS sub_league_pitching_environment (
-    year INTEGER,
-    league_id INTEGER,
-    sub_league_id INTEGER,
+    year INTEGER NOT NULL,
+    league_id INTEGER NOT NULL,
+    sub_league_id INTEGER NOT NULL DEFAULT 0,
     total_ip DECIMAL(8,1),
     total_er INTEGER,
     adjusted_hra INTEGER,
@@ -107,9 +108,8 @@ CREATE TABLE IF NOT EXISTS sub_league_pitching_environment (
     adjusted_k INTEGER,
     league_era DECIMAL(5,2),
     league_fip DECIMAL(5,2),
-    PRIMARY KEY (year, league_id, sub_league_id),
-    FOREIGN KEY (league_id, sub_league_id) 
-        REFERENCES sub_leagues(league_id, sub_league_id)
+    PRIMARY KEY (year, league_id, sub_league_id)
+    -- Foreign key removed to allow sub_league_id=0 for historical data
 );
 
 -- Position definitions (for defensive calculations and display)

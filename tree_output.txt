@@ -1,0 +1,150 @@
+.
+├── CASCADE_EXPLOSION_DIAGRAM.txt
+├── continuity.txt
+├── docs
+│   ├── automated_baseline.sh
+│   ├── backlog-active.md
+│   ├── backlog-completed.md
+│   ├── BACKLOG.MD
+│   ├── baseline_measurement.py
+│   ├── CLAUDE.MD
+│   ├── CLAUDE.MD.backup
+│   ├── collect_all_baselines.py
+│   ├── collect_measurement.py
+│   ├── collect_with_mcp.py
+│   ├── complete_baseline_collection.py
+│   ├── DATA-MODEL.MD
+│   ├── DATA-MODEL.MD.backup
+│   ├── ETL-CHANGE-DETECTION.MD
+│   ├── newspaper-brainstorm.md
+│   ├── optimization-strategy.md
+│   ├── OVERVIEW.MD
+│   ├── OVERVIEW.MD.backup
+│   ├── performance_baseline.csv
+│   ├── phase1b_plan.md
+│   ├── phase1b_results.md
+│   ├── phase1_summary.md
+│   ├── phase2_plan.md
+│   ├── phase2_results.md
+│   ├── run_baseline.py
+│   ├── sqlalchemy-architecture-recommendation.md
+│   ├── WEB-IMPLEMENTATION-PLAN.md
+│   └── WEBSITE-SPECS.MD
+├── etl
+│   ├── config
+│   │   └── etl_config.py
+│   ├── data
+│   │   ├── archive
+│   │   ├── images
+│   │   ├── incoming
+│   │   ├── processed
+│   │   └── stat_tests
+│   ├── docs
+│   │   ├── INCREMENTAL_LOADING.md
+│   │   └── QUICK_START_INCREMENTAL.md
+│   ├── logs
+│   │   ├── etl_ 2025-09-15.log
+│   │   ├── etl_ 2025-09-16.log
+│   │   ├── etl_ 2025-09-17.log
+│   │   ├── etl_ 2025-09-18.log
+│   │   ├── etl_ 2025-09-22.log
+│   │   ├── etl_ 2025-09-23.log
+│   │   ├── etl_ 2025-09-24.log
+│   │   ├── etl_ 2025-09-25.log
+│   │   ├── etl_ 2025-09-29.log
+│   │   ├── etl_ 2025-10-02.log
+│   │   ├── etl_ 2025-10-03.log
+│   │   ├── etl_ 2025-10-07.log
+│   │   ├── etl_ 2025-10-13.log
+│   │   ├── etl_ 2025-10-14.log
+│   │   └── etl_ 2025-10-15.log
+│   ├── main.py
+│   ├── README.md
+│   ├── scripts
+│   │   └── fetch_game_data.sh
+│   ├── sql
+│   │   ├── functions
+│   │   ├── indexes
+│   │   ├── maintenance
+│   │   └── tables
+│   ├── src
+│   │   ├── database
+│   │   ├── __init__.py
+│   │   ├── loaders
+│   │   ├── transformers
+│   │   └── utils
+│   └── tests
+│       ├── __init__.py
+│       └── test_incremental_loading.py
+├── false_start
+│   ├── batter_player_card.php
+│   ├── errors
+│   │   ├── database_error.php
+│   │   └── other_error.php
+│   ├── index.php
+│   ├── LICENSE
+│   ├── main.css
+│   ├── master.css
+│   ├── model
+│   │   ├── database.php
+│   │   └── leagues_db.php
+│   ├── OOTP_scipts_and_data
+│   │   ├── MySQL OOTP Scripts
+│   │   └── to_process
+│   ├── pitcher_player_card.php
+│   ├── player_card_var_test.php
+│   ├── README.md
+│   ├── select_team_year.php
+│   ├── simple_test.php
+│   ├── team_home.php
+│   ├── team_home_var_test.php
+│   ├── team_roster.php
+│   └── view
+│       ├── footer.php
+│       └── header.php
+├── PERFORMANCE_INVESTIGATION_REPORT.md
+├── profile_home_page.py
+├── profile_player_detailed.py
+├── profile_player_page.py
+├── requirements-dev.txt
+├── requirements.txt
+├── scripts
+│   ├── add_franchise_indexes.sql
+│   ├── add_indexes.sql
+│   ├── apply_performance_indexes.sql
+│   ├── calcbatting.sql
+│   ├── calcpitching.sql
+│   ├── collect_measurements.sh
+│   ├── image_rename.py
+│   ├── local_script.sh
+│   ├── measure_performance_browser.py
+│   ├── measure_performance.py
+│   ├── ootp_client.py
+│   ├── phase2_performance_test.py
+│   ├── readme.MD
+│   ├── recreate_leaderboard_views.sql
+│   ├── refresh_leaderboard_views.sql
+│   ├── requirements.txt
+│   ├── run_values.sql
+│   └── server_script1.sh
+├── shared
+├── test_leaderboards.py
+├── tree_output.txt
+└── web
+    ├── app
+    │   ├── config.py
+    │   ├── context_processors.py
+    │   ├── extensions.py
+    │   ├── __init__.py
+    │   ├── models
+    │   ├── routes
+    │   ├── services
+    │   ├── static
+    │   ├── templates
+    │   └── utils
+    ├── run.py
+    ├── src
+    ├── templates
+    └── web_requirements.txt
+
+42 directories, 105 files

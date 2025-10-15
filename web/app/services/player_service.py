@@ -3,12 +3,12 @@
 This service centralizes player data access and calculations, enabling:
 - Cleaner route handlers
 - Better testability
-- Future caching integration
+- Redis caching for expensive queries
 - Performance optimization through efficient queries
 """
 from datetime import date, timedelta
 from sqlalchemy import func, and_, extract, or_, text
-from app.extensions import db
+from app.extensions import db, cache
 from app.models import (
     Player, PlayerBattingStats, PlayerPitchingStats,
     PlayerFieldingStats, Team, League, TradeHistory, Message,
@@ -42,8 +42,13 @@ def calculate_age_for_season(birth_date, season_year):
     return age
 
 
+@cache.memoize(timeout=600)
 def get_player_career_batting_stats(player_id, league_level_filter=None):
     """Get player's yearly batting statistics with career totals.
+
+    CACHING: Results cached for 10 minutes (600s)
+    - Cache key includes player_id and league_level_filter
+    - Stats update infrequently (after games/sims)
 
     Returns yearly stats ordered by year (most recent first) plus calculated
     career totals. Includes team and league information for links.
@@ -201,8 +206,13 @@ def get_player_career_batting_stats(player_id, league_level_filter=None):
     }
 
 
+@cache.memoize(timeout=600)
 def get_player_career_pitching_stats(player_id, league_level_filter=None):
     """Get player's yearly pitching statistics with career totals.
+
+    CACHING: Results cached for 10 minutes (600s)
+    - Cache key includes player_id and league_level_filter
+    - Stats update infrequently (after games/sims)
 
     Returns yearly stats ordered by year (most recent first) plus calculated
     career totals. Includes team and league information for links.
@@ -575,8 +585,13 @@ def get_player_news(player_id, limit=None):
     return query.all()
 
 
+@cache.memoize(timeout=600)
 def get_notable_rookies(limit=10):
     """Get top rookies by WAR in current season at highest league level.
+
+    CACHING: Results cached for 10 minutes (600s)
+    - Cache key includes limit parameter
+    - Rookie rankings update after games
 
     A rookie is defined as a player in their first season at league_level=1,
     regardless of minor league experience.
@@ -751,8 +766,13 @@ def _get_player_ids_with_images():
     return player_ids
 
 
+@cache.memoize(timeout=600)
 def get_featured_players(limit=18):
     """Get random featured players with images for home page grid.
+
+    CACHING: Results cached for 10 minutes (600s)
+    - Cache key includes limit parameter
+    - Random selection, but cached for consistency within TTL
 
     Returns random active players who have image files available.
     Images are stored at /etl/data/images/players/player_{player_id}.png
@@ -824,8 +844,13 @@ def get_featured_players(limit=18):
     return featured
 
 
+@cache.memoize(timeout=86400)
 def get_players_born_this_week(days_range=7):
     """Get players with birthdays within specified days of current game date.
+
+    CACHING: Results cached for 24 hours (86400s)
+    - Birthday data changes daily, so 24-hour cache is appropriate
+    - Cache key includes days_range parameter
 
     Uses the game_date from the top-level league (not real-world date).
     Handles year wraparound (e.g., Dec 28 to Jan 4).
