@@ -210,6 +210,18 @@ def load_stats(force_all_constants):
   pitching_loader = PitchingStatsLoader(batch_id=generate_batch_id())
   pitching_loader.load_csv(Path("data/incoming/csv/players_career_pitching_stats.csv"))
 
+  # Load game-level stats for newspaper article generation
+  logger.info('Loading game batting stats...')
+  from src.loaders.game_stats_loader import GameBattingStatsLoader, GamePitchingStatsLoader
+  game_batting_loader = GameBattingStatsLoader(batch_id=generate_batch_id())
+  game_batting_loader.load_csv(Path("data/incoming/csv/players_game_batting.csv"))
+  click.echo("✓ Game batting stats loaded")
+
+  logger.info('Loading game pitching stats...')
+  game_pitching_loader = GamePitchingStatsLoader(batch_id=generate_batch_id())
+  game_pitching_loader.load_csv(Path("data/incoming/csv/players_game_pitching_stats.csv"))
+  click.echo("✓ Game pitching stats loaded")
+
   # Phase 2 - Calculate league constants
   logger.info('Calculating league constants...')
   constants_transformer = LeagueConstantsTransformer(
@@ -284,6 +296,82 @@ def load_stats(force_all_constants):
       click.echo(f"⚠ Warning: Failed to refresh materialized views - leaderboards may be stale")
 
   logger.info('All stats, coaches, and rosters loaded!')
+
+
+@cli.command('generate-articles')
+@click.option('--date-range', help='Date range YYYY-MM-DD:YYYY-MM-DD')
+@click.option('--force', is_flag=True, help='Regenerate existing articles')
+@click.option('--priority', multiple=True, default=['MUST_GENERATE', 'SHOULD_GENERATE'],
+              help='Priority tiers to generate (MUST_GENERATE, SHOULD_GENERATE, COULD_GENERATE)')
+def generate_newspaper_articles(date_range, force, priority):
+    """Generate newspaper articles for Branch family performances"""
+    from src.newspaper.pipeline import generate_branch_articles_pipeline
+    from datetime import datetime
+
+    logger.info("=" * 80)
+    logger.info("NEWSPAPER ARTICLE GENERATION")
+    logger.info("=" * 80)
+
+    # Parse date range if provided
+    date_range_tuple = None
+    if date_range:
+        try:
+            start_str, end_str = date_range.split(':')
+            start_date = datetime.strptime(start_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_str, '%Y-%m-%d').date()
+            date_range_tuple = (start_date, end_date)
+            logger.info(f"Date range: {start_date} to {end_date}")
+        except ValueError as e:
+            click.echo(f"✗ Invalid date range format. Use YYYY-MM-DD:YYYY-MM-DD")
+            return 1
+
+    # Parse priority filter
+    priority_filter = list(priority) if priority else None
+    logger.info(f"Priority filter: {priority_filter}")
+    logger.info(f"Force regenerate: {force}")
+
+    try:
+        results = generate_branch_articles_pipeline(
+            date_range=date_range_tuple,
+            force_regenerate=force,
+            priority_filter=priority_filter
+        )
+
+        # Display results
+        click.echo("\n" + "=" * 80)
+        click.echo("NEWSPAPER GENERATION RESULTS")
+        click.echo("=" * 80)
+        click.echo(f"Detected:  {results['detected']:>3} Branch game performances")
+        click.echo(f"Generated: {results['generated']:>3} articles")
+        click.echo(f"Failed:    {results['failed']:>3} articles")
+        click.echo(f"Skipped:   {results['skipped']:>3} articles (already exist)")
+
+        if results['errors']:
+            click.echo(f"\nErrors ({len(results['errors'])}):")
+            for error in results['errors'][:5]:
+                click.echo(f"  - {error}")
+            if len(results['errors']) > 5:
+                click.echo(f"  ... and {len(results['errors']) - 5} more errors")
+
+        click.echo("=" * 80)
+
+        if results['generated'] > 0:
+            click.echo(f"\n✓ Successfully generated {results['generated']} articles")
+            return 0
+        elif results['failed'] > 0:
+            click.echo(f"\n⚠ {results['failed']} articles failed to generate")
+            return 1
+        else:
+            click.echo("\n⚠ No articles generated (this may be normal if no high-priority games found)")
+            return 0
+
+    except Exception as e:
+        logger.error(f"Article generation failed: {e}")
+        click.echo(f"\n✗ Article generation failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+
 
 # def _is_initial_load() -> bool:
 #   """Check if this is the first time loading data"""

@@ -670,11 +670,11 @@ def get_model_for_priority(priority: str) -> str:
     """
     model_map = {
         'MUST_GENERATE': 'qwen2.5:14b',      # Best model for exceptional games
-        'SHOULD_GENERATE': 'qwen2.5:7b',     # Good model for solid performances
-        'COULD_GENERATE': 'qwen2.5:3b',      # Fast model for routine games
+        'SHOULD_GENERATE': 'llama3.1:8b',    # Good model for solid performances
+        'COULD_GENERATE': 'llama3.1:8b',     # Fast model for routine games
     }
 
-    return model_map.get(priority, 'qwen2.5:7b')  # Default to 7b
+    return model_map.get(priority, 'llama3.1:8b')  # Default to llama3.1:8b
 
 
 def get_temperature_for_priority(priority: str) -> float:

@@ -391,3 +391,86 @@ CREATE INDEX IF NOT EXISTS idx_fielding_position ON players_career_fielding_stat
 
 CREATE INDEX IF NOT EXISTS idx_games_date ON games(date);
 CREATE INDEX IF NOT EXISTS idx_games_teams ON games(home_team, away_team);
+
+-- ============================================================================
+-- GAME-LEVEL STATISTICS
+-- ============================================================================
+-- Individual player performance statistics for specific games.
+-- These tables enable game-by-game analysis and support newspaper article
+-- generation by providing play-by-play context.
+-- ============================================================================
+
+-- Players Game Batting Stats
+-- Individual batting performance for each game appearance
+CREATE TABLE IF NOT EXISTS players_game_batting_stats (
+    player_id INTEGER NOT NULL,
+    year SMALLINT NOT NULL,
+    game_id INTEGER NOT NULL,
+    team_id INTEGER,
+    ab SMALLINT,
+    h SMALLINT,
+    d SMALLINT,
+    t SMALLINT,
+    hr SMALLINT,
+    r SMALLINT,
+    rbi SMALLINT,
+    bb SMALLINT,
+    k SMALLINT,
+    sb SMALLINT,
+    cs SMALLINT,
+    sf SMALLINT,
+    sh SMALLINT,
+    hp SMALLINT,
+    gdp SMALLINT,
+    PRIMARY KEY (player_id, year, game_id),
+    FOREIGN KEY (player_id) REFERENCES players_core(player_id),
+    FOREIGN KEY (team_id) REFERENCES teams(team_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_game_batting_player ON players_game_batting_stats(player_id);
+CREATE INDEX IF NOT EXISTS idx_game_batting_game ON players_game_batting_stats(game_id);
+CREATE INDEX IF NOT EXISTS idx_game_batting_year ON players_game_batting_stats(year);
+CREATE INDEX IF NOT EXISTS idx_game_batting_hr ON players_game_batting_stats(hr) WHERE hr > 0;
+
+COMMENT ON TABLE players_game_batting_stats IS 'Individual batting performance for each game';
+COMMENT ON COLUMN players_game_batting_stats.game_id IS 'Game identifier from games table';
+
+-- Players Game Pitching Stats
+-- Individual pitching performance for each game appearance
+CREATE TABLE IF NOT EXISTS players_game_pitching_stats (
+    player_id INTEGER NOT NULL,
+    year SMALLINT NOT NULL,
+    game_id INTEGER NOT NULL,
+    team_id INTEGER,
+    ip DECIMAL(4,1),  -- Innings pitched (stored as decimal: 6.2 = 6 2/3 innings)
+    h SMALLINT,       -- Hits allowed
+    r SMALLINT,       -- Runs allowed
+    er SMALLINT,      -- Earned runs
+    bb SMALLINT,      -- Walks
+    k SMALLINT,       -- Strikeouts
+    hr SMALLINT,      -- Home runs allowed
+    bf SMALLINT,      -- Batters faced
+    pc SMALLINT,      -- Pitch count
+    w SMALLINT,       -- Win (1 or 0)
+    l SMALLINT,       -- Loss (1 or 0)
+    sv SMALLINT,      -- Save (1 or 0)
+    hld SMALLINT,     -- Hold (1 or 0)
+    bs SMALLINT,      -- Blown save (1 or 0)
+    cg SMALLINT,      -- Complete game (1 or 0)
+    sho SMALLINT,     -- Shutout (1 or 0)
+    qs SMALLINT,      -- Quality start (1 or 0)
+    PRIMARY KEY (player_id, year, game_id),
+    FOREIGN KEY (player_id) REFERENCES players_core(player_id),
+    FOREIGN KEY (team_id) REFERENCES teams(team_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_game_pitching_player ON players_game_pitching_stats(player_id);
+CREATE INDEX IF NOT EXISTS idx_game_pitching_game ON players_game_pitching_stats(game_id);
+CREATE INDEX IF NOT EXISTS idx_game_pitching_year ON players_game_pitching_stats(year);
+CREATE INDEX IF NOT EXISTS idx_game_pitching_k ON players_game_pitching_stats(k) WHERE k >= 10;
+CREATE INDEX IF NOT EXISTS idx_game_pitching_cg ON players_game_pitching_stats(cg) WHERE cg = 1;
+
+COMMENT ON TABLE players_game_pitching_stats IS 'Individual pitching performance for each game';
+COMMENT ON COLUMN players_game_pitching_stats.ip IS 'Innings pitched as decimal (6.2 = 6 2/3 IP)';
+COMMENT ON COLUMN players_game_pitching_stats.w IS 'Win credited (1 or 0)';
+COMMENT ON COLUMN players_game_pitching_stats.qs IS 'Quality start: 6+ IP, 3 or fewer ER';

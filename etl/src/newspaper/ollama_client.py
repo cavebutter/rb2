@@ -24,7 +24,7 @@ class OllamaClient:
     def __init__(
         self,
         base_url: str = 'http://localhost:11434',
-        default_model: str = 'qwen2.5:7b',
+        default_model: str = 'llama3.1:8b',
         timeout: int = 120
     ):
         """
@@ -367,9 +367,10 @@ def get_fallback_model(preferred_model: str, client: OllamaClient) -> str:
     """
     Get a fallback model if preferred model is unavailable.
 
-    Fallback hierarchy:
-    - qwen2.5:14b -> qwen2.5:7b -> qwen2.5:3b
-    - llama3.1:70b -> llama3.1:8b
+    Fallback hierarchy (based on available models):
+    - qwen2.5:14b -> llama3.1:8b -> qwen3:14b
+    - qwen3:14b -> llama3.1:8b -> qwen2.5:14b
+    - llama3.1:8b -> qwen2.5:14b -> qwen3:14b
 
     Args:
         preferred_model: Desired model name
@@ -378,13 +379,11 @@ def get_fallback_model(preferred_model: str, client: OllamaClient) -> str:
     Returns:
         Available model name (may be preferred or fallback)
     """
-    # Define fallback chains
+    # Define fallback chains (only using available models)
     fallback_chains = {
-        'qwen2.5:14b': ['qwen2.5:7b', 'qwen2.5:3b', 'llama3.1:8b'],
-        'qwen2.5:7b': ['qwen2.5:3b', 'llama3.1:8b'],
-        'qwen2.5:3b': ['llama3.1:8b'],
-        'llama3.1:70b': ['llama3.1:8b', 'qwen2.5:7b'],
-        'llama3.1:8b': ['qwen2.5:7b'],
+        'qwen2.5:14b': ['llama3.1:8b', 'qwen3:14b'],
+        'qwen3:14b': ['llama3.1:8b', 'qwen2.5:14b'],
+        'llama3.1:8b': ['qwen2.5:14b', 'qwen3:14b'],
     }
 
     # Check if preferred model is available

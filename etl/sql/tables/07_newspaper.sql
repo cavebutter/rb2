@@ -65,8 +65,8 @@
 
       CONSTRAINT valid_newsworthiness_score CHECK (newsworthiness_score IS NULL OR (newsworthiness_score >= 0 AND newsworthiness_score <= 100)),
       CONSTRAINT valid_status CHECK (status IN ('draft', 'published', 'rejected')),
-      FOREIGN KEY (previous_version_id) REFERENCES newspaper_articles(article_id) ON DELETE SET NULL,
-      FOREIGN KEY (source_message_id) REFERENCES messages(message_id) ON DELETE SET NULL
+      FOREIGN KEY (previous_version_id) REFERENCES newspaper_articles(article_id) ON DELETE SET NULL
+      -- FK to messages added later after messages table is created
   );
 
   CREATE INDEX IF NOT EXISTS idx_articles_slug ON newspaper_articles(slug);
@@ -366,3 +366,9 @@ COMMENT ON COLUMN messages.importance IS 'Message importance level (higher = mor
 COMMENT ON COLUMN messages.message_type IS 'Type of message (mapped to game engine message types)';
 COMMENT ON COLUMN messages.ongoing_story_id IS 'Links related messages in a story arc (-1 = standalone)';
 COMMENT ON COLUMN messages.text_is_modified IS 'Flag indicating if body text has been manually edited';
+
+-- Add foreign key constraint to newspaper_articles now that messages table exists
+ALTER TABLE newspaper_articles
+  DROP CONSTRAINT IF EXISTS fk_newspaper_articles_source_message,
+  ADD CONSTRAINT fk_newspaper_articles_source_message
+    FOREIGN KEY (source_message_id) REFERENCES messages(message_id) ON DELETE SET NULL;

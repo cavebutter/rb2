@@ -386,9 +386,10 @@ def get_player_details(player_id: int, game_id: int, performance: Dict, db_confi
     try:
         # Get player bio
         cursor.execute("""
-            SELECT first_name, last_name, position
-            FROM players_core
-            WHERE player_id = %s
+            SELECT pc.first_name, pc.last_name, pcs.position
+            FROM players_core pc
+            LEFT JOIN players_current_status pcs ON pc.player_id = pcs.player_id
+            WHERE pc.player_id = %s
         """, (player_id,))
 
         row = cursor.fetchone()
