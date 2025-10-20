@@ -9,6 +9,7 @@
   -- Drop existing tables (in reverse dependency order)
   DROP TABLE IF EXISTS messages CASCADE;
   DROP TABLE IF EXISTS trade_history CASCADE;
+  DROP TABLE IF EXISTS branch_game_moments CASCADE;
   DROP TABLE IF EXISTS article_game_tags CASCADE;
   DROP TABLE IF EXISTS article_team_tags CASCADE;
   DROP TABLE IF EXISTS article_player_tags CASCADE;
@@ -48,7 +49,24 @@
       is_featured BOOLEAN DEFAULT FALSE,
       view_count INTEGER DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+      -- LLM Article Generation Fields (Task 1.2)
+      game_id INTEGER,  -- Direct reference to games table (no FK yet as games may not exist)
+      generation_method VARCHAR(50),  -- 'user', 'ai_generated', 'message_reprint'
+      model_used VARCHAR(50),  -- Ollama model name (e.g., 'qwen2.5:14b', 'llama3.1:8b')
+      newsworthiness_score INTEGER,  -- 0-100 scoring for prioritization
+      status VARCHAR(20) DEFAULT 'draft',  -- Editorial workflow: 'draft', 'published', 'rejected'
+      reviewed_by VARCHAR(100),  -- Username/identifier of reviewer
+      reviewed_at TIMESTAMP,  -- When article was reviewed
+      generation_count INTEGER DEFAULT 1,  -- Number of times regenerated
+      previous_version_id INTEGER,  -- Self-reference for regeneration tracking
+      source_message_id INTEGER,  -- Link to messages table for reprints
+
+      CONSTRAINT valid_newsworthiness_score CHECK (newsworthiness_score IS NULL OR (newsworthiness_score >= 0 AND newsworthiness_score <= 100)),
+      CONSTRAINT valid_status CHECK (status IN ('draft', 'published', 'rejected')),
+      FOREIGN KEY (previous_version_id) REFERENCES newspaper_articles(article_id) ON DELETE SET NULL,
+      FOREIGN KEY (source_message_id) REFERENCES messages(message_id) ON DELETE SET NULL
   );
 
   CREATE INDEX IF NOT EXISTS idx_articles_slug ON newspaper_articles(slug);
@@ -58,6 +76,14 @@
   CREATE INDEX IF NOT EXISTS idx_articles_game_date ON newspaper_articles(game_date);
   CREATE INDEX IF NOT EXISTS idx_articles_publish_date ON newspaper_articles(publish_date DESC);
   CREATE INDEX IF NOT EXISTS idx_articles_author_type ON newspaper_articles(author_type);
+
+  -- LLM Article Generation Indexes (Task 1.2)
+  CREATE INDEX IF NOT EXISTS idx_articles_game_id ON newspaper_articles(game_id);
+  CREATE INDEX IF NOT EXISTS idx_articles_status ON newspaper_articles(status);
+  CREATE INDEX IF NOT EXISTS idx_articles_status_published ON newspaper_articles(game_date DESC) WHERE status = 'published';
+  CREATE INDEX IF NOT EXISTS idx_articles_newsworthiness ON newspaper_articles(newsworthiness_score DESC) WHERE newsworthiness_score IS NOT NULL;
+  CREATE INDEX IF NOT EXISTS idx_articles_source_message ON newspaper_articles(source_message_id) WHERE source_message_id IS NOT NULL;
+  CREATE INDEX IF NOT EXISTS idx_articles_generation_method ON newspaper_articles(generation_method);
 
   COMMENT ON TABLE newspaper_articles IS 'All newspaper articles (user-written and AI-generated)';
   COMMENT ON COLUMN newspaper_articles.slug IS 'URL-friendly unique identifier for article';
@@ -142,6 +168,41 @@
       EXECUTE FUNCTION update_article_timestamp();
 
   COMMENT ON FUNCTION update_article_timestamp() IS 'Auto-updates the updated_at timestamp on article modifications';
+
+-- =====================================================
+-- Branch Game Moments Table
+-- =====================================================
+-- Stores extracted play-by-play data for Branch family
+-- player performances. Used as a cache for article
+-- generation without re-parsing game_logs.csv.
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS branch_game_moments (
+    moment_id SERIAL PRIMARY KEY,
+    game_id INTEGER NOT NULL,
+    player_id INTEGER NOT NULL,
+    inning INTEGER,
+    inning_half VARCHAR(10),
+    moment_type VARCHAR(50),  -- 'at_bat', 'pitching_inning', 'defensive_play'
+    play_sequence JSONB,  -- Array of play-by-play lines with context
+    outcome VARCHAR(200),  -- Summary of what happened
+    exit_velocity DECIMAL(5,1),  -- Exit velocity if available
+    hit_location VARCHAR(20),  -- Hit location if available
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT valid_inning_half CHECK (inning_half IN ('top', 'bottom', NULL)),
+    FOREIGN KEY (player_id) REFERENCES players_core(player_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_moments_game_player ON branch_game_moments(game_id, player_id);
+CREATE INDEX IF NOT EXISTS idx_moments_player ON branch_game_moments(player_id);
+CREATE INDEX IF NOT EXISTS idx_moments_game ON branch_game_moments(game_id);
+CREATE INDEX IF NOT EXISTS idx_moments_type ON branch_game_moments(moment_type);
+
+COMMENT ON TABLE branch_game_moments IS 'Cached play-by-play moments for Branch family player performances';
+COMMENT ON COLUMN branch_game_moments.play_sequence IS 'JSONB array of play-by-play text lines with surrounding context';
+COMMENT ON COLUMN branch_game_moments.moment_type IS 'Type of moment: at_bat, pitching_inning, or defensive_play';
+COMMENT ON COLUMN branch_game_moments.outcome IS 'Human-readable summary of the play outcome';
 
 -- =====================================================
 -- Transaction and News Tables
@@ -273,8 +334,10 @@ CREATE TABLE IF NOT EXISTS messages (
     notify SMALLINT DEFAULT 1,
     ongoing_story_id INTEGER DEFAULT -1,
     text_is_modified SMALLINT DEFAULT 0,
-    body TEXT NOT NULL,
-    FOREIGN KEY (trade_id) REFERENCES trade_history(trade_id) ON DELETE SET NULL
+    body TEXT NOT NULL
+    -- Note: No FK constraint on trade_id - this field contains OOTP internal trade IDs
+    -- which don't correspond to our auto-generated trade_history.trade_id values.
+    -- The proper relationship is: trade_history.message_id -> messages.message_id
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_date ON messages(date DESC);

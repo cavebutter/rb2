@@ -275,6 +275,7 @@ class ReferenceLoader(BaseLoader):
             'apply_filters': True,  # Enable message filtering
             'calculated_fields': {
                 # Convert 0 and negative values to NULL (non-trade messages use 0, -1, -5, etc.)
+                # Note: trade_id contains OOTP internal IDs with no FK constraint - kept for reference only
                 'trade_id': 'CASE WHEN trade_id > 0 THEN trade_id ELSE NULL END'
             }
         },
