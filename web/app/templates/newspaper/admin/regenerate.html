@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Regenerate: {{ article.title }} - Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6 flex items-center justify-between">
+        <a href="{{ url_for('newspaper_admin.review_article', article_id=article.article_id) }}"
+           class="text-forest hover:text-vintage-gold transition-colors flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Back to Review
+        </a>
+    </div>
+
+    <!-- Article Preview (condensed) -->
+    <div class="bg-white rounded-lg shadow-lg border-2 border-tan p-6 mb-6">
+        <h2 class="text-2xl font-bold text-forest deco-heading mb-2">{{ article.title }}</h2>
+        <div class="text-sm text-gray-600 mb-4">
+            Current Version: {{ article.generation_count }}
+            {% if article.model_used %} | Model: {{ article.model_used }}{% endif %}
+            {% if article.newsworthiness_score %} | Score: {{ article.newsworthiness_score }}{% endif %}
+        </div>
+        <div class="text-sm text-gray-700 line-clamp-3">
+            {{ article.content[:200]|striptags }}...
+        </div>
+    </div>
+
+    <!-- Regeneration Form -->
+    <form method="POST" class="bg-white rounded-lg shadow-lg border-2 border-leather p-8">
+        <h3 class="text-2xl font-bold text-forest deco-heading mb-6">Regenerate Article</h3>
+
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700">
+                        <strong>Note:</strong> Article regeneration will be integrated with the AI pipeline in Phase 2.
+                        For now, this is a placeholder form showing the intended workflow.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feedback -->
+        <div class="mb-6">
+            <label for="feedback" class="block text-sm font-semibold text-forest mb-2">
+                Editorial Feedback (Optional)
+            </label>
+            <textarea id="feedback" name="feedback" rows="4"
+                      class="w-full px-4 py-2 border-2 border-tan rounded-lg focus:border-forest focus:ring-2 focus:ring-vintage-gold focus:outline-none"
+                      placeholder="e.g., Focus more on the pitcher's performance, reduce focus on errors, use more period-appropriate language..."></textarea>
+            <p class="text-xs text-gray-500 mt-1">
+                Provide specific guidance on what aspects of the article to improve
+            </p>
+        </div>
+
+        <!-- Model Override -->
+        <div class="mb-6">
+            <label for="model_override" class="block text-sm font-semibold text-forest mb-2">
+                Override Model (Optional)
+            </label>
+            <select id="model_override" name="model_override"
+                    class="w-full px-4 py-2 border-2 border-tan rounded-lg focus:border-forest focus:ring-2 focus:ring-vintage-gold focus:outline-none">
+                <option value="">-- Use Default for Priority --</option>
+                <option value="qwen2.5:14b">qwen2.5:14b (High Quality)</option>
+                <option value="llama3.1:8b">llama3.1:8b (Balanced)</option>
+                <option value="qwen2.5:7b">qwen2.5:7b (Fast)</option>
+            </select>
+            <p class="text-xs text-gray-500 mt-1">
+                Leave blank to use the model automatically selected based on newsworthiness score
+            </p>
+        </div>
+
+        <!-- Temperature Adjustment -->
+        <div class="mb-8">
+            <label for="temperature" class="block text-sm font-semibold text-forest mb-2">
+                Temperature (Creativity) - Optional
+            </label>
+            <div class="flex items-center gap-4">
+                <input type="range" id="temperature" name="temperature" min="0.5" max="1.0" step="0.05" value="0.7"
+                       class="flex-1">
+                <span id="temperature-value" class="text-sm font-mono bg-tan px-3 py-1 rounded">0.7</span>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">
+                Lower = more factual and consistent, Higher = more creative and varied
+            </p>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex justify-end gap-4">
+            <a href="{{ url_for('newspaper_admin.review_article', article_id=article.article_id) }}"
+               class="px-6 py-3 border-2 border-tan text-gray-700 rounded-lg hover:bg-tan transition-colors font-medium">
+                Cancel
+            </a>
+            <button type="submit"
+                    class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                Regenerate Article
+            </button>
+        </div>
+    </form>
+
+    <!-- Previous Versions (if any) -->
+    {% if article.previous_version_id %}
+    <div class="bg-white rounded-lg shadow-lg border-2 border-tan p-6 mt-6">
+        <h3 class="text-xl font-bold text-forest mb-4 border-b-2 border-leather pb-2">Version History</h3>
+        <p class="text-sm text-gray-600">
+            This is version {{ article.generation_count }} of this article.
+            <a href="{{ url_for('newspaper_admin.review_article', article_id=article.previous_version_id) }}"
+               class="text-forest hover:text-vintage-gold font-medium">
+                View previous version →
+            </a>
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- JavaScript for temperature slider -->
+<script>
+const tempSlider = document.getElementById('temperature');
+const tempValue = document.getElementById('temperature-value');
+
+tempSlider.addEventListener('input', function() {
+    tempValue.textContent = this.value;
+});
+</script>
+{% endblock %}

@@ -49,6 +49,15 @@ from .leaderboard import (
     LeaderboardYearlyPitching
 )
 
+# Newspaper models
+from .newspaper import (
+    Article,
+    ArticleCategory,
+    ArticlePlayerTag,
+    ArticleTeamTag,
+    ArticleGameTag
+)
+
 __all__ = [
     # Base
     'BaseModel',
@@ -109,4 +118,11 @@ __all__ = [
     'LeaderboardSingleSeasonPitching',
     'LeaderboardYearlyBatting',
     'LeaderboardYearlyPitching',
+
+    # Newspaper
+    'Article',
+    'ArticleCategory',
+    'ArticlePlayerTag',
+    'ArticleTeamTag',
+    'ArticleGameTag',
 ]

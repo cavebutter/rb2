@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Branch Baseball Newspaper{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Newspaper Masthead -->
+    <header class="bg-cream border-b-4 border-leather py-8 mb-8 -mx-4 px-4">
+        <div class="text-center">
+            <h1 class="text-6xl font-bold text-forest deco-heading">
+                THE BRANCH BASEBALL GAZETTE
+            </h1>
+            <p class="text-sm text-gray-600 mt-2 tracking-widest">
+                EST. 1960 | YOUR SOURCE FOR BRANCH FAMILY BASEBALL
+            </p>
+        </div>
+    </header>
+
+    {% if hero_article %}
+    <!-- Hero Article -->
+    <article class="mb-12 pb-8 border-b-4 border-gray-800">
+        <div class="bg-tan border-b-2 border-leather px-4 py-2 inline-block mb-4">
+            <span class="text-xs text-forest font-bold uppercase tracking-wide">
+                {% if hero_article.game_date %}
+                    {{ hero_article.game_date.strftime('%B %d, %Y').upper() }}
+                {% else %}
+                    {{ hero_article.publish_date.strftime('%B %d, %Y').upper() }}
+                {% endif %}
+            </span>
+        </div>
+
+        <h2 class="text-5xl font-bold text-forest deco-heading mb-4 leading-tight">
+            <a href="{{ url_for('newspaper.article_detail', slug=hero_article.slug) }}"
+               class="hover:text-vintage-gold transition-colors">
+                {{ hero_article.title }}
+            </a>
+        </h2>
+
+        <div class="text-sm text-gray-600 mb-4 flex items-center gap-4">
+            <span>
+                By {% if hero_article.author_type == 'ai' %}AI Sports Reporter
+                {% elif hero_article.author_type == 'user' %}Branch Family Chronicle
+                {% else %}The Wire{% endif %}
+            </span>
+            {% if hero_article.primary_players %}
+                <span>|</span>
+                <span>
+                    Featuring: {% for player in hero_article.primary_players %}
+                        <a href="{{ url_for('players.player_detail', player_id=player.player_id) }}"
+                           class="text-forest hover:text-vintage-gold">
+                            {{ player.first_name }} {{ player.last_name }}
+                        </a>{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                </span>
+            {% endif %}
+        </div>
+
+        <div class="prose prose-lg max-w-none leading-relaxed text-gray-800 mb-4">
+            {% if hero_article.excerpt %}
+                {{ hero_article.excerpt }}
+            {% else %}
+                {{ hero_article.content[:400]|safe }}...
+            {% endif %}
+        </div>
+
+        <a href="{{ url_for('newspaper.article_detail', slug=hero_article.slug) }}"
+           class="inline-block text-vintage-gold hover:text-forest font-medium transition-colors">
+            Read Full Article →
+        </a>
+    </article>
+    {% endif %}
+
+    {% if articles %}
+    <!-- Recent Articles Grid -->
+    <div>
+        <h3 class="text-2xl font-bold text-forest border-b-2 border-leather pb-2 mb-6">Recent Articles</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for article in articles %}
+            <article class="bg-white border-2 border-leather rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+                <div class="bg-tan border-b-2 border-leather px-4 py-2">
+                    <span class="text-xs text-forest font-bold uppercase tracking-wide">
+                        {% if article.game_date %}
+                            {{ article.game_date.strftime('%B %d, %Y').upper() }}
+                        {% else %}
+                            {{ article.publish_date.strftime('%B %d, %Y').upper() }}
+                        {% endif %}
+                    </span>
+                </div>
+
+                <div class="p-6">
+                    <h4 class="text-xl font-bold text-forest deco-heading mb-3 leading-tight">
+                        <a href="{{ url_for('newspaper.article_detail', slug=article.slug) }}"
+                           class="hover:text-vintage-gold transition-colors">
+                            {{ article.title }}
+                        </a>
+                    </h4>
+
+                    {% if article.primary_players %}
+                    <div class="text-xs text-gray-600 mb-3">
+                        Featuring: {% for player in article.primary_players[:2] %}
+                            {{ player.first_name }} {{ player.last_name }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                        {% if article.primary_players|length > 2 %}
+                            +{{ article.primary_players|length - 2 }} more
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <p class="text-sm text-gray-700 mb-4 leading-relaxed">
+                        {% if article.excerpt %}
+                            {{ article.excerpt[:150] }}{% if article.excerpt|length > 150 %}...{% endif %}
+                        {% else %}
+                            {{ article.content[:150]|striptags }}...
+                        {% endif %}
+                    </p>
+
+                    <a href="{{ url_for('newspaper.article_detail', slug=article.slug) }}"
+                       class="text-vintage-gold hover:text-forest font-medium text-sm transition-colors">
+                        Read Full Article →
+                    </a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-16">
+        <div class="text-gray-400 mb-4">
+            <svg class="mx-auto h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+            </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-700 mb-2">No Articles Yet</h3>
+        <p class="text-gray-500">Check back soon for the latest Branch family baseball news!</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

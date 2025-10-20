@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Create Article - Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h1 class="text-4xl font-bold text-forest deco-heading">Create Article</h1>
+            <p class="text-gray-600 mt-2">Write a custom article for the newspaper</p>
+        </div>
+        <a href="{{ url_for('newspaper_admin.draft_list') }}"
+           class="text-forest hover:text-vintage-gold transition-colors flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Back to Drafts
+        </a>
+    </div>
+
+    <!-- Form -->
+    <form method="POST" class="bg-white rounded-lg shadow-lg border-2 border-leather p-8">
+        <!-- Title -->
+        <div class="mb-6">
+            <label for="title" class="block text-sm font-semibold text-forest mb-2">
+                Article Title <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="title" name="title" required
+                   class="w-full px-4 py-2 border-2 border-tan rounded-lg focus:border-forest focus:ring-2 focus:ring-vintage-gold focus:outline-none"
+                   placeholder="Enter a compelling headline">
+        </div>
+
+        <!-- Excerpt -->
+        <div class="mb-6">
+            <label for="excerpt" class="block text-sm font-semibold text-forest mb-2">
+                Excerpt (optional)
+            </label>
+            <textarea id="excerpt" name="excerpt" rows="2"
+                      class="w-full px-4 py-2 border-2 border-tan rounded-lg focus:border-forest focus:ring-2 focus:ring-vintage-gold focus:outline-none"
+                      placeholder="Brief summary for article listings"></textarea>
+            <p class="text-xs text-gray-500 mt-1">If left blank, will auto-generate from content</p>
+        </div>
+
+        <!-- Content -->
+        <div class="mb-6">
+            <label for="content" class="block text-sm font-semibold text-forest mb-2">
+                Article Content <span class="text-red-500">*</span>
+            </label>
+            <textarea id="content" name="content" rows="15" required
+                      class="w-full px-4 py-2 border-2 border-tan rounded-lg focus:border-forest focus:ring-2 focus:ring-vintage-gold focus:outline-none font-serif"
+                      placeholder="Write your article here..."></textarea>
+            <p class="text-xs text-gray-500 mt-1">HTML tags are allowed for formatting</p>
+        </div>
+
+        <!-- Two-column layout for metadata -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Author Type -->
+            <div>
+                <label for="author_type" class="block text-sm font-semibold text-forest mb-2">
+                    Author Type
+                </label>
+                <select id="author_type" name="author_type"
+                        class="w-full px-4 py-2 border-2 border-tan rounded-lg focus:border-forest focus:ring-2 focus:ring-vintage-gold focus:outline-none">
+                    <option value="user">User Written</option>
+                    <option value="journal_entry">Journal Entry</option>
+                    <option value="historical_article">Historical Article</option>
+                </select>
+            </div>
+
+            <!-- Category -->
+            <div>
+                <label for="category_id" class="block text-sm font-semibold text-forest mb-2">
+                    Category
+                </label>
+                <select id="category_id" name="category_id"
+                        class="w-full px-4 py-2 border-2 border-tan rounded-lg focus:border-forest focus:ring-2 focus:ring-vintage-gold focus:outline-none">
+                    <option value="">-- None --</option>
+                    {% for category in categories %}
+                    <option value="{{ category.category_id }}">{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Game Date -->
+            <div>
+                <label for="game_date" class="block text-sm font-semibold text-forest mb-2">
+                    Game/Article Date
+                </label>
+                <input type="date" id="game_date" name="game_date"
+                       {% if current_game_date %}value="{{ current_game_date.strftime('%Y-%m-%d') }}"{% endif %}
+                       class="w-full px-4 py-2 border-2 border-tan rounded-lg focus:border-forest focus:ring-2 focus:ring-vintage-gold focus:outline-none">
+            </div>
+
+            <!-- Game ID (optional) -->
+            <div>
+                <label for="game_id" class="block text-sm font-semibold text-forest mb-2">
+                    Game ID (optional)
+                </label>
+                <input type="number" id="game_id" name="game_id"
+                       class="w-full px-4 py-2 border-2 border-tan rounded-lg focus:border-forest focus:ring-2 focus:ring-vintage-gold focus:outline-none"
+                       placeholder="e.g., 12345">
+            </div>
+        </div>
+
+        <!-- Player Tags -->
+        <div class="mb-6">
+            <label class="block text-sm font-semibold text-forest mb-2">
+                Featured Players
+            </label>
+            <div id="player-tags-container" class="space-y-2 mb-3"></div>
+            <input type="text" id="player-search" placeholder="Search for players..."
+                   class="w-full px-4 py-2 border-2 border-tan rounded-lg focus:border-forest focus:ring-2 focus:ring-vintage-gold focus:outline-none"
+                   autocomplete="off">
+            <div id="player-results" class="mt-2 bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
+        </div>
+
+        <!-- Team Tags -->
+        <div class="mb-8">
+            <label class="block text-sm font-semibold text-forest mb-2">
+                Featured Teams
+            </label>
+            <div id="team-tags-container" class="space-y-2 mb-3"></div>
+            <input type="text" id="team-search" placeholder="Search for teams..."
+                   class="w-full px-4 py-2 border-2 border-tan rounded-lg focus:border-forest focus:ring-2 focus:ring-vintage-gold focus:outline-none"
+                   autocomplete="off">
+            <div id="team-results" class="mt-2 bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end gap-4">
+            <a href="{{ url_for('newspaper_admin.draft_list') }}"
+               class="px-6 py-3 border-2 border-tan text-gray-700 rounded-lg hover:bg-tan transition-colors font-medium">
+                Cancel
+            </a>
+            <button type="submit"
+                    class="bg-forest text-cream px-8 py-3 rounded-lg hover:bg-forest-dark hover:text-vintage-gold transition-colors font-medium">
+                Create & Publish
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- JavaScript for autocomplete -->
+<script>
+let playerTags = [];
+let teamTags = [];
+
+// Player autocomplete
+const playerSearch = document.getElementById('player-search');
+const playerResults = document.getElementById('player-results');
+const playerContainer = document.getElementById('player-tags-container');
+
+playerSearch.addEventListener('input', async function() {
+    const query = this.value.trim();
+    if (query.length < 2) {
+        playerResults.classList.add('hidden');
+        return;
+    }
+
+    const response = await fetch(`{{ url_for('newspaper_admin.search_players') }}?q=${encodeURIComponent(query)}`);
+    const players = await response.json();
+
+    if (players.length === 0) {
+        playerResults.classList.add('hidden');
+        return;
+    }
+
+    playerResults.innerHTML = players.map(p => `
+        <div class="px-4 py-2 hover:bg-tan cursor-pointer border-b border-gray-200 last:border-b-0"
+             onclick="addPlayer(${p.player_id}, '${p.name.replace(/'/g, "\\'")}', '${p.position}')">
+            <div class="font-medium">${p.name}</div>
+            <div class="text-xs text-gray-500">${p.position}</div>
+        </div>
+    `).join('');
+    playerResults.classList.remove('hidden');
+});
+
+function addPlayer(id, name, position) {
+    if (playerTags.includes(id)) {
+        playerResults.classList.add('hidden');
+        playerSearch.value = '';
+        return;
+    }
+
+    playerTags.push(id);
+    const tag = document.createElement('div');
+    tag.className = 'flex items-center justify-between px-3 py-2 bg-forest-light text-cream rounded';
+    tag.innerHTML = `
+        <span>${name} <span class="text-xs opacity-75">(${position})</span></span>
+        <button type="button" onclick="removePlayer(${id}, this)" class="ml-3 text-cream hover:text-vintage-gold">×</button>
+        <input type="hidden" name="player_ids[]" value="${id}">
+    `;
+    playerContainer.appendChild(tag);
+
+    playerResults.classList.add('hidden');
+    playerSearch.value = '';
+}
+
+function removePlayer(id, btn) {
+    playerTags = playerTags.filter(p => p !== id);
+    btn.parentElement.remove();
+}
+
+// Team autocomplete
+const teamSearch = document.getElementById('team-search');
+const teamResults = document.getElementById('team-results');
+const teamContainer = document.getElementById('team-tags-container');
+
+teamSearch.addEventListener('input', async function() {
+    const query = this.value.trim();
+    if (query.length < 2) {
+        teamResults.classList.add('hidden');
+        return;
+    }
+
+    const response = await fetch(`{{ url_for('newspaper_admin.search_teams') }}?q=${encodeURIComponent(query)}`);
+    const teams = await response.json();
+
+    if (teams.length === 0) {
+        teamResults.classList.add('hidden');
+        return;
+    }
+
+    teamResults.innerHTML = teams.map(t => `
+        <div class="px-4 py-2 hover:bg-tan cursor-pointer border-b border-gray-200 last:border-b-0"
+             onclick="addTeam(${t.team_id}, '${t.display.replace(/'/g, "\\'")}')">
+            ${t.display}
+        </div>
+    `).join('');
+    teamResults.classList.remove('hidden');
+});
+
+function addTeam(id, display) {
+    if (teamTags.includes(id)) {
+        teamResults.classList.add('hidden');
+        teamSearch.value = '';
+        return;
+    }
+
+    teamTags.push(id);
+    const tag = document.createElement('div');
+    tag.className = 'flex items-center justify-between px-3 py-2 bg-forest-light text-cream rounded';
+    tag.innerHTML = `
+        <span>${display}</span>
+        <button type="button" onclick="removeTeam(${id}, this)" class="ml-3 text-cream hover:text-vintage-gold">×</button>
+        <input type="hidden" name="team_ids[]" value="${id}">
+    `;
+    teamContainer.appendChild(tag);
+
+    teamResults.classList.add('hidden');
+    teamSearch.value = '';
+}
+
+function removeTeam(id, btn) {
+    teamTags = teamTags.filter(t => t !== id);
+    btn.parentElement.remove();
+}
+
+// Hide results when clicking outside
+document.addEventListener('click', function(e) {
+    if (!playerSearch.contains(e.target) && !playerResults.contains(e.target)) {
+        playerResults.classList.add('hidden');
+    }
+    if (!teamSearch.contains(e.target) && !teamResults.contains(e.target)) {
+        teamResults.classList.add('hidden');
+    }
+});
+</script>
+{% endblock %}

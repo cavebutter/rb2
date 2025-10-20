@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Baseball -->
+  <circle cx="60" cy="60" r="22" fill="#F5F1E8" stroke="#1B4D3E" stroke-width="2"/>
+  <!-- Baseball stitching -->
+  <path d="M 45 55 Q 50 50 55 45" stroke="#B8860B" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M 45 55 Q 40 60 45 65" stroke="#B8860B" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M 65 45 Q 70 50 75 55" stroke="#B8860B" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M 75 55 Q 80 60 75 65" stroke="#B8860B" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Crossed bats -->
+  <g opacity="0.9">
+    <!-- Bat 1 (left to right diagonal) -->
+    <rect x="25" y="57" width="70" height="6" rx="3" fill="#8B4513" transform="rotate(-45 60 60)"/>
+    <circle cx="33" cy="33" r="5" fill="#6B3410"/>
+
+    <!-- Bat 2 (right to left diagonal) -->
+    <rect x="25" y="57" width="70" height="6" rx="3" fill="#8B4513" transform="rotate(45 60 60)"/>
+    <circle cx="87" cy="33" r="5" fill="#6B3410"/>
+  </g>
+</svg>

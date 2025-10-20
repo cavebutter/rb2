@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Review: {{ article.title }} - Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Header with Actions -->
+    <div class="mb-6 flex items-center justify-between">
+        <a href="{{ url_for('newspaper_admin.draft_list') }}"
+           class="text-forest hover:text-vintage-gold transition-colors flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Back to Drafts
+        </a>
+
+        <div class="flex gap-3">
+            {% if article.status == 'draft' %}
+                <form method="POST" action="{{ url_for('newspaper_admin.publish_article', article_id=article.article_id) }}" class="inline">
+                    <button type="submit"
+                            class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                            onclick="return confirm('Publish this article?');">
+                        Publish
+                    </button>
+                </form>
+
+                <a href="{{ url_for('newspaper_admin.regenerate_article', article_id=article.article_id) }}"
+                   class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                    Regenerate
+                </a>
+
+                <form method="POST" action="{{ url_for('newspaper_admin.reject_article', article_id=article.article_id) }}" class="inline">
+                    <button type="submit"
+                            class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium"
+                            onclick="return confirm('Reject this article?');">
+                        Reject
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Article Content -->
+    <article class="bg-white rounded-lg shadow-lg border-2 border-leather p-8 mb-6">
+        <!-- Status Badge -->
+        <div class="mb-4">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                {% if article.status == 'draft' %}bg-yellow-100 text-yellow-800
+                {% elif article.status == 'published' %}bg-green-100 text-green-800
+                {% else %}bg-red-100 text-red-800{% endif %}">
+                {{ article.status|capitalize }}
+            </span>
+            {% if article.newsworthiness_score %}
+                <span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                    {% if article.newsworthiness_score >= 80 %}bg-green-100 text-green-800
+                    {% elif article.newsworthiness_score >= 50 %}bg-yellow-100 text-yellow-800
+                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                    Newsworthiness: {{ article.newsworthiness_score }}
+                </span>
+            {% endif %}
+        </div>
+
+        <!-- Headline -->
+        <h1 class="text-4xl font-bold text-forest deco-heading mb-4">{{ article.title }}</h1>
+
+        <!-- Metadata -->
+        <div class="text-sm text-gray-600 mb-6 pb-6 border-b-2 border-tan">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <span class="font-semibold">Game Date:</span>
+                    {% if article.game_date %}
+                        {{ article.game_date.strftime('%B %d, %Y') }}
+                    {% else %}
+                        <span class="text-gray-400">Not set</span>
+                    {% endif %}
+                </div>
+                <div>
+                    <span class="font-semibold">Created:</span>
+                    {{ article.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                </div>
+                <div>
+                    <span class="font-semibold">Author Type:</span>
+                    {{ article.author_type|capitalize }}
+                </div>
+                <div>
+                    <span class="font-semibold">Model:</span>
+                    {{ article.model_used or 'N/A' }}
+                </div>
+                {% if article.generation_count > 1 %}
+                <div>
+                    <span class="font-semibold">Generation:</span>
+                    Version {{ article.generation_count }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Article Body -->
+        <div class="prose max-w-none text-lg leading-relaxed">
+            {{ article.content|safe }}
+        </div>
+    </article>
+
+    <!-- Featured Players & Teams -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <!-- Players -->
+        {% if article.player_tags %}
+        <div class="bg-white rounded-lg shadow-lg border-2 border-tan p-6">
+            <h3 class="text-xl font-bold text-forest mb-4 border-b-2 border-leather pb-2">Featured Players</h3>
+            <ul class="space-y-2">
+                {% for tag in article.player_tags %}
+                <li class="flex items-center justify-between py-2 border-b border-gray-200 last:border-b-0">
+                    <a href="{{ url_for('players.player_detail', player_id=tag.player_id) }}"
+                       class="text-forest hover:text-vintage-gold transition-colors font-medium">
+                        {{ tag.player.first_name }} {{ tag.player.last_name }}
+                    </a>
+                    {% if tag.is_primary %}
+                        <span class="text-xs bg-vintage-gold text-white px-2 py-0.5 rounded">Primary</span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Teams -->
+        {% if article.team_tags %}
+        <div class="bg-white rounded-lg shadow-lg border-2 border-tan p-6">
+            <h3 class="text-xl font-bold text-forest mb-4 border-b-2 border-leather pb-2">Featured Teams</h3>
+            <ul class="space-y-2">
+                {% for tag in article.team_tags %}
+                <li class="flex items-center justify-between py-2 border-b border-gray-200 last:border-b-0">
+                    <a href="{{ url_for('teams.team_detail', team_id=tag.team_id) }}"
+                       class="text-forest hover:text-vintage-gold transition-colors font-medium">
+                        {{ tag.team.name }} {{ tag.team.nickname }}
+                    </a>
+                    {% if tag.is_primary %}
+                        <span class="text-xs bg-vintage-gold text-white px-2 py-0.5 rounded">Primary</span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Game Context (if available) -->
+    {% if game_info %}
+    <div class="bg-white rounded-lg shadow-lg border-2 border-tan p-6">
+        <h3 class="text-xl font-bold text-forest mb-4 border-b-2 border-leather pb-2">Game Summary</h3>
+        {{ game_info|safe }}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

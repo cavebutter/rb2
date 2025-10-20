@@ -1,0 +1,51 @@
+/* Branch Baseball Encyclopedia - Custom Styles */
+
+/* Custom Color Palette */
+:root {
+  --forest-green: #1B4D3E;
+  --forest-green-dark: #163D31;
+  --forest-green-light: #2A6B54;
+  --cream: #F5F1E8;
+  --tan: #E8DCC4;
+  --leather-brown: #8B4513;
+  --leather-brown-dark: #6B3410;
+  --field-green: #2D5F4A;
+  --vintage-gold: #B8860B;
+}
+
+/* Art Deco inspired typography for logo/headers */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:wght@400;700&display=swap');
+
+.logo-text {
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 0.05em;
+  font-weight: 400;
+}
+
+.deco-heading {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+}
+
+/* Smooth transitions */
+a, button {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Custom scrollbar (webkit browsers) */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--cream);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--forest-green);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--forest-green-dark);
+}

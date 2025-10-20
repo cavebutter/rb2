@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} - Branch Baseball Newspaper{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="mb-6">
+        <a href="{{ url_for('newspaper.index') }}"
+           class="text-forest hover:text-vintage-gold transition-colors flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Back to Newspaper
+        </a>
+    </nav>
+
+    <!-- Article -->
+    <article class="bg-white rounded-lg shadow-lg border-2 border-leather p-8 mb-8">
+        <!-- Date Badge -->
+        <div class="mb-4">
+            <div class="bg-tan border-b-2 border-leather px-4 py-2 inline-block">
+                <span class="text-xs text-forest font-bold uppercase tracking-wide">
+                    {% if article.game_date %}
+                        {{ article.game_date.strftime('%B %d, %Y').upper() }}
+                    {% else %}
+                        {{ article.publish_date.strftime('%B %d, %Y').upper() }}
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+
+        <!-- Headline -->
+        <h1 class="text-4xl md:text-5xl font-bold text-forest deco-heading mb-6 leading-tight">
+            {{ article.title }}
+        </h1>
+
+        <!-- Byline -->
+        <div class="border-t border-b border-leather py-3 mb-6">
+            <p class="text-sm text-gray-600">
+                By <span class="font-bold">
+                    {% if article.author_type == 'ai' %}
+                        AI Sports Reporter
+                    {% elif article.author_type == 'user' %}
+                        Branch Family Chronicle
+                    {% elif article.author_type == 'journal_entry' %}
+                        Jay Branch
+                    {% elif article.author_type == 'message_reprint' %}
+                        The Wire
+                    {% else %}
+                        Staff Writer
+                    {% endif %}
+                </span>
+                {% if article.game_date %}
+                    | {{ article.game_date.strftime('%B %d, %Y') }}
+                {% endif %}
+                {% if article.primary_teams %}
+                    | {% for team in article.primary_teams %}
+                        {{ team.name }}{% if not loop.last %} vs {% endif %}
+                    {% endfor %}
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Article Body -->
+        <div class="prose prose-lg max-w-none leading-relaxed mb-8">
+            {{ processed_content|safe }}
+        </div>
+
+        <!-- AI Generation Attribution -->
+        {% if article.author_type == 'ai' and article.model_used %}
+        <div class="text-xs text-gray-500 italic border-t border-gray-200 pt-4">
+            This article was generated using {{ article.model_used }}
+        </div>
+        {% endif %}
+
+        <!-- View Count -->
+        <div class="text-xs text-gray-400 mt-2">
+            {{ article.view_count }} view{{ 's' if article.view_count != 1 else '' }}
+        </div>
+    </article>
+
+    <!-- Featured Players & Teams -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Players -->
+        {% if article.player_tags %}
+        <div class="bg-white rounded-lg shadow-lg border-2 border-tan p-6">
+            <h3 class="text-xl font-bold text-forest mb-4 border-b-2 border-leather pb-2">
+                Featured Players
+            </h3>
+            <ul class="space-y-2">
+                {% for tag in article.player_tags %}
+                <li class="py-2 border-b border-gray-200 last:border-b-0">
+                    <a href="{{ url_for('players.player_detail', player_id=tag.player_id) }}"
+                       class="text-forest hover:text-vintage-gold transition-colors font-medium flex items-center justify-between">
+                        <span>{{ tag.player.first_name }} {{ tag.player.last_name }}</span>
+                        {% if tag.is_primary %}
+                            <span class="text-xs bg-vintage-gold text-white px-2 py-0.5 rounded">Primary</span>
+                        {% endif %}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Teams -->
+        {% if article.team_tags %}
+        <div class="bg-white rounded-lg shadow-lg border-2 border-tan p-6">
+            <h3 class="text-xl font-bold text-forest mb-4 border-b-2 border-leather pb-2">
+                Featured Teams
+            </h3>
+            <ul class="space-y-2">
+                {% for tag in article.team_tags %}
+                <li class="py-2 border-b border-gray-200 last:border-b-0">
+                    <a href="{{ url_for('teams.team_detail', team_id=tag.team_id) }}"
+                       class="text-forest hover:text-vintage-gold transition-colors font-medium flex items-center justify-between">
+                        <span>{{ tag.team.name }} {{ tag.team.nickname }}</span>
+                        {% if tag.is_primary %}
+                            <span class="text-xs bg-vintage-gold text-white px-2 py-0.5 rounded">Primary</span>
+                        {% endif %}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Related Articles -->
+    {% if related_articles %}
+    <div class="bg-white rounded-lg shadow-lg border-2 border-tan p-6">
+        <h3 class="text-xl font-bold text-forest mb-4 border-b-2 border-leather pb-2">
+            Related Articles
+        </h3>
+        <ul class="space-y-3">
+            {% for related in related_articles %}
+            <li class="pb-3 border-b border-gray-200 last:border-b-0">
+                <a href="{{ url_for('newspaper.article_detail', slug=related.slug) }}"
+                   class="text-forest hover:text-vintage-gold transition-colors font-medium block">
+                    {{ related.title }}
+                </a>
+                <div class="text-xs text-gray-500 mt-1">
+                    {% if related.game_date %}
+                        {{ related.game_date.strftime('%B %d, %Y') }}
+                    {% else %}
+                        {{ related.publish_date.strftime('%B %d, %Y') }}
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

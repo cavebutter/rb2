@@ -3,82 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}RB2 Baseball{% endblock %}</title>
+    <title>{% block title %}Branch Baseball Encyclopedia{% endblock %}</title>
 
     <!-- Tailwind CSS CDN for quick styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'forest': {
+                            DEFAULT: '#1B4D3E',
+                            dark: '#163D31',
+                            light: '#2A6B54',
+                        },
+                        'cream': '#F5F1E8',
+                        'tan': '#E8DCC4',
+                        'leather': {
+                            DEFAULT: '#8B4513',
+                            dark: '#6B3410',
+                        },
+                        'field': '#2D5F4A',
+                        'vintage-gold': '#B8860B',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-gray-50">
+<body class="bg-cream">
     <!-- Navigation -->
-    <nav class="bg-blue-900 text-white shadow-lg">
+    <nav class="bg-forest text-cream shadow-lg">
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16">
                 <!-- Left: Logo and Desktop Nav -->
                 <div class="flex items-center space-x-8">
-                    <a href="{{ url_for('main.index') }}" class="text-xl font-bold">RB2 Baseball</a>
+                    <a href="{{ url_for('main.index') }}" class="flex items-center gap-3 group">
+                        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="Branch Baseball" class="h-10 w-10 transition-transform group-hover:scale-110">
+                        <span class="text-xl logo-text text-cream group-hover:text-vintage-gold transition-colors">BRANCH BASEBALL<br><span class="text-xs tracking-wider opacity-90">ENCYCLOPEDIA</span></span>
+                    </a>
                     <!-- Desktop Navigation -->
                     <div class="hidden md:flex space-x-4">
-                        <a href="{{ url_for('main.index') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Home</a>
-                        <a href="{{ url_for('leagues.leagues_index') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Leagues</a>
-                        <a href="{{ url_for('teams.teams_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Teams</a>
-                        <a href="{{ url_for('players.players_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Players</a>
-                        <a href="{{ url_for('coaches.coach_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded">Coaches</a>
+                        <a href="{{ url_for('main.index') }}" class="hover:bg-forest-dark hover:text-vintage-gold px-3 py-2 rounded">Home</a>
+                        <a href="{{ url_for('newspaper.index') }}" class="hover:bg-forest-dark hover:text-vintage-gold px-3 py-2 rounded">Newspaper</a>
+                        <a href="{{ url_for('leagues.leagues_index') }}" class="hover:bg-forest-dark hover:text-vintage-gold px-3 py-2 rounded">Leagues</a>
+                        <a href="{{ url_for('teams.teams_list') }}" class="hover:bg-forest-dark hover:text-vintage-gold px-3 py-2 rounded">Teams</a>
+                        <a href="{{ url_for('players.players_list') }}" class="hover:bg-forest-dark hover:text-vintage-gold px-3 py-2 rounded">Players</a>
+                        <a href="{{ url_for('coaches.coach_list') }}" class="hover:bg-forest-dark hover:text-vintage-gold px-3 py-2 rounded">Coaches</a>
                         <!-- Leaderboards Mega Dropdown -->
                         <div class="relative" id="leaderboards-dropdown">
-                            <button id="leaderboards-button" class="hover:bg-blue-800 px-3 py-2 rounded inline-flex items-center">
+                            <button id="leaderboards-button" class="hover:bg-forest-dark hover:text-vintage-gold px-3 py-2 rounded inline-flex items-center">
                                 Leaderboards
                                 <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                 </svg>
                             </button>
                             <!-- Mega Dropdown Menu -->
-                            <div id="leaderboards-menu" class="hidden absolute left-0 mt-2 w-screen max-w-4xl bg-white rounded-lg shadow-xl z-50 border border-gray-200">
+                            <div id="leaderboards-menu" class="hidden absolute left-0 mt-2 w-screen max-w-4xl bg-cream rounded-lg shadow-xl z-50 border border-leather">
                                 <div class="grid grid-cols-3 gap-6 p-6">
                                     <!-- Column 1: Batting Leaders -->
                                     <div>
-                                        <h3 class="text-sm font-bold text-blue-900 uppercase mb-3 border-b pb-2">Batting Leaders</h3>
+                                        <h3 class="text-sm font-bold text-forest uppercase mb-3 border-b border-leather pb-2">Batting Leaders</h3>
                                         <div class="space-y-1.5">
-                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='hr') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">Home Runs</a>
-                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='avg') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">Batting Average</a>
-                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='rbi') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">RBI</a>
-                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='sb') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">Stolen Bases</a>
-                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='h') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">Hits</a>
-                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='obp') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">On-Base Percentage</a>
-                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='slg') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">Slugging Percentage</a>
-                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='war') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1.5 rounded">WAR</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='hr') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">Home Runs</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='avg') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">Batting Average</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='rbi') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">RBI</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='sb') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">Stolen Bases</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='h') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">Hits</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='obp') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">On-Base Percentage</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='slg') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">Slugging Percentage</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='war') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">WAR</a>
                                         </div>
                                     </div>
 
                                     <!-- Column 2: Pitching Leaders -->
                                     <div>
-                                        <h3 class="text-sm font-bold text-green-900 uppercase mb-3 border-b pb-2">Pitching Leaders</h3>
+                                        <h3 class="text-sm font-bold text-forest uppercase mb-3 border-b border-leather pb-2">Pitching Leaders</h3>
                                         <div class="space-y-1.5">
-                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='w') }}" class="block text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 px-2 py-1.5 rounded">Wins</a>
-                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='sv') }}" class="block text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 px-2 py-1.5 rounded">Saves</a>
-                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='so') }}" class="block text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 px-2 py-1.5 rounded">Strikeouts</a>
-                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='era') }}" class="block text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 px-2 py-1.5 rounded">ERA</a>
-                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='whip') }}" class="block text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 px-2 py-1.5 rounded">WHIP</a>
-                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='k_per_9') }}" class="block text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 px-2 py-1.5 rounded">Strikeouts per 9</a>
-                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='war') }}" class="block text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 px-2 py-1.5 rounded">WAR</a>
+                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='w') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">Wins</a>
+                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='sv') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">Saves</a>
+                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='so') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">Strikeouts</a>
+                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='era') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">ERA</a>
+                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='whip') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">WHIP</a>
+                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='k_per_9') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">Strikeouts per 9</a>
+                                            <a href="{{ url_for('leaderboards.pitching', type='career', stat='war') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">WAR</a>
                                         </div>
                                     </div>
 
                                     <!-- Column 3: Quick Links & Types -->
                                     <div>
-                                        <h3 class="text-sm font-bold text-gray-900 uppercase mb-3 border-b pb-2">Quick Links</h3>
+                                        <h3 class="text-sm font-bold text-forest uppercase mb-3 border-b border-leather pb-2">Quick Links</h3>
                                         <div class="space-y-1.5 mb-4">
-                                            <a href="{{ url_for('leaderboards.home') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-2 py-1.5 rounded font-medium">Leaderboards Home</a>
-                                            <a href="{{ url_for('leaderboards.yearly') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-2 py-1.5 rounded font-medium">Current Year Leaders</a>
+                                            <a href="{{ url_for('leaderboards.home') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded font-medium">Leaderboards Home</a>
+                                            <a href="{{ url_for('leaderboards.yearly') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded font-medium">Current Year Leaders</a>
                                         </div>
 
-                                        <h3 class="text-sm font-bold text-gray-900 uppercase mb-3 border-b pb-2 mt-4">Leaderboard Types</h3>
+                                        <h3 class="text-sm font-bold text-forest uppercase mb-3 border-b border-leather pb-2 mt-4">Leaderboard Types</h3>
                                         <div class="space-y-1.5">
-                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='hr') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-2 py-1.5 rounded">Career Leaders</a>
-                                            <a href="{{ url_for('leaderboards.batting', type='active', stat='hr') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-2 py-1.5 rounded">Active Player Leaders</a>
-                                            <a href="{{ url_for('leaderboards.batting', type='single-season', stat='hr') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-2 py-1.5 rounded">Single-Season Records</a>
-                                            <a href="{{ url_for('leaderboards.yearly') }}" class="block text-sm text-gray-700 hover:text-blue-600 hover:bg-gray-50 px-2 py-1.5 rounded">Yearly League Leaders</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='career', stat='hr') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">Career Leaders</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='active', stat='hr') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">Active Player Leaders</a>
+                                            <a href="{{ url_for('leaderboards.batting', type='single-season', stat='hr') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">Single-Season Records</a>
+                                            <a href="{{ url_for('leaderboards.yearly') }}" class="block text-sm text-gray-700 hover:text-forest hover:bg-tan px-2 py-1.5 rounded">Yearly League Leaders</a>
                                         </div>
                                     </div>
                                 </div>
@@ -97,7 +127,7 @@
                                    id="search-input"
                                    placeholder="Search players, teams..."
                                    autocomplete="off"
-                                   class="px-4 py-2 w-64 rounded bg-blue-800 text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                   class="px-4 py-2 w-64 rounded bg-forest-dark text-cream placeholder-tan focus:outline-none focus:ring-2 focus:ring-vintage-gold">
                             <!-- Autocomplete dropdown -->
                             <div id="search-results"
                                  class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg max-h-96 overflow-y-auto hidden z-50">
@@ -106,7 +136,7 @@
                     </div>
 
                     <!-- Mobile menu button -->
-                    <button id="mobile-menu-button" class="md:hidden inline-flex items-center justify-center p-2 rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                    <button id="mobile-menu-button" class="md:hidden inline-flex items-center justify-center p-2 rounded-md hover:bg-forest-dark focus:outline-none focus:ring-2 focus:ring-inset focus:ring-cream">
                         <span class="sr-only">Open main menu</span>
                         <!-- Hamburger icon -->
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" id="menu-icon">
@@ -123,26 +153,26 @@
             <!-- Mobile menu (hidden by default) -->
             <div id="mobile-menu" class="hidden md:hidden pb-4">
                 <div class="flex flex-col space-y-2">
-                    <a href="{{ url_for('main.index') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Home</a>
-                    <a href="{{ url_for('leagues.leagues_index') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Leagues</a>
-                    <a href="{{ url_for('teams.teams_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Teams</a>
-                    <a href="{{ url_for('players.players_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Players</a>
-                    <a href="{{ url_for('coaches.coach_list') }}" class="hover:bg-blue-800 px-3 py-2 rounded block">Coaches</a>
+                    <a href="{{ url_for('main.index') }}" class="hover:bg-forest-dark hover:text-vintage-gold px-3 py-2 rounded block">Home</a>
+                    <a href="{{ url_for('leagues.leagues_index') }}" class="hover:bg-forest-dark hover:text-vintage-gold px-3 py-2 rounded block">Leagues</a>
+                    <a href="{{ url_for('teams.teams_list') }}" class="hover:bg-forest-dark hover:text-vintage-gold px-3 py-2 rounded block">Teams</a>
+                    <a href="{{ url_for('players.players_list') }}" class="hover:bg-forest-dark hover:text-vintage-gold px-3 py-2 rounded block">Players</a>
+                    <a href="{{ url_for('coaches.coach_list') }}" class="hover:bg-forest-dark hover:text-vintage-gold px-3 py-2 rounded block">Coaches</a>
 
                     <!-- Mobile Leaderboards Accordion -->
                     <div>
-                        <button id="mobile-leaderboards-toggle" class="w-full text-left hover:bg-blue-800 px-3 py-2 rounded flex items-center justify-between">
+                        <button id="mobile-leaderboards-toggle" class="w-full text-left hover:bg-forest-dark hover:text-vintage-gold px-3 py-2 rounded flex items-center justify-between">
                             <span>Leaderboards</span>
                             <svg class="h-4 w-4 transform transition-transform" id="mobile-lb-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                             </svg>
                         </button>
                         <div id="mobile-leaderboards-menu" class="hidden pl-4 mt-2 space-y-1">
-                            <a href="{{ url_for('leaderboards.home') }}" class="block text-sm hover:bg-blue-800 px-3 py-1.5 rounded">Home</a>
-                            <a href="{{ url_for('leaderboards.yearly') }}" class="block text-sm hover:bg-blue-800 px-3 py-1.5 rounded">Current Year</a>
-                            <a href="{{ url_for('leaderboards.batting', type='career', stat='hr') }}" class="block text-sm hover:bg-blue-800 px-3 py-1.5 rounded">Career</a>
-                            <a href="{{ url_for('leaderboards.batting', type='active', stat='hr') }}" class="block text-sm hover:bg-blue-800 px-3 py-1.5 rounded">Active</a>
-                            <a href="{{ url_for('leaderboards.batting', type='single-season', stat='hr') }}" class="block text-sm hover:bg-blue-800 px-3 py-1.5 rounded">Single-Season</a>
+                            <a href="{{ url_for('leaderboards.home') }}" class="block text-sm hover:bg-forest-dark hover:text-vintage-gold px-3 py-1.5 rounded">Home</a>
+                            <a href="{{ url_for('leaderboards.yearly') }}" class="block text-sm hover:bg-forest-dark hover:text-vintage-gold px-3 py-1.5 rounded">Current Year</a>
+                            <a href="{{ url_for('leaderboards.batting', type='career', stat='hr') }}" class="block text-sm hover:bg-forest-dark hover:text-vintage-gold px-3 py-1.5 rounded">Career</a>
+                            <a href="{{ url_for('leaderboards.batting', type='active', stat='hr') }}" class="block text-sm hover:bg-forest-dark hover:text-vintage-gold px-3 py-1.5 rounded">Active</a>
+                            <a href="{{ url_for('leaderboards.batting', type='single-season', stat='hr') }}" class="block text-sm hover:bg-forest-dark hover:text-vintage-gold px-3 py-1.5 rounded">Single-Season</a>
                         </div>
                     </div>
 
@@ -152,7 +182,7 @@
                             <input type="text"
                                    name="q"
                                    placeholder="Search players, teams..."
-                                   class="w-full px-4 py-2 rounded bg-blue-800 text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                   class="w-full px-4 py-2 rounded bg-forest-dark text-cream placeholder-tan focus:outline-none focus:ring-2 focus:ring-vintage-gold">
                         </form>
                     </div>
                 </div>
@@ -193,10 +223,45 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-gray-800 text-gray-300 mt-12">
-        <div class="container mx-auto px-4 py-6">
-            <div class="text-center">
-                <p>&copy; 2025 RB2 Baseball. Generated from OOTP simulation.</p>
+    <footer class="bg-forest-dark text-tan mt-12 border-t-4 border-leather">
+        <div class="container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <!-- About Section -->
+                <div>
+                    <h3 class="text-cream font-bold mb-3 text-lg">Branch Baseball Encyclopedia</h3>
+                    <p class="text-sm leading-relaxed">
+                        A comprehensive baseball reference database generated from an OOTP (Out of the Park Baseball) simulation,
+                        chronicling the legendary Branch family dynasty and the alternate baseball universe they inhabit.
+                    </p>
+                </div>
+
+                <!-- Quick Links -->
+                <div>
+                    <h3 class="text-cream font-bold mb-3 text-lg">Quick Links</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="{{ url_for('main.index') }}" class="hover:text-vintage-gold transition-colors">Home</a></li>
+                        <li><a href="{{ url_for('players.players_list') }}" class="hover:text-vintage-gold transition-colors">Players</a></li>
+                        <li><a href="{{ url_for('teams.teams_list') }}" class="hover:text-vintage-gold transition-colors">Teams</a></li>
+                        <li><a href="{{ url_for('leaderboards.home') }}" class="hover:text-vintage-gold transition-colors">Leaderboards</a></li>
+                    </ul>
+                </div>
+
+                <!-- Credits -->
+                <div>
+                    <h3 class="text-cream font-bold mb-3 text-lg">Credits</h3>
+                    <p class="text-sm mb-2">Designed & developed by:</p>
+                    <a href="https://your-portfolio-url.com" target="_blank" rel="noopener" class="text-vintage-gold hover:text-cream font-semibold transition-colors">
+                        Your Name
+                    </a>
+                    <p class="text-xs mt-3 opacity-75">
+                        Built with Flask, PostgreSQL, Tailwind CSS, and Ollama
+                    </p>
+                </div>
+            </div>
+
+            <!-- Bottom Bar -->
+            <div class="border-t border-leather-dark pt-4 text-center text-sm opacity-75">
+                <p>&copy; 2025 Branch Baseball Encyclopedia. All statistics generated from OOTP simulation.</p>
             </div>
         </div>
     </footer>
