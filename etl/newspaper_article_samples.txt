@@ -1,0 +1,138 @@
+2025-10-20 10:30:09.841 | INFO     | __main__:main:385 - Starting End-to-End Pipeline Tests
+
+2025-10-20 10:30:09.841 | INFO     | __main__:test_single_player_pipeline:30 - ================================================================================
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:31 - END-TO-END TEST: Single Player Article Generation
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:32 - ================================================================================
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:35 - 
+[Step 1] Setting up game context...
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:86 -   Game: Cleveland Roosters @ Boston Pilgrims
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:87 -   Date: 1969-06-15
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:88 -   Featured Player: Donovan Branch
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:89 -   Performance: 3-for-4, 2 HR, 5 RBI
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:92 - 
+[Step 2] Simulating play-by-play extraction...
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:130 -   Extracted 4 at-bats from game log
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:132 -     1. Inning 1: single
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:132 -     2. Inning 4: home_run
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:132 -     3. Inning 7: home_run
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:132 -     4. Inning 9: strikeout
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:135 - 
+[Step 3] Building article prompt...
+2025-10-20 10:30:09.842 | DEBUG    | src.newspaper.prompt_builder:build_era_specific_instructions:163 - Era detection: 1969 -> Post-War Era (1960s)
+2025-10-20 10:30:09.842 | DEBUG    | src.newspaper.prompt_builder:build_article_prompt:407 - Built article prompt for Donovan Branch, length: 1713 characters
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:143 -   Prompt length: 1713 characters
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:144 -   Estimated tokens: ~428
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:147 - 
+  Prompt preview (first 500 chars):
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:148 -   ----------------------------------------------------------------------------
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:150 -   You are a sports journalist writing for a 1960s-era baseball newspaper.
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:150 -   
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:150 -   GAME CONTEXT:
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:150 -   Date: June 15, 1969
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:150 -   Teams: Cleveland Roosters (CLE) at Boston Pilgrims (BOS)
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:150 -   Final Score: Cleveland Roosters 3, Boston Pilgrims 5
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:150 -   Attendance: 24,567
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:150 -   
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:150 -   FEATURED PLAYER: Donovan Branch (Boston Pilgrims)
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:150 -   
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:150 -   BATTING PERFORMANCE: 3-for-4 with 2 home runs, 5 RBI, 2 runs scored, 1 strikeout
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:150 -   
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:150 -   PLAY-BY-PLAY DETAILS:
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:150 -   1. In the bottom of the 1st, singled (exit velocity: 95.3 MPH)
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:150 -   2. In the bottom of the 4th, homered (exit ve
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:151 -   ----------------------------------------------------------------------------
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:152 -   [...rest of prompt...]
+2025-10-20 10:30:09.842 | INFO     | __main__:test_single_player_pipeline:155 - 
+[Step 4] Generating article with Ollama...
+2025-10-20 10:30:09.842 | INFO     | src.newspaper.ollama_client:__init__:42 - Initialized OllamaClient: http://localhost:11434, default model: qwen2.5:7b
+2025-10-20 10:30:09.885 | INFO     | src.newspaper.ollama_client:health_check:358 - Ollama service health check: OK
+2025-10-20 10:30:09.924 | INFO     | src.newspaper.ollama_client:list_available_models:257 - Found 3 available models
+2025-10-20 10:30:09.924 | INFO     | __main__:test_single_player_pipeline:184 -   Using model: qwen2.5:14b
+2025-10-20 10:30:09.924 | INFO     | __main__:test_single_player_pipeline:185 -   Generating (this may take 10-30 seconds)...
+2025-10-20 10:30:09.924 | INFO     | src.newspaper.ollama_client:generate_with_retry:154 - Attempt 1/3
+2025-10-20 10:30:09.924 | INFO     | src.newspaper.ollama_client:generate_article:69 - Generating article with model: qwen2.5:14b, temp: 0.7
+2025-10-20 10:30:09.924 | DEBUG    | src.newspaper.ollama_client:generate_article:70 - Prompt length: 1713 characters
+2025-10-20 10:30:14.130 | INFO     | src.newspaper.ollama_client:generate_article:100 - Generation completed in 4.21s, 1483 characters
+2025-10-20 10:30:14.130 | INFO     | src.newspaper.ollama_client:generate_with_retry:174 - Generation succeeded on attempt 1, total time: 4.21s
+2025-10-20 10:30:14.130 | INFO     | __main__:test_single_player_pipeline:197 - 
+[Step 5] Article Generation Complete!
+2025-10-20 10:30:14.130 | INFO     | __main__:test_single_player_pipeline:198 -   Generation time: 4.21s
+2025-10-20 10:30:14.130 | INFO     | __main__:test_single_player_pipeline:199 -   Attempts: 1
+2025-10-20 10:30:14.130 | INFO     | __main__:test_single_player_pipeline:200 -   Article length: 1483 characters
+2025-10-20 10:30:14.130 | INFO     | __main__:test_single_player_pipeline:202 - 
+================================================================================
+2025-10-20 10:30:14.130 | INFO     | __main__:test_single_player_pipeline:203 - GENERATED ARTICLE
+2025-10-20 10:30:14.130 | INFO     | __main__:test_single_player_pipeline:204 - ================================================================================
+2025-10-20 10:30:14.130 | INFO     | __main__:test_single_player_pipeline:206 - ================================================================================
+2025-10-20 10:30:14.130 | INFO     | __main__:test_single_player_pipeline:209 - 
+[Step 6] Parsing article structure...
+2025-10-20 10:30:14.130 | INFO     | __main__:test_single_player_pipeline:224 -   ✓ Headline extracted: BRANCH'S BURST PUMMELS CLEVELAND WITH TWO FOUR-BAGGERS
+2025-10-20 10:30:14.130 | INFO     | __main__:test_single_player_pipeline:229 -   ✓ Body extracted: 1417 characters, ~233 words
+2025-10-20 10:30:14.130 | INFO     | __main__:test_single_player_pipeline:234 -   ✓ Word count within target range (150-300): 233 words
+2025-10-20 10:30:14.130 | INFO     | __main__:test_single_player_pipeline:238 - 
+✓ END-TO-END TEST COMPLETED SUCCESSFULLY!
+2025-10-20 10:30:14.130 | INFO     | __main__:test_multi_player_pipeline:252 - 
+
+================================================================================
+2025-10-20 10:30:14.130 | INFO     | __main__:test_multi_player_pipeline:253 - END-TO-END TEST: Multi-Player Article Generation
+2025-10-20 10:30:14.130 | INFO     | __main__:test_multi_player_pipeline:254 - ================================================================================
+2025-10-20 10:30:14.130 | INFO     | __main__:test_multi_player_pipeline:257 - 
+[Step 1] Setting up game context (Branch family matchup)...
+2025-10-20 10:30:14.130 | INFO     | __main__:test_multi_player_pipeline:313 -   Game: Chicago Railyards @ New York Monarchs
+2025-10-20 10:30:14.130 | INFO     | __main__:test_multi_player_pipeline:314 -   Branch Family Members: 2
+2025-10-20 10:30:14.130 | INFO     | __main__:test_multi_player_pipeline:316 -     - Donovan Branch (New York Monarchs)
+2025-10-20 10:30:14.130 | INFO     | __main__:test_multi_player_pipeline:316 -     - Randall Branch (Chicago Railyards)
+2025-10-20 10:30:14.131 | INFO     | __main__:test_multi_player_pipeline:319 - 
+[Step 2] Building multi-player article prompt...
+2025-10-20 10:30:14.131 | DEBUG    | src.newspaper.prompt_builder:build_era_specific_instructions:163 - Era detection: 1969 -> Post-War Era (1960s)
+2025-10-20 10:30:14.131 | DEBUG    | src.newspaper.prompt_builder:build_multi_branch_prompt:512 - Built multi-Branch prompt for 2 players, length: 1808 characters
+2025-10-20 10:30:14.131 | INFO     | __main__:test_multi_player_pipeline:326 -   Prompt length: 1808 characters
+2025-10-20 10:30:14.131 | INFO     | __main__:test_multi_player_pipeline:329 - 
+[Step 3] Generating article with Ollama...
+2025-10-20 10:30:14.131 | INFO     | src.newspaper.ollama_client:__init__:42 - Initialized OllamaClient: http://localhost:11434, default model: qwen2.5:7b
+2025-10-20 10:30:14.199 | INFO     | src.newspaper.ollama_client:health_check:358 - Ollama service health check: OK
+2025-10-20 10:30:14.250 | INFO     | src.newspaper.ollama_client:list_available_models:257 - Found 3 available models
+2025-10-20 10:30:14.250 | INFO     | __main__:test_multi_player_pipeline:354 -   Generating...
+2025-10-20 10:30:14.250 | INFO     | src.newspaper.ollama_client:generate_with_retry:154 - Attempt 1/3
+2025-10-20 10:30:14.250 | INFO     | src.newspaper.ollama_client:generate_article:69 - Generating article with model: qwen2.5:14b, temp: 0.7
+2025-10-20 10:30:14.250 | DEBUG    | src.newspaper.ollama_client:generate_article:70 - Prompt length: 1808 characters
+2025-10-20 10:30:20.276 | INFO     | src.newspaper.ollama_client:generate_article:100 - Generation completed in 6.03s, 2200 characters
+2025-10-20 10:30:20.276 | INFO     | src.newspaper.ollama_client:generate_with_retry:174 - Generation succeeded on attempt 1, total time: 6.03s
+2025-10-20 10:30:20.276 | INFO     | __main__:test_multi_player_pipeline:365 - 
+  ✓ Generation complete: 6.03s
+2025-10-20 10:30:20.276 | INFO     | __main__:test_multi_player_pipeline:367 - 
+================================================================================
+2025-10-20 10:30:20.276 | INFO     | __main__:test_multi_player_pipeline:368 - GENERATED ARTICLE (MULTI-BRANCH FAMILY)
+2025-10-20 10:30:20.276 | INFO     | __main__:test_multi_player_pipeline:369 - ================================================================================
+2025-10-20 10:30:20.276 | INFO     | __main__:test_multi_player_pipeline:371 - ================================================================================
+2025-10-20 10:30:20.276 | INFO     | __main__:test_multi_player_pipeline:373 - 
+✓ MULTI-PLAYER TEST COMPLETED SUCCESSFULLY!
+2025-10-20 10:30:20.276 | INFO     | __main__:main:406 - 
+
+================================================================================
+2025-10-20 10:30:20.276 | INFO     | __main__:main:407 - TEST SUMMARY
+2025-10-20 10:30:20.276 | INFO     | __main__:main:408 - ================================================================================
+2025-10-20 10:30:20.276 | INFO     | __main__:main:412 -   ✓ PASS: Single Player Pipeline
+2025-10-20 10:30:20.276 | INFO     | __main__:main:412 -   ✓ PASS: Multi-Player Pipeline
+2025-10-20 10:30:20.276 | INFO     | __main__:main:418 - 
+✓ All 2 tests passed!
+HEADLINE: BRANCH'S BURST PUMMELS CLEVELAND WITH TWO FOUR-BAGGERS
+
+In a battle of junior circuit heavyweights at Fenway Park today, Donovan Branch blazed through Cleveland's pitching staff with a scorching 3-for-4 performance that included two thunderous home runs and five RBI. The Boston Pilgrims emerged victorious with a final score of 5 to 3, thanks in large part to Branch’s offensive outburst.
+
+Branch started off the bottom of the first inning with a sharp single, setting the tone for what would become an explosive day at the plate. His power surge came alive in the fourth and seventh innings when he cleared the fences twice with towering home runs that sent the crowd into a frenzy. The second round-tripper was particularly noteworthy, as it gave Branch his fifth RBI of the game.
+
+Despite Branch's heroics, Cleveland managed to keep the Pilgrims on their toes, closing out the ninth inning before being finally subdued by Boston’s bullpen and defense. However, any hope for an improbable comeback was dashed when Branch struck out in the bottom of the ninth, sealing a hard-fought win for his team.
+
+The victory pushes the Boston Pilgrims into a tighter race with Cleveland atop the junior circuit standings, making every game crucial as the summer season progresses. For Donovan Branch, this performance solidifies him as one of the league’s most potent batsmen, demonstrating why he remains a key player in any discussion about MVP candidates for the American League.
+HEADLINE: BRANCH FAMILY DUEL ON INDEPENDENCE DAY: DONOVAN'S HEROIC HOMER VS. RANDALL'S STRUGGLES
+
+In a rare and remarkable display of familial competition on this nation's birthday, Donovan Branch of the New York Monarchs and his brother Randall, who pitches for the Chicago Railyards, faced off in Yankee Stadium before a crowd of 35,821 spectators. The game was marked by both triumph and struggle as each sibling left their mark on the diamond.
+
+Donovan Branch began the day with high hopes after entering the starting lineup against his brother's pitching staff. In what can only be described as an intense duel between family members, Donovan delivered a critical blow in the fifth inning when he launched a solo shot to right field for a two-run homer, sending the ball soaring into the upper deck. This four-bagger not only provided the Monarchs with a crucial run but also gave his team the lead at 4-3. Despite this standout moment, Donovan was held back by an impressive pitching performance from Randall, finishing the game 2-for-5 with two RBIs and one run scored.
+
+On the mound for Chicago, Randy Branch faced some challenges throughout the six innings he pitched. While his fastball and curveball kept the Monarchs off-balance, his control wavered at times, resulting in five strikeouts but also a pair of walks that contributed to four earned runs being allowed. Despite surrendering seven hits and falling short of securing victory for his team, Randy’s performance showcased resilience against his brother's offensive prowess.
+
+The game remained tight throughout, with the Monarchs narrowly edging out the Railyards 4-3 in an exciting affair. The Branch family's dual roles brought a unique element to this Independence Day matchup, making it memorable not just for its competitive spirit but also for the familial connection that was front and center all afternoon.
+
+As Donovan celebrated his home run with teammates, one could see a mix of pride and camaraderie shared between brothers on opposing sides. The Branch family’s legacy continues to be written in the annals of baseball history, making their performance this Fourth of July an event worth remembering for years to come.
