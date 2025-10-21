@@ -62,6 +62,24 @@
             </p>
         </div>
 
+        <!-- Article Images -->
+        {% if article.images %}
+        <div class="mb-8 flex justify-center">
+            {% for image in article.images %}
+            <figure class="text-center">
+                <img src="{{ image.get_image_url() }}"
+                     alt="{{ image.alt_text or image.caption or 'Article image' }}"
+                     class="mx-auto border-2 border-tan rounded-lg shadow-lg max-w-md">
+                {% if image.caption %}
+                <figcaption class="text-sm text-gray-600 italic mt-2">
+                    {{ image.caption }}
+                </figcaption>
+                {% endif %}
+            </figure>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <!-- Article Body -->
         <div class="prose prose-lg max-w-none leading-relaxed mb-8">
             {{ processed_content|safe }}

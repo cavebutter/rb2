@@ -1,10 +1,13 @@
 """Newspaper admin routes for editorial workflow"""
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort
-from app.models import Article, ArticleCategory, Player, Team, ArticlePlayerTag, ArticleTeamTag, ArticleGameTag
+from app.models import Article, ArticleCategory, Player, Team, ArticlePlayerTag, ArticleTeamTag, ArticleGameTag, ArticleImage
 from app.extensions import db
 from sqlalchemy import desc, or_, func
 from datetime import datetime
 from loguru import logger
+from werkzeug.utils import secure_filename
+import os
+import uuid
 
 bp = Blueprint('newspaper_admin', __name__)
 
@@ -263,7 +266,11 @@ def create_article():
                 return redirect(url_for('newspaper_admin.create_article'))
 
             # Generate slug from title
-            slug = title.lower().replace(' ', '-').replace("'", '').replace('"', '')
+            import re
+            # Remove all punctuation except hyphens, convert to lowercase, replace spaces with hyphens
+            slug = re.sub(r'[^\w\s-]', '', title.lower())  # Remove punctuation except hyphens
+            slug = re.sub(r'[-\s]+', '-', slug)  # Replace spaces and multiple hyphens with single hyphen
+            slug = slug.strip('-')  # Remove leading/trailing hyphens
             # Add date prefix if game_date provided
             if game_date_str:
                 game_date = datetime.strptime(game_date_str, '%Y-%m-%d').date()
@@ -324,6 +331,66 @@ def create_article():
                     is_recap=False  # User articles aren't game recaps
                 )
                 db.session.add(game_tag)
+
+            # Handle image selection
+            image_player_id = request.form.get('image_player_id')
+            image_team_id = request.form.get('image_team_id')
+            custom_image = request.files.get('custom_image')
+            image_caption = request.form.get('image_caption', '').strip()
+
+            if image_player_id:
+                # Add player image
+                player_image = ArticleImage(
+                    article_id=article.article_id,
+                    image_type='player',
+                    player_id=int(image_player_id),
+                    caption=image_caption or None,
+                    display_order=1
+                )
+                db.session.add(player_image)
+                logger.info(f'Added player image for player_id={image_player_id}')
+
+            elif image_team_id:
+                # Add team logo
+                logo_size = request.form.get('logo-size-select', 'default')
+                team_logo = ArticleImage(
+                    article_id=article.article_id,
+                    image_type='team_logo',
+                    team_id=int(image_team_id),
+                    logo_size=logo_size,
+                    caption=image_caption or None,
+                    display_order=1
+                )
+                db.session.add(team_logo)
+                logger.info(f'Added team logo for team_id={image_team_id}, size={logo_size}')
+
+            elif custom_image and custom_image.filename:
+                # Handle uploaded image
+                filename = secure_filename(custom_image.filename)
+                # Add unique prefix to prevent collisions
+                unique_filename = f"{uuid.uuid4().hex}_{filename}"
+
+                # Save to uploads directory
+                upload_dir = os.path.join(
+                    os.path.dirname(__file__), '..', 'static', 'uploads', 'articles'
+                )
+                filepath = os.path.join(upload_dir, unique_filename)
+
+                custom_image.save(filepath)
+                file_size = os.path.getsize(filepath)
+
+                uploaded_image = ArticleImage(
+                    article_id=article.article_id,
+                    image_type='uploaded',
+                    uploaded_filename=unique_filename,
+                    uploaded_path=f'uploads/articles/{unique_filename}',
+                    file_size=file_size,
+                    mime_type=custom_image.mimetype,
+                    caption=image_caption or None,
+                    display_order=1
+                )
+                db.session.add(uploaded_image)
+                logger.info(f'Uploaded custom image: {unique_filename}, size={file_size} bytes')
 
             db.session.commit()
 

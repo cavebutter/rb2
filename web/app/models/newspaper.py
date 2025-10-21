@@ -75,6 +75,7 @@ class Article(BaseModel):
     player_tags = relationship('ArticlePlayerTag', back_populates='article', cascade='all, delete-orphan')
     team_tags = relationship('ArticleTeamTag', back_populates='article', cascade='all, delete-orphan')
     game_tags = relationship('ArticleGameTag', back_populates='article', cascade='all, delete-orphan')
+    images = relationship('ArticleImage', back_populates='article', cascade='all, delete-orphan', order_by='ArticleImage.display_order')
     previous_version = relationship('Article', remote_side=[article_id], uselist=False)
 
     def __repr__(self):
@@ -155,3 +156,66 @@ class ArticleGameTag(BaseModel):
 
     def __repr__(self):
         return f"<ArticleGameTag article_id={self.article_id} game_id={self.game_id}>"
+
+
+class ArticleImage(BaseModel):
+    """Images associated with newspaper articles"""
+    __tablename__ = 'article_images'
+
+    image_id = Column(Integer, primary_key=True)
+    article_id = Column(Integer, ForeignKey('newspaper_articles.article_id'), nullable=False)
+    image_type = Column(String(20), nullable=False)  # 'player', 'team_logo', 'uploaded'
+
+    # For player images (path: etl/data/images/players/player_{id}.png)
+    player_id = Column(Integer, ForeignKey('players_core.player_id'))
+
+    # For team logo images (path: etl/data/images/team_logos/{team_name}_{size}.png)
+    team_id = Column(Integer, ForeignKey('teams.team_id'))
+    logo_size = Column(String(10), default='default')  # 'default', '16', '25', '40', '50', '110'
+
+    # For uploaded images (stored in web/app/static/uploads/articles/)
+    uploaded_filename = Column(String(255))
+    uploaded_path = Column(String(500))
+    file_size = Column(Integer)  # bytes
+    mime_type = Column(String(100))
+
+    # Common fields
+    caption = Column(Text)
+    alt_text = Column(String(255))
+    display_order = Column(Integer, default=1)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    article = relationship('Article', back_populates='images')
+    player = relationship('Player', foreign_keys=[player_id])
+    team = relationship('Team', foreign_keys=[team_id])
+
+    def __repr__(self):
+        return f"<ArticleImage {self.image_id}: {self.image_type}>"
+
+    def get_image_url(self):
+        """Generate the URL for this image"""
+        from flask import url_for
+
+        if self.image_type == 'player':
+            # Player images: /etl-images/players/player_{id}.png
+            return url_for('main.serve_etl_image', image_path=f'players/player_{self.player_id}.png')
+
+        elif self.image_type == 'team_logo':
+            # Team logos: /etl-images/team_logos/{team_name}_{nickname}_{size}.png
+            if self.team:
+                # Format: name_nickname (e.g., mesquite_smokies)
+                team_name = self.team.name.lower().replace(' ', '_')
+                team_nickname = self.team.nickname.lower().replace(' ', '_')
+                base_name = f'{team_name}_{team_nickname}'
+
+                if self.logo_size and self.logo_size != 'default':
+                    return url_for('main.serve_etl_image', image_path=f'team_logos/{base_name}_{self.logo_size}.png')
+                else:
+                    return url_for('main.serve_etl_image', image_path=f'team_logos/{base_name}.png')
+
+        elif self.image_type == 'uploaded':
+            # Uploaded images: /static/uploads/articles/{filename}
+            return url_for('static', filename=f'uploads/articles/{self.uploaded_filename}')
+
+        return None

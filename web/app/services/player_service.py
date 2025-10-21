@@ -889,6 +889,7 @@ def get_players_born_this_week(days_range=7):
     # Build query - need to handle year wraparound
     # Case 1: Same month or sequential months (no wraparound)
     # Case 2: Wraparound (e.g., Dec 28 to Jan 4)
+    # Limit to 12 players ordered by total WAR (batting + pitching)
     if start_month <= end_month:
         # No wraparound - simple range check
         query = text("""
@@ -903,6 +904,8 @@ def get_players_born_this_week(days_range=7):
             FROM players_core p
             JOIN players_current_status pcs ON p.player_id = pcs.player_id
             LEFT JOIN teams t ON pcs.team_id = t.team_id
+            LEFT JOIN players_career_batting_stats pcbs ON p.player_id = pcbs.player_id
+            LEFT JOIN players_career_pitching_stats pcps ON p.player_id = pcps.player_id
             WHERE p.date_of_birth IS NOT NULL
                 AND (
                     (EXTRACT(MONTH FROM p.date_of_birth) > :start_month
@@ -913,8 +916,10 @@ def get_players_born_this_week(days_range=7):
                      OR (EXTRACT(MONTH FROM p.date_of_birth) = :end_month
                          AND EXTRACT(DAY FROM p.date_of_birth) <= :end_day))
                 )
-            ORDER BY EXTRACT(MONTH FROM p.date_of_birth), EXTRACT(DAY FROM p.date_of_birth)
-            LIMIT 50
+            ORDER BY (COALESCE(pcbs.war, 0) + COALESCE(pcps.war, 0)) DESC,
+                     EXTRACT(MONTH FROM p.date_of_birth),
+                     EXTRACT(DAY FROM p.date_of_birth)
+            LIMIT 12
         """)
     else:
         # Wraparound - match either end of year or beginning of year
@@ -930,6 +935,8 @@ def get_players_born_this_week(days_range=7):
             FROM players_core p
             JOIN players_current_status pcs ON p.player_id = pcs.player_id
             LEFT JOIN teams t ON pcs.team_id = t.team_id
+            LEFT JOIN players_career_batting_stats pcbs ON p.player_id = pcbs.player_id
+            LEFT JOIN players_career_pitching_stats pcps ON p.player_id = pcps.player_id
             WHERE p.date_of_birth IS NOT NULL
                 AND (
                     (EXTRACT(MONTH FROM p.date_of_birth) > :start_month
@@ -940,8 +947,10 @@ def get_players_born_this_week(days_range=7):
                      OR (EXTRACT(MONTH FROM p.date_of_birth) = :end_month
                          AND EXTRACT(DAY FROM p.date_of_birth) <= :end_day))
                 )
-            ORDER BY EXTRACT(MONTH FROM p.date_of_birth), EXTRACT(DAY FROM p.date_of_birth)
-            LIMIT 50
+            ORDER BY (COALESCE(pcbs.war, 0) + COALESCE(pcps.war, 0)) DESC,
+                     EXTRACT(MONTH FROM p.date_of_birth),
+                     EXTRACT(DAY FROM p.date_of_birth)
+            LIMIT 12
         """)
 
     result = db.session.execute(query, {

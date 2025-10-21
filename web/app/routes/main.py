@@ -1,9 +1,10 @@
 """Main routes (Home page, etc)"""
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, send_from_directory, abort
 from app.models import Team, TeamRecord, League, SubLeague, Division
 from app.services.player_service import get_notable_rookies, get_featured_players, get_players_born_this_week
 from app.extensions import cache
 from sqlalchemy import and_
+import os
 
 bp = Blueprint('main', __name__)
 
@@ -145,3 +146,33 @@ def index():
 def health():
     """Health Check endpoint"""
     return {'status': 'OK'}, 200
+
+
+@bp.route('/etl-images/<path:image_path>')
+def serve_etl_image(image_path):
+    """
+    Serve images from etl/data/images/ directory
+
+    Examples:
+        /etl-images/players/player_123.png
+        /etl-images/team_logos/boston_red_sox.png
+        /etl-images/league_logos/mlb.png
+    """
+    # Get the base directory (web/app -> rb2 project root)
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+    images_dir = os.path.join(base_dir, 'etl', 'data', 'images')
+
+    # Security: Prevent directory traversal
+    requested_path = os.path.normpath(image_path)
+    if requested_path.startswith('..'):
+        abort(404)
+
+    # Check if file exists
+    full_path = os.path.join(images_dir, requested_path)
+    if not os.path.exists(full_path):
+        abort(404)
+
+    # Serve the file
+    directory = os.path.dirname(full_path)
+    filename = os.path.basename(full_path)
+    return send_from_directory(directory, filename)

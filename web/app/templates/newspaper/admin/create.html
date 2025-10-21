@@ -20,7 +20,7 @@
     </div>
 
     <!-- Form -->
-    <form method="POST" class="bg-white rounded-lg shadow-lg border-2 border-leather p-8">
+    <form method="POST" enctype="multipart/form-data" class="bg-white rounded-lg shadow-lg border-2 border-leather p-8">
         <!-- Title -->
         <div class="mb-6">
             <label for="title" class="block text-sm font-semibold text-forest mb-2">
@@ -127,6 +127,79 @@
             <div id="team-results" class="mt-2 bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
         </div>
 
+        <!-- Article Images -->
+        <div class="mb-8 border-2 border-tan rounded-lg p-6">
+            <h3 class="text-xl font-bold text-forest mb-4">Article Images (Optional)</h3>
+
+            <!-- Tab Navigation -->
+            <div class="flex border-b-2 border-tan mb-4">
+                <button type="button" onclick="switchImageTab('player')"
+                        id="tab-player"
+                        class="px-4 py-2 font-medium border-b-2 -mb-0.5 transition-colors tab-active">
+                    Player Pictures
+                </button>
+                <button type="button" onclick="switchImageTab('team')"
+                        id="tab-team"
+                        class="px-4 py-2 font-medium border-b-2 -mb-0.5 transition-colors text-gray-600 border-transparent hover:text-forest">
+                    Team Logos
+                </button>
+                <button type="button" onclick="switchImageTab('upload')"
+                        id="tab-upload"
+                        class="px-4 py-2 font-medium border-b-2 -mb-0.5 transition-colors text-gray-600 border-transparent hover:text-forest">
+                    Upload Custom
+                </button>
+            </div>
+
+            <!-- Player Pictures Tab -->
+            <div id="image-tab-player" class="image-tab-content">
+                <p class="text-sm text-gray-600 mb-3">Select player picture from tagged players above</p>
+                <div id="player-image-selection" class="space-y-2">
+                    <p class="text-sm text-gray-500 italic">Tag players above to select their images</p>
+                </div>
+            </div>
+
+            <!-- Team Logos Tab -->
+            <div id="image-tab-team" class="image-tab-content hidden">
+                <p class="text-sm text-gray-600 mb-3">Select team logo from tagged teams above</p>
+                <div id="team-logo-selection" class="space-y-2">
+                    <p class="text-sm text-gray-500 italic">Tag teams above to select their logos</p>
+                </div>
+                <div class="mt-4" id="logo-size-container" style="display: none;">
+                    <label class="block text-sm font-semibold text-forest mb-2">Logo Size</label>
+                    <select id="logo-size-select" class="px-4 py-2 border-2 border-tan rounded-lg focus:border-forest focus:ring-2 focus:ring-vintage-gold focus:outline-none">
+                        <option value="default">Default</option>
+                        <option value="16">16px</option>
+                        <option value="25">25px</option>
+                        <option value="40">40px</option>
+                        <option value="50">50px</option>
+                        <option value="110">110px</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Upload Custom Tab -->
+            <div id="image-tab-upload" class="image-tab-content hidden">
+                <p class="text-sm text-gray-600 mb-3">Upload a custom image from your computer</p>
+                <input type="file" id="custom-image-upload" name="custom_image" accept="image/*"
+                       class="w-full px-4 py-2 border-2 border-tan rounded-lg focus:border-forest focus:ring-2 focus:ring-vintage-gold focus:outline-none">
+                <div id="image-preview" class="mt-4 hidden">
+                    <img id="preview-img" src="" alt="Preview" class="max-w-xs border-2 border-tan rounded-lg">
+                </div>
+                <div class="mt-4">
+                    <label for="image-caption" class="block text-sm font-semibold text-forest mb-2">Caption (optional)</label>
+                    <input type="text" id="image-caption" name="image_caption"
+                           class="w-full px-4 py-2 border-2 border-tan rounded-lg focus:border-forest focus:ring-2 focus:ring-vintage-gold focus:outline-none"
+                           placeholder="Enter image caption">
+                </div>
+            </div>
+
+            <!-- Selected Images Display -->
+            <div id="selected-images-container" class="mt-6 hidden">
+                <h4 class="font-semibold text-forest mb-2">Selected Images:</h4>
+                <div id="selected-images-list" class="space-y-2"></div>
+            </div>
+        </div>
+
         <!-- Submit Button -->
         <div class="flex justify-end gap-4">
             <a href="{{ url_for('newspaper_admin.draft_list') }}"
@@ -142,9 +215,16 @@
 </div>
 
 <!-- JavaScript for autocomplete -->
+<style>
+.tab-active {
+    color: #1B4D3E;
+    border-color: #1B4D3E !important;
+}
+</style>
 <script>
 let playerTags = [];
 let teamTags = [];
+let selectedImages = [];
 
 // Player autocomplete
 const playerSearch = document.getElementById('player-search');
@@ -266,5 +346,190 @@ document.addEventListener('click', function(e) {
         teamResults.classList.add('hidden');
     }
 });
+
+// ===== IMAGE SELECTION FUNCTIONALITY =====
+
+// Switch between image tabs
+function switchImageTab(tab) {
+    // Hide all tabs
+    document.querySelectorAll('.image-tab-content').forEach(el => el.classList.add('hidden'));
+    // Remove active class from all tab buttons
+    document.querySelectorAll('[id^="tab-"]').forEach(btn => {
+        btn.classList.remove('tab-active');
+        btn.classList.add('text-gray-600', 'border-transparent');
+    });
+
+    // Show selected tab
+    document.getElementById(`image-tab-${tab}`).classList.remove('hidden');
+    // Add active class to clicked tab
+    const activeTab = document.getElementById(`tab-${tab}`);
+    activeTab.classList.add('tab-active');
+    activeTab.classList.remove('text-gray-600', 'border-transparent');
+}
+
+// Update player image selection when players are tagged
+function updatePlayerImageSelection() {
+    const container = document.getElementById('player-image-selection');
+    if (playerTags.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-500 italic">Tag players above to select their images</p>';
+        return;
+    }
+
+    // Get player names from the tags
+    const playerElements = document.querySelectorAll('#player-tags-container [name="player_ids[]"]');
+    let html = '';
+    playerElements.forEach(input => {
+        const playerId = input.value;
+        const playerName = input.parentElement.querySelector('span').textContent.split('(')[0].trim();
+        html += `
+            <label class="flex items-center gap-3 p-3 border border-tan rounded-lg hover:bg-cream cursor-pointer">
+                <input type="radio" name="image_player_id" value="${playerId}"
+                       onchange="selectPlayerImage(${playerId}, '${playerName.replace(/'/g, "\\'")}')"
+                       class="w-4 h-4 text-forest">
+                <span>${playerName}</span>
+            </label>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+// Update team logo selection when teams are tagged
+function updateTeamLogoSelection() {
+    const container = document.getElementById('team-logo-selection');
+    if (teamTags.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-500 italic">Tag teams above to select their logos</p>';
+        return;
+    }
+
+    const teamElements = document.querySelectorAll('#team-tags-container [name="team_ids[]"]');
+    let html = '';
+    teamElements.forEach(input => {
+        const teamId = input.value;
+        const teamName = input.parentElement.querySelector('span').textContent;
+        html += `
+            <label class="flex items-center gap-3 p-3 border border-tan rounded-lg hover:bg-cream cursor-pointer">
+                <input type="radio" name="image_team_id" value="${teamId}"
+                       onchange="selectTeamLogo(${teamId}, '${teamName.replace(/'/g, "\\'")}')"
+                       class="w-4 h-4 text-forest">
+                <span>${teamName}</span>
+            </label>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function selectPlayerImage(playerId, playerName) {
+    // Clear team logo selection
+    const teamRadios = document.querySelectorAll('[name="image_team_id"]');
+    teamRadios.forEach(r => r.checked = false);
+
+    selectedImages = [{
+        type: 'player',
+        id: playerId,
+        name: playerName
+    }];
+    updateSelectedImagesDisplay();
+}
+
+function selectTeamLogo(teamId, teamName) {
+    // Clear player image selection
+    const playerRadios = document.querySelectorAll('[name="image_player_id"]');
+    playerRadios.forEach(r => r.checked = false);
+
+    const logoSize = document.getElementById('logo-size-select').value;
+    selectedImages = [{
+        type: 'team_logo',
+        id: teamId,
+        name: teamName,
+        logoSize: logoSize
+    }];
+    document.getElementById('logo-size-container').style.display = 'block';
+    updateSelectedImagesDisplay();
+}
+
+// Update logo size when changed
+document.getElementById('logo-size-select').addEventListener('change', function() {
+    if (selectedImages.length > 0 && selectedImages[0].type === 'team_logo') {
+        selectedImages[0].logoSize = this.value;
+        updateSelectedImagesDisplay();
+    }
+});
+
+// Handle custom image upload preview
+document.getElementById('custom-image-upload').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('preview-img').src = e.target.result;
+            document.getElementById('image-preview').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+
+        // Clear player/team selections
+        document.querySelectorAll('[name="image_player_id"]').forEach(r => r.checked = false);
+        document.querySelectorAll('[name="image_team_id"]').forEach(r => r.checked = false);
+
+        selectedImages = [{
+            type: 'uploaded',
+            filename: file.name
+        }];
+        updateSelectedImagesDisplay();
+    }
+});
+
+function updateSelectedImagesDisplay() {
+    const container = document.getElementById('selected-images-container');
+    const list = document.getElementById('selected-images-list');
+
+    if (selectedImages.length === 0) {
+        container.classList.add('hidden');
+        return;
+    }
+
+    container.classList.remove('hidden');
+    let html = '';
+    selectedImages.forEach(img => {
+        if (img.type === 'player') {
+            html += `<div class="px-4 py-2 bg-forest-light text-cream rounded">
+                        Player Picture: ${img.name}
+                     </div>`;
+        } else if (img.type === 'team_logo') {
+            html += `<div class="px-4 py-2 bg-forest-light text-cream rounded">
+                        Team Logo: ${img.name} (${img.logoSize || 'default'} size)
+                     </div>`;
+        } else if (img.type === 'uploaded') {
+            html += `<div class="px-4 py-2 bg-forest-light text-cream rounded">
+                        Custom Upload: ${img.filename}
+                     </div>`;
+        }
+    });
+    list.innerHTML = html;
+}
+
+// Override the original addPlayer/addTeam functions to update image selection
+const originalAddPlayer = addPlayer;
+addPlayer = function(id, name, position) {
+    originalAddPlayer(id, name, position);
+    updatePlayerImageSelection();
+};
+
+const originalRemovePlayer = removePlayer;
+removePlayer = function(id, btn) {
+    originalRemovePlayer(id, btn);
+    updatePlayerImageSelection();
+};
+
+const originalAddTeam = addTeam;
+addTeam = function(id, display) {
+    originalAddTeam(id, display);
+    updateTeamLogoSelection();
+};
+
+const originalRemoveTeam = removeTeam;
+removeTeam = function(id, btn) {
+    originalRemoveTeam(id, btn);
+    updateTeamLogoSelection();
+};
 </script>
 {% endblock %}

@@ -55,7 +55,8 @@ from .newspaper import (
     ArticleCategory,
     ArticlePlayerTag,
     ArticleTeamTag,
-    ArticleGameTag
+    ArticleGameTag,
+    ArticleImage
 )
 
 __all__ = [
@@ -125,4 +126,5 @@ __all__ = [
     'ArticlePlayerTag',
     'ArticleTeamTag',
     'ArticleGameTag',
+    'ArticleImage',
 ]
